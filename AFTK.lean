@@ -1,3 +1,3 @@
 module
 
-import AFTK.Server
+public import AFTK.FileWorker

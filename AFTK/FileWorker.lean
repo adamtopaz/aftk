@@ -77,17 +77,21 @@ def invalidParamsError (message : String) : LeanWorker.JsonRpc.Error :=
 def internalError (message : String) : LeanWorker.JsonRpc.Error :=
   LeanWorker.JsonRpc.Error.withData LeanWorker.JsonRpc.Error.internalError (.str message)
 
-def runTacticM (id : String) (go : Tactic.TacticM α) : 
+def tacticFailedError (message : String) : LeanWorker.JsonRpc.Error :=
+  { code := -32001, message := "Tactic failed", data? := some (.str message) }
+
+def runTacticM (id : String) (go : Tactic.TacticM α)
+    (onError : String → LeanWorker.JsonRpc.Error := internalError) :
     LeanWorker.Server.StatefulHandlerM Context State (α × String) := do
   let some s := (← get).nodes.get? id
     | throw <| invalidParamsError s!"unknown node id: {id}"
   match ← s.runTacticM go |>.toBaseIO with
-  | .ok (out, nextState) => 
+  | .ok (out, nextState) =>
     let nextId ← mkId
     modify fun s => { nodes := s.nodes.insert nextId nextState }
     return (out, nextId)
-  | .error err => 
-    throw <| internalError (toString err)
+  | .error err =>
+    throw <| onError (toString err)
 
 structure GetGoalsParam where
   id : String
@@ -171,7 +175,7 @@ def runTactic : LeanWorker.Server.StatefulHandler Context State RunTacticParam R
     match Parser.runParserCategory node.coreState.env `tactic tacStr with
     | .ok tac => pure tac
     | .error err => throw <| invalidParamsError s!"failed to parse tactic: {err}"
-  let ⟨goals, nextId⟩ ← runTacticM id do
+  let ⟨goals, nextId⟩ ← runTacticM id (onError := tacticFailedError) do
     Tactic.evalTactic tac
     let goals ← Tactic.getUnsolvedGoals
     let goals : List String ← goals.mapM fun goal => goal.withContext do
