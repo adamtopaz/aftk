@@ -2,6 +2,16 @@ name = "aftk"
 version = "0.1.0"
 defaultTargets = ["aftk"]
 
+[[require]]
+name = "lean_worker"
+git = "https://github.com/adamtopaz/lean_worker"
+rev = "main"
+
+[[lean_exe]]
+name = "server"
+root = "AFTK.Server"
+supportInterpreter = true
+
 [[lean_lib]]
 name = "AFTK"
 
