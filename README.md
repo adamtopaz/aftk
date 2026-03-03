@@ -1,15 +1,144 @@
-# AFTK
+# AFTK: Agent-Oriented Autoformalization Toolkit for Lean
 
-AFTK provides two Lean JSON-RPC executables:
+AFTK provides **two complementary layers** for autoformalization:
 
-- `aftk_file_worker`: per-file tactic worker
-- `aftk_server`: hub server that manages multiple file workers
+1. **Informalize**: build and track an *informal blueprint* of the formalization project.
+2. **AFTK hub + pi extension**: query Lean semantic state and explore tactic strategies transiently.
 
-This repository also contains `Informalize` (library + CLI).
-See:
+The intended workflow is:
 
-- `docs/informalize/README.md`
-- `docs/informalize/IdReference.md`
+- start with high-level mathematical structure,
+- encode that structure as blueprint placeholders,
+- track dependencies and natural-language context,
+- gradually refine toward direct Lean formalization.
+
+---
+
+## Why this package exists
+
+Direct one-shot formalization is often brittle. AFTK is designed for a **gradual refinement loop**:
+
+- organize target theorems and definitions early,
+- connect Lean declarations to human-readable math notes,
+- expose machine-queryable project state to AI agents,
+- let agents explore proof strategies before committing final proof scripts.
+
+The blueprint is an **intermediate planning layer**, not the final endpoint.
+
+---
+
+## Part 1: Informalize (blueprint layer)
+
+Informalize introduces:
+
+- a term elaborator `informal[...]` / `informal ...`,
+- an environment extension that tracks which declarations use `informal`,
+- a CLI for querying blueprint status/dependencies/locations.
+
+### Core syntax
+
+```lean
+informal[Foo.bar]
+informal[Foo.bar] x y
+informal[Foo.bar.baz] x y
+informal x y
+```
+
+With a location id, Informalize resolves markdown paths under `informal/`:
+
+- `Foo.bar` -> `informal/Foo/bar.md`
+- `Foo.bar.baz` -> `informal/Foo/bar/baz.md`
+
+The markdown file must exist when elaborating `informal[...]`.
+
+### What gets tracked
+
+For each declaration containing `informal`, Informalize records:
+
+- declaration name,
+- deduplicated set of referenced location ids (possibly empty for bare `informal`).
+
+This gives a project-level map between:
+
+- Lean declarations,
+- natural-language blueprint fragments,
+- declaration-level dependency structure (via CLI `deps`).
+
+### Informal terms as placeholders (similar to `sorry`)
+
+`informal` terms are regular Lean terms, so agents can use them as typed placeholders
+inside declaration values and proofs while a target is still being refined.
+
+This is intentionally similar in spirit to `sorry`-driven workflows, except that:
+
+- placeholders can be linked to structured blueprint ids (`informal[...]`), and
+- each id can carry markdown notes that are queryable later.
+
+### CLI (for AI agent planning)
+
+```bash
+lake exe informalize status --module <Module.Name>
+lake exe informalize deps --module <Module.Name>
+lake exe informalize decls --module <Module.Name>
+lake exe informalize decl --module <Module.Name> --decl <Decl.Name>
+lake exe informalize locations --module <Module.Name>
+lake exe informalize location --module <Module.Name> --location <Location.Name>
+```
+
+These commands are intended to support agent planning/triage over the blueprint.
+
+---
+
+## Part 2: AFTK hub + pi extension (semantic query + proof exploration)
+
+AFTK ships two Lean JSON-RPC executables:
+
+- `aftk_file_worker`: file-scoped analysis/tactic worker
+- `aftk_server`: hub process managing multiple file workers
+
+And a pi extension:
+
+- `extensions/aftk-hub.ts`
+
+### What agents use this for
+
+- infoview-like semantic queries at source locations (`hover`, goals, expected term goal),
+- loading tactic nodes from source positions,
+- running one or many tactic steps from a given node id.
+
+### Crucial synergy: use AFTK and Informalize together
+
+AI agents are expected to use both layers in one loop.
+
+A key pattern:
+
+1. Put `informal[Blueprint.Id]` placeholders in Lean code.
+2. Store strategy/context notes in `informal/.../*.md` for that id.
+3. Query `aftk_get_hover` at the informal term location.
+4. Recover natural-language notes directly in-agent while exploring tactics.
+5. Convert successful exploration into final tactic proof text.
+
+Because Informalize attaches markdown content to informal terms and AFTK exposes hover,
+this creates a direct bridge from natural-language planning notes to proof search.
+
+### Transient proof exploration model
+
+`run_tactic` / `run_tactic_steps` produce new node ids in worker memory.
+
+These exploratory states are **transient**:
+
+- they are for search/experimentation,
+- they are not persisted as final proof text,
+- they disappear when workers are closed/restarted (e.g. file changes).
+
+Expected agent behavior:
+
+1. explore candidate tactic paths,
+2. inspect resulting goals/output,
+3. keep only promising branches,
+4. write a real Lean proof script afterward.
+
+---
 
 ## Build
 
@@ -17,262 +146,87 @@ See:
 lake build
 ```
 
-Or build specific binaries:
+Build specific executables:
 
 ```bash
-lake build aftk_server aftk_file_worker
+lake build aftk_server aftk_file_worker informalize
 ```
 
-## pi extension setup
+---
 
-AFTK ships a pi extension at:
-
-- `extensions/aftk-hub.ts`
-
-From a downstream Lean project that depends on AFTK, install it project-locally with:
+## Install pi extension (from downstream project)
 
 ```bash
 lake run setup_pi_extension
-# or, with explicit package qualifier:
+# or
 lake run aftk/setup_pi_extension
 ```
 
-(`aftk` in the qualified form is the dependency name in your `require` declaration.)
+This resolves the AFTK package path and runs `pi install -l <path-to-aftk-extension>`.
 
-This runs `pi install -l ...` with the resolved AFTK extension path.
+---
 
-## Executables
+## Hub methods (quick reference)
 
-## `aftk_file_worker`
+Lifecycle:
 
-Run directly on one Lean file:
+- `open`
+- `close`
+- `shutdown`
 
-```bash
-lake exe aftk_file_worker <path-to-lean-file>
-```
+Source-position inspection (`line`/`col` are 1-based):
 
-Methods exposed by the file worker:
+- `load_node`
+- `get_hover`
+- `get_plain_goal`
+- `get_plain_term_goal`
+- `get_infoview`
 
-- `load_node` `{ line, col } -> { id : Array String }`
-- `get_hover` `{ line, col } -> Option { text, range }`
-- `get_plain_goal` `{ line, col } -> Option { goals, rendered }`
-- `get_plain_term_goal` `{ line, col } -> Option { goal, range }`
-- `get_infoview` `{ line, col } -> { hover, plainGoal, plainTermGoal }`
-- `get_goals` `{ id } -> { goals : List String }`
-- `run_tactic` `{ id, tactic } -> { goals : List String, nextId : String }`
+Tactic-state operations:
 
-For `{ line, col }`, both values are 1-based.
-
-## `aftk_server`
-
-Run the hub server:
-
-```bash
-lake exe aftk_server
-```
-
-The hub:
-
-- opens files by spawning `aftk_file_worker` subprocesses
-- routes file-scoped requests to the correct worker
-- supports multiple open files at once
-- stops a worker when its file changes on disk
-
-## Transport / protocol
-
-Both executables use newline-framed JSON-RPC 2.0 over stdin/stdout (one JSON message per line).
-
-## Hub API (`aftk_server`)
-
-### `open`
-Params:
-
-```json
-{ "path": "..." }
-```
-
-Result:
-
-```json
-{ "path": "...", "opened": true }
-```
-
-- `opened = true`: a new worker was started
-- `opened = false`: file was already open and reused
-
-### `close`
-Params:
-
-```json
-{ "path": "..." }
-```
-
-Result:
-
-```json
-{ "path": "...", "closed": true }
-```
-
-### `load_node`
-Params:
-
-```json
-{ "path": "...", "line": 7, "col": 3 }
-```
-
-Result:
-
-```json
-{ "id": ["..."] }
-```
-
-For all location-based methods (`load_node`, `get_hover`, `get_plain_goal`, `get_plain_term_goal`, `get_infoview`), `line` and `col` are 1-based.
-
-### `get_hover`
-Params:
-
-```json
-{ "path": "...", "line": 7, "col": 3 }
-```
-
-Result:
-
-```json
-{ "text": "...", "range": { "start": { "line": 7, "col": 3 }, "stop": { "line": 7, "col": 8 } } }
-```
-
-If there is no hover information at that position, result is `null`.
-
-### `get_plain_goal`
-Params:
-
-```json
-{ "path": "...", "line": 7, "col": 3 }
-```
-
-Result:
-
-```json
-{ "goals": ["..."], "rendered": "..." }
-```
-
-If there is no goal-state information at that position, result is `null`.
-
-### `get_plain_term_goal`
-Params:
-
-```json
-{ "path": "...", "line": 7, "col": 3 }
-```
-
-Result:
-
-```json
-{ "goal": "...", "range": { "start": { "line": 7, "col": 3 }, "stop": { "line": 7, "col": 8 } } }
-```
-
-If there is no term-goal information at that position, result is `null`.
-
-### `get_infoview`
-Params:
-
-```json
-{ "path": "...", "line": 7, "col": 3 }
-```
-
-Result:
-
-```json
-{
-  "hover": { "text": "...", "range": null },
-  "plainGoal": { "goals": ["..."], "rendered": "..." },
-  "plainTermGoal": null
-}
-```
-
-Any of `hover`, `plainGoal`, and `plainTermGoal` may be omitted when unavailable.
-
-### `get_goals`
-Params:
-
-```json
-{ "path": "...", "id": "..." }
-```
-
-Result:
-
-```json
-{ "goals": ["..."] }
-```
-
-### `run_tactic`
-Params:
-
-```json
-{ "path": "...", "id": "...", "tactic": "..." }
-```
-
-Result:
-
-```json
-{ "goals": ["..."], "nextId": "..." }
-```
-
-### `run_tactic_steps`
-Runs multiple tactics starting at a given node id.
-
-Params:
-
-```json
-{ "path": "...", "id": "...", "tactics": ["...", "..."] }
-```
-
-Result:
-
-```json
-{
-  "results": [
-    { "goals": ["..."], "nextId": "..." },
-    { "goals": ["..."], "nextId": "..." }
-  ]
-}
-```
-
-Notes:
-
-- tactics are applied in order
-- each next step uses the previous step’s `nextId`
-- internally this uses JSON-RPC batch calls to the file worker
-
-### `shutdown`
-Stops all active file workers managed by the hub.
-
-Params:
-
-```json
-{}
-```
-
-Result:
-
-```json
-{ "stopped": 2 }
-```
-
-## Error behavior
+- `get_goals`
+- `run_tactic`
+- `run_tactic_steps`
 
 Common hub errors:
 
-- `-32010`: file is not open
-- `-32011`: file changed on disk; reopen required
+- `-32010`: file not open
+- `-32011`: file changed; reopen required
 - `-32012`: worker unavailable
 
-Worker errors (e.g. tactic parse/failure) are propagated as JSON-RPC errors.
+---
 
-## Typical flow
+## Recommended agent workflow
 
-1. `open` file
-2. `load_node` at a source position
-3. call `get_hover` / `get_plain_goal` / `get_plain_term_goal` / `get_infoview` and/or `get_goals` / `run_tactic` / `run_tactic_steps`
-4. optionally `close` file
-5. `shutdown` hub when done
+1. **Model high-level plan** with `informal[...]` placeholders and markdown blueprint notes.
+2. **Query blueprint state** via `informalize` CLI (`status`, `deps`, `decls`, `locations`, ...).
+3. **Select a local formalization target** based on dependency/frontier information.
+4. **Query semantic + note context together** with AFTK (`get_hover`, goals, term-goals).
+   - At informal terms, hover can include blueprint markdown content.
+5. **Explore tactics transiently** with `run_tactic` / `run_tactic_steps`.
+6. **Write/update natural-language strategy notes** in the linked markdown file as you explore.
+7. **Commit only final proof text** to Lean source once a strategy is validated.
+8. Repeat until blueprint placeholders are replaced by direct formalization.
+
+---
+
+## Important soundness note
+
+`informal` elaborates through the unsound axiom:
+
+```lean
+axiom Informalize.Informal.{u} (tag : Lean.Name) (alpha : Sort u) : alpha
+```
+
+So Informalize is a planning/organization mechanism for gradual formalization,
+not a substitute for completed formal proofs.
+
+---
+
+## Documentation map
+
+- Informalize overview: `docs/informalize/README.md`
+- Informal id rules: `docs/informalize/IdReference.md`
+- AFTK hub + extension details: `docs/aftk/README.md`
+- End-to-end agent workflow playbook: `docs/agent-playbook.md`
+- Roadmap ideas: `docs/future/autoformalization-tools.md`

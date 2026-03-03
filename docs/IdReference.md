@@ -1,5 +1,7 @@
-# Informal Id Reference (moved)
+# Informalize ID Reference (legacy path)
 
-This document now lives at:
+The canonical document is:
 
 - `docs/informalize/IdReference.md`
+
+This file remains only as a compatibility redirect for older links.
