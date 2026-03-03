@@ -23,6 +23,24 @@ Or build specific binaries:
 lake build aftk_server aftk_file_worker
 ```
 
+## pi extension setup
+
+AFTK ships a pi extension at:
+
+- `extensions/aftk-hub.ts`
+
+From a downstream Lean project that depends on AFTK, install it project-locally with:
+
+```bash
+lake run setup_pi_extension
+# or, with explicit package qualifier:
+lake run aftk/setup_pi_extension
+```
+
+(`aftk` in the qualified form is the dependency name in your `require` declaration.)
+
+This runs `pi install -l ...` with the resolved AFTK extension path.
+
 ## Executables
 
 ## `aftk_file_worker`
