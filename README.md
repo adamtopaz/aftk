@@ -5,6 +5,12 @@ AFTK provides two Lean JSON-RPC executables:
 - `aftk_file_worker`: per-file tactic worker
 - `aftk_server`: hub server that manages multiple file workers
 
+This repository also contains `Informalize` (library + CLI).
+See:
+
+- `docs/informalize/README.md`
+- `docs/informalize/IdReference.md`
+
 ## Build
 
 ```bash
