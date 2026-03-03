@@ -11,6 +11,10 @@ Tools:
 - `aftk_open`
 - `aftk_close`
 - `aftk_load_node`
+- `aftk_get_hover`
+- `aftk_get_plain_goal`
+- `aftk_get_plain_term_goal`
+- `aftk_get_infoview`
 - `aftk_get_goals`
 - `aftk_run_tactic`
 - `aftk_run_tactic_steps`

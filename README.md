@@ -30,8 +30,14 @@ lake exe aftk_file_worker <path-to-lean-file>
 Methods exposed by the file worker:
 
 - `load_node` `{ line, col } -> { id : Array String }`
+- `get_hover` `{ line, col } -> Option { text, range }`
+- `get_plain_goal` `{ line, col } -> Option { goals, rendered }`
+- `get_plain_term_goal` `{ line, col } -> Option { goal, range }`
+- `get_infoview` `{ line, col } -> { hover, plainGoal, plainTermGoal }`
 - `get_goals` `{ id } -> { goals : List String }`
 - `run_tactic` `{ id, tactic } -> { goals : List String, nextId : String }`
+
+For `{ line, col }`, both values are 1-based.
 
 ## `aftk_server`
 
@@ -95,6 +101,72 @@ Result:
 ```json
 { "id": ["..."] }
 ```
+
+For all location-based methods (`load_node`, `get_hover`, `get_plain_goal`, `get_plain_term_goal`, `get_infoview`), `line` and `col` are 1-based.
+
+### `get_hover`
+Params:
+
+```json
+{ "path": "...", "line": 7, "col": 3 }
+```
+
+Result:
+
+```json
+{ "text": "...", "range": { "start": { "line": 7, "col": 3 }, "stop": { "line": 7, "col": 8 } } }
+```
+
+If there is no hover information at that position, result is `null`.
+
+### `get_plain_goal`
+Params:
+
+```json
+{ "path": "...", "line": 7, "col": 3 }
+```
+
+Result:
+
+```json
+{ "goals": ["..."], "rendered": "..." }
+```
+
+If there is no goal-state information at that position, result is `null`.
+
+### `get_plain_term_goal`
+Params:
+
+```json
+{ "path": "...", "line": 7, "col": 3 }
+```
+
+Result:
+
+```json
+{ "goal": "...", "range": { "start": { "line": 7, "col": 3 }, "stop": { "line": 7, "col": 8 } } }
+```
+
+If there is no term-goal information at that position, result is `null`.
+
+### `get_infoview`
+Params:
+
+```json
+{ "path": "...", "line": 7, "col": 3 }
+```
+
+Result:
+
+```json
+{
+  "hover": { "text": "...", "range": null },
+  "plainGoal": { "goals": ["..."], "rendered": "..." },
+  "plainTermGoal": null
+}
+```
+
+Any of `hover`, `plainGoal`, and `plainTermGoal` may be omitted when unavailable.
 
 ### `get_goals`
 Params:
@@ -177,6 +249,6 @@ Worker errors (e.g. tactic parse/failure) are propagated as JSON-RPC errors.
 
 1. `open` file
 2. `load_node` at a source position
-3. call `get_goals` and/or `run_tactic` / `run_tactic_steps`
+3. call `get_hover` / `get_plain_goal` / `get_plain_term_goal` / `get_infoview` and/or `get_goals` / `run_tactic` / `run_tactic_steps`
 4. optionally `close` file
 5. `shutdown` hub when done

@@ -244,6 +244,37 @@ structure RunTacticStepsResult where
   results : Array RunTacticResult
 deriving ToJson
 
+structure SourcePosition where
+  line : Nat
+  col : Nat
+deriving ToJson, FromJson
+
+structure SourceRange where
+  start : SourcePosition
+  stop : SourcePosition
+deriving ToJson, FromJson
+
+structure HoverResult where
+  text : String
+  range? : Option SourceRange := none
+deriving ToJson, FromJson
+
+structure PlainGoalResult where
+  goals : List String
+  rendered : String
+deriving ToJson, FromJson
+
+structure PlainTermGoalResult where
+  goal : String
+  range? : Option SourceRange := none
+deriving ToJson, FromJson
+
+structure InfoViewResult where
+  hover? : Option HoverResult := none
+  plainGoal? : Option PlainGoalResult := none
+  plainTermGoal? : Option PlainTermGoalResult := none
+deriving ToJson, FromJson
+
 structure ShutdownResult where
   stopped : Nat
 deriving ToJson
@@ -302,6 +333,57 @@ def loadNode : LeanWorker.Server.StatefulHandler Context State LoadNodeParam Loa
   ]
   let json ← forwardToWorker path "load_node" (some workerParams)
   decodeWorkerResult path "load_node" json
+
+def getHover : LeanWorker.Server.StatefulHandler Context State LoadNodeParam (Option HoverResult) := fun param => do
+  let some ⟨rawPath, line, col⟩ := param
+    | throw <| invalidParamsError "params object required"
+
+  let path ← canonicalizePath rawPath
+  let workerParams := objParams [
+    ("line", toJson line),
+    ("col", toJson col)
+  ]
+  let json ← forwardToWorker path "get_hover" (some workerParams)
+  decodeWorkerResult path "get_hover" json
+
+def getPlainGoal : LeanWorker.Server.StatefulHandler Context State LoadNodeParam (Option PlainGoalResult) :=
+    fun param => do
+  let some ⟨rawPath, line, col⟩ := param
+    | throw <| invalidParamsError "params object required"
+
+  let path ← canonicalizePath rawPath
+  let workerParams := objParams [
+    ("line", toJson line),
+    ("col", toJson col)
+  ]
+  let json ← forwardToWorker path "get_plain_goal" (some workerParams)
+  decodeWorkerResult path "get_plain_goal" json
+
+def getPlainTermGoal : LeanWorker.Server.StatefulHandler Context State LoadNodeParam (Option PlainTermGoalResult) :=
+    fun param => do
+  let some ⟨rawPath, line, col⟩ := param
+    | throw <| invalidParamsError "params object required"
+
+  let path ← canonicalizePath rawPath
+  let workerParams := objParams [
+    ("line", toJson line),
+    ("col", toJson col)
+  ]
+  let json ← forwardToWorker path "get_plain_term_goal" (some workerParams)
+  decodeWorkerResult path "get_plain_term_goal" json
+
+def getInfoView : LeanWorker.Server.StatefulHandler Context State LoadNodeParam InfoViewResult :=
+    fun param => do
+  let some ⟨rawPath, line, col⟩ := param
+    | throw <| invalidParamsError "params object required"
+
+  let path ← canonicalizePath rawPath
+  let workerParams := objParams [
+    ("line", toJson line),
+    ("col", toJson col)
+  ]
+  let json ← forwardToWorker path "get_infoview" (some workerParams)
+  decodeWorkerResult path "get_infoview" json
 
 def getGoals : LeanWorker.Server.StatefulHandler Context State GetGoalsParam GetGoalsResult := fun param => do
   let some ⟨rawPath, id⟩ := param
@@ -377,6 +459,10 @@ def server (transport : LeanWorker.Transport.Transport) : LeanWorker.Server.Serv
     |>.addStateful "open" openFile
     |>.addStateful "close" closeFile
     |>.addStateful "load_node" loadNode
+    |>.addStateful "get_hover" getHover
+    |>.addStateful "get_plain_goal" getPlainGoal
+    |>.addStateful "get_plain_term_goal" getPlainTermGoal
+    |>.addStateful "get_infoview" getInfoView
     |>.addStateful "get_goals" getGoals
     |>.addStateful "run_tactic" runTactic
     |>.addStateful "run_tactic_steps" runTacticSteps

@@ -42,6 +42,37 @@ interface RunTacticStepsResult {
 	results: RunTacticResult[];
 }
 
+interface SourcePosition {
+	line: number;
+	col: number;
+}
+
+interface SourceRange {
+	start: SourcePosition;
+	stop: SourcePosition;
+}
+
+interface HoverResult {
+	text: string;
+	range?: SourceRange | null;
+}
+
+interface PlainGoalResult {
+	goals: string[];
+	rendered: string;
+}
+
+interface PlainTermGoalResult {
+	goal: string;
+	range?: SourceRange | null;
+}
+
+interface InfoViewResult {
+	hover?: HoverResult | null;
+	plainGoal?: PlainGoalResult | null;
+	plainTermGoal?: PlainTermGoalResult | null;
+}
+
 interface ShutdownResult {
 	stopped: number;
 }
@@ -400,11 +431,17 @@ const CloseParams = Type.Object({
 	path: Type.String({ description: "Path to the Lean source file to close" }),
 });
 
-const LoadNodeParams = Type.Object({
+const LocationParams = Type.Object({
 	path: Type.String({ description: "Path to the Lean source file" }),
 	line: Type.Integer({ minimum: 1, description: "1-based line number" }),
 	col: Type.Integer({ minimum: 1, description: "1-based column number" }),
 });
+
+const LoadNodeParams = LocationParams;
+const GetHoverParams = LocationParams;
+const GetPlainGoalParams = LocationParams;
+const GetPlainTermGoalParams = LocationParams;
+const GetInfoViewParams = LocationParams;
 
 const GetGoalsParams = Type.Object({
 	path: Type.String({ description: "Path to the Lean source file" }),
@@ -431,6 +468,37 @@ const EmptyParams = Type.Object({});
 function formatGoals(goals: string[]): string {
 	if (goals.length === 0) return "No goals.";
 	return goals.map((goal, index) => `${index + 1}. ${goal}`).join("\n\n");
+}
+
+function formatRange(range?: SourceRange | null): string {
+	if (!range) return "";
+	return ` (range: ${range.start.line}:${range.start.col}-${range.stop.line}:${range.stop.col})`;
+}
+
+function formatHoverResult(result: HoverResult | null | undefined): string {
+	if (!result) return "No hover information at this location.";
+	return `${result.text}${formatRange(result.range)}`;
+}
+
+function formatPlainGoalResult(result: PlainGoalResult | null | undefined): string {
+	if (!result) return "No goal information at this location.";
+	if (result.rendered.trim().length === 0) {
+		return formatGoals(result.goals);
+	}
+	return result.rendered;
+}
+
+function formatPlainTermGoalResult(result: PlainTermGoalResult | null | undefined): string {
+	if (!result) return "No term goal information at this location.";
+	return `${result.goal}${formatRange(result.range)}`;
+}
+
+function formatInfoViewResult(result: InfoViewResult): string {
+	const sections: string[] = [];
+	sections.push(`Hover\n-----\n${formatHoverResult(result.hover)}`);
+	sections.push(`Goal\n----\n${formatPlainGoalResult(result.plainGoal)}`);
+	sections.push(`Term goal\n---------\n${formatPlainTermGoalResult(result.plainTermGoal)}`);
+	return sections.join("\n\n");
 }
 
 function createHubRequester(client: AftkHubClient) {
@@ -518,6 +586,98 @@ export default function (pi: ExtensionAPI) {
 				const renderedId = result.id.length > 0 ? result.id.join(" / ") : "(root)";
 				return {
 					content: [{ type: "text", text: `Node id: ${renderedId}` }],
+					details: result,
+				};
+			} catch (error) {
+				return toErrorResult(error);
+			}
+		},
+	});
+
+	pi.registerTool({
+		name: "aftk_get_hover",
+		label: "AFTK Get Hover",
+		description: "Fetch plain-text hover information at a source location for an open Lean file.",
+		parameters: GetHoverParams,
+		async execute(_toolCallId, params, signal, _onUpdate, _ctx) {
+			try {
+				const path = normalizePath(params.path);
+				const result = await request<HoverResult | null>("get_hover", {
+					path,
+					line: params.line,
+					col: params.col,
+				}, signal);
+				return {
+					content: [{ type: "text", text: truncateText(formatHoverResult(result)) }],
+					details: result,
+				};
+			} catch (error) {
+				return toErrorResult(error);
+			}
+		},
+	});
+
+	pi.registerTool({
+		name: "aftk_get_plain_goal",
+		label: "AFTK Get Plain Goal",
+		description: "Fetch plain infoview goal-state content at a source location for an open Lean file.",
+		parameters: GetPlainGoalParams,
+		async execute(_toolCallId, params, signal, _onUpdate, _ctx) {
+			try {
+				const path = normalizePath(params.path);
+				const result = await request<PlainGoalResult | null>("get_plain_goal", {
+					path,
+					line: params.line,
+					col: params.col,
+				}, signal);
+				return {
+					content: [{ type: "text", text: truncateText(formatPlainGoalResult(result)) }],
+					details: result,
+				};
+			} catch (error) {
+				return toErrorResult(error);
+			}
+		},
+	});
+
+	pi.registerTool({
+		name: "aftk_get_plain_term_goal",
+		label: "AFTK Get Plain Term Goal",
+		description: "Fetch plain expected-type infoview content at a source location for an open Lean file.",
+		parameters: GetPlainTermGoalParams,
+		async execute(_toolCallId, params, signal, _onUpdate, _ctx) {
+			try {
+				const path = normalizePath(params.path);
+				const result = await request<PlainTermGoalResult | null>("get_plain_term_goal", {
+					path,
+					line: params.line,
+					col: params.col,
+				}, signal);
+				return {
+					content: [{ type: "text", text: truncateText(formatPlainTermGoalResult(result)) }],
+					details: result,
+				};
+			} catch (error) {
+				return toErrorResult(error);
+			}
+		},
+	});
+
+	pi.registerTool({
+		name: "aftk_get_infoview",
+		label: "AFTK Get Infoview",
+		description: "Fetch plain hover, goal, and term-goal infoview content at a source location.",
+		parameters: GetInfoViewParams,
+		async execute(_toolCallId, params, signal, _onUpdate, _ctx) {
+			try {
+				const path = normalizePath(params.path);
+				const result = await request<InfoViewResult>("get_infoview", {
+					path,
+					line: params.line,
+					col: params.col,
+				}, signal);
+				return {
+					content: [{ type: "text", text: truncateText(formatInfoViewResult(result)) }],
 					details: result,
 				};
 			} catch (error) {

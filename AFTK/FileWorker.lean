@@ -6,9 +6,16 @@ namespace AFTK
 
 open Lean Parser Elab
 
+structure CommandTree where
+  stx : Syntax
+  infoTree : InfoTree
+  range? : Option Syntax.Range
+
 structure Context where
   inputCtx : InputContext
+  env : Environment
   infoTrees : PersistentArray InfoTree
+  commandTrees : Array CommandTree
 
 structure StateNode where
   coreState : Core.State
@@ -34,6 +41,13 @@ def StateNode.runTacticM (s : StateNode) (go : Tactic.TacticM α) :
   let nextState : StateNode := { s with coreState, metaState, termState, tacticState }
   return (a, nextState)
 
+partial
+def rootCommandStx? : InfoTree → Option Syntax
+  | .context _ t => rootCommandStx? t
+  | .node (.ofCommandInfo ci) _ => some ci.stx
+  | .node _ children => children.toArray.findSome? rootCommandStx?
+  | .hole _ => none
+
 unsafe
 def getContext (path : System.FilePath) (opts : Options) : IO Context := do
   let input ← IO.FS.readFile path
@@ -44,7 +58,20 @@ def getContext (path : System.FilePath) (opts : Options) : IO Context := do
   let (env, messages) ← processHeader header opts messages <| ctx
   let commandState := { Command.mkState env messages opts with infoState.enabled := true }
   let s ← IO.processCommands ctx parserState commandState
-  return .mk ctx s.commandState.infoState.trees
+  let infoTrees := s.commandState.infoState.trees
+  let commandTrees := infoTrees.toArray.filterMap fun infoTree => do
+    let stx ← rootCommandStx? infoTree
+    return {
+      stx
+      infoTree
+      range? := stx.getRangeWithTrailing? (canonicalOnly := true)
+    }
+  return {
+    inputCtx := ctx
+    env := s.commandState.env
+    infoTrees
+    commandTrees
+  }
 
 def mkId : BaseIO String := do
   let hexDigits : Array Char := #['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f']
@@ -155,6 +182,165 @@ structure LoadNodeResult where
   id : Array String
 deriving ToJson
 
+structure Position where
+  line : Nat
+  col : Nat
+deriving ToJson, FromJson
+
+structure Range where
+  start : Position
+  stop : Position
+deriving ToJson, FromJson
+
+structure HoverResult where
+  text : String
+  range? : Option Range := none
+deriving ToJson, FromJson
+
+structure PlainGoalResult where
+  goals : List String
+  rendered : String
+deriving ToJson, FromJson
+
+structure PlainTermGoalResult where
+  goal : String
+  range? : Option Range := none
+deriving ToJson, FromJson
+
+structure InfoViewResult where
+  hover? : Option HoverResult := none
+  plainGoal? : Option PlainGoalResult := none
+  plainTermGoal? : Option PlainTermGoalResult := none
+deriving ToJson, FromJson
+
+def toPosition (pos : Lean.Position) : Position :=
+  ⟨pos.line, pos.column + 1⟩
+
+def toRange (fileMap : FileMap) (r : Syntax.Range) : Range :=
+  .mk (toPosition (fileMap.toPosition r.start)) (toPosition (fileMap.toPosition r.stop))
+
+def rawPosAt (ctx : Context) (line col : Nat) :
+    LeanWorker.Server.StatefulHandlerM Context State String.Pos.Raw := do
+  if line == 0 then
+    throw <| invalidParamsError "line must be >= 1"
+  if col == 0 then
+    throw <| invalidParamsError "col must be >= 1"
+  let column := col - 1
+  return ctx.inputCtx.fileMap.ofPosition { line, column }
+
+def liftIO (action : IO α) : LeanWorker.Server.StatefulHandlerM Context State α := do
+  match ← action.toBaseIO with
+  | .ok value => return value
+  | .error err => throw <| internalError (toString err)
+
+def commandTreesAt (ctx : Context) (rawPos : String.Pos.Raw) : Array CommandTree := Id.run do
+  let strict := ctx.commandTrees.filter (fun command =>
+    command.range?.any (·.contains rawPos))
+  if !strict.isEmpty then
+    return strict
+  let boundary := ctx.commandTrees.filter (fun command =>
+    command.range?.any (·.contains rawPos (includeStop := true)))
+  if !boundary.isEmpty then
+    return boundary
+  return ctx.commandTrees
+
+def parserDocAt? (ctx : Context) (stx : Syntax) (rawPos : String.Pos.Raw) : IO (Option (String × Syntax.Range)) := do
+  let stack? := stx.findStack? (·.getRange?.any (·.contains rawPos))
+  match stack? with
+  | none =>
+    return none
+  | some stack =>
+    stack.findSomeM? fun (stx, _) => do
+      let .node _ kind _ := stx
+        | return none
+      let docStr ← findDocString? ctx.env kind
+      return docStr.map (·, stx.getRange?.get!)
+
+def hoverInCommandAt? (ctx : Context) (command : CommandTree) (rawPos : String.Pos.Raw) : IO (Option HoverResult) := do
+  let stxDoc? ← parserDocAt? ctx command.stx rawPos
+
+  if let some result := command.infoTree.hoverableInfoAtM? (m := Id) rawPos then
+    if let some range := result.info.range? then
+      if stxDoc?.all (fun (_, stxRange) => stxRange.includes range) then
+        if let some hoverFmt ← result.info.fmtHover? result.ctx then
+          return some {
+            text := toString hoverFmt.fmt
+            range? := some <| toRange ctx.inputCtx.fileMap range
+          }
+
+  if let some (doc, range) := stxDoc? then
+    return some {
+      text := doc
+      range? := some <| toRange ctx.inputCtx.fileMap range
+    }
+
+  return none
+
+def getHoverAt? (ctx : Context) (rawPos : String.Pos.Raw) : IO (Option HoverResult) := do
+  let mut hover? : Option HoverResult := none
+  for command in commandTreesAt ctx rawPos do
+    if hover?.isNone then
+      hover? ← hoverInCommandAt? ctx command rawPos
+  return hover?
+
+def ppGoals (ctxInfo : ContextInfo) (goals : List MVarId) : IO (List String) :=
+  ctxInfo.runMetaM {} do
+    goals.mapM fun goal => goal.withContext do
+      let ppGoal ← Meta.ppGoal goal
+      return ppGoal.pretty
+
+def getPlainGoalAt? (ctx : Context) (rawPos : String.Pos.Raw) : IO (Option PlainGoalResult) := do
+  let goals : Array GoalsAtResult :=
+    (commandTreesAt ctx rawPos).map (fun command =>
+      command.infoTree.goalsAt? ctx.inputCtx.fileMap rawPos |>.toArray)
+    |>.flatten
+
+  if goals.isEmpty then
+    return none
+
+  let mut renderedGoals : List String := []
+  for goal in goals do
+    let beforeCtx := { goal.ctxInfo with mctx := goal.tacticInfo.mctxBefore }
+    let afterCtx := { goal.ctxInfo with mctx := goal.tacticInfo.mctxAfter }
+    let activeCtx := if goal.useAfter then afterCtx else beforeCtx
+    let goalIds := if goal.useAfter then goal.tacticInfo.goalsAfter else goal.tacticInfo.goalsBefore
+    renderedGoals := renderedGoals ++ (← ppGoals activeCtx goalIds)
+
+  let rendered :=
+    if renderedGoals.isEmpty then
+      "no goals"
+    else
+      String.intercalate "\n\n---\n\n" renderedGoals
+
+  return some { goals := renderedGoals, rendered }
+
+def getPlainTermGoalAt? (ctx : Context) (rawPos : String.Pos.Raw) : IO (Option PlainTermGoalResult) := do
+  for command in commandTreesAt ctx rawPos do
+    match command.infoTree.termGoalAt? rawPos with
+    | some { ctx := ci, info := i@(Info.ofTermInfo ti), .. } =>
+      let ty ← ci.runMetaM i.lctx do
+        instantiateMVars <| ti.expectedType?.getD (← Meta.inferType ti.expr)
+      let lctx := if ti.isBinder then i.lctx.pop else i.lctx
+      let goal ← ci.runMetaM lctx do
+        let mvar ← Meta.mkFreshExprMVar ty
+        mvar.mvarId!.withContext do
+          let ppGoal ← Meta.ppGoal mvar.mvarId!
+          return ppGoal.pretty
+      return some {
+        goal
+        range? := i.range?.map (toRange ctx.inputCtx.fileMap)
+      }
+    | _ =>
+      pure ()
+  return none
+
+def getInfoViewAt (ctx : Context) (rawPos : String.Pos.Raw) : IO InfoViewResult := do
+  return {
+    hover? := ← getHoverAt? ctx rawPos
+    plainGoal? := ← getPlainGoalAt? ctx rawPos
+    plainTermGoal? := ← getPlainTermGoalAt? ctx rawPos
+  }
+
 def getGoals : LeanWorker.Server.StatefulHandler Context State GetGoalsParam GetGoalsResult := fun param => do
   let some ⟨id⟩ := param
     | throw <| invalidParamsError "params object required"
@@ -203,24 +389,58 @@ def mkNextState (goal : GoalsAtResult) : LeanWorker.Server.StatefulHandlerM Cont
   | .error err => throw <| internalError (toString err)
 
 def loadNode : LeanWorker.Server.StatefulHandler Context State LoadNodeParam LoadNodeResult := fun param => do
-  let some ⟨line, column⟩ := param
+  let some ⟨line, col⟩ := param
     | throw <| invalidParamsError "params object required"
   let ctx ← read
-  let rawPos := (← read).inputCtx.fileMap.ofPosition {line, column}
-  let goals : Array GoalsAtResult := (ctx.infoTrees.map fun tree => 
-    tree.goalsAt? ctx.inputCtx.fileMap rawPos |>.toArray).toArray |>.flatten
+  let rawPos ← rawPosAt ctx line col
+  let goals : Array GoalsAtResult :=
+    (commandTreesAt ctx rawPos).map (fun command =>
+      command.infoTree.goalsAt? ctx.inputCtx.fileMap rawPos |>.toArray)
+    |>.flatten
   let nodes ← goals.mapM mkNextState
-  let result ← nodes.mapM fun node => do 
+  let result ← nodes.mapM fun node => do
     let nextId ← mkId
     modify fun s => { nodes := s.nodes.insert nextId node }
     return nextId
   return .mk result
 
+def getHover : LeanWorker.Server.StatefulHandler Context State LoadNodeParam (Option HoverResult) := fun param => do
+  let some ⟨line, col⟩ := param
+    | throw <| invalidParamsError "params object required"
+  let ctx ← read
+  let rawPos ← rawPosAt ctx line col
+  liftIO <| getHoverAt? ctx rawPos
+
+def getPlainGoal : LeanWorker.Server.StatefulHandler Context State LoadNodeParam (Option PlainGoalResult) := fun param => do
+  let some ⟨line, col⟩ := param
+    | throw <| invalidParamsError "params object required"
+  let ctx ← read
+  let rawPos ← rawPosAt ctx line col
+  liftIO <| getPlainGoalAt? ctx rawPos
+
+def getPlainTermGoal : LeanWorker.Server.StatefulHandler Context State LoadNodeParam (Option PlainTermGoalResult) := fun param => do
+  let some ⟨line, col⟩ := param
+    | throw <| invalidParamsError "params object required"
+  let ctx ← read
+  let rawPos ← rawPosAt ctx line col
+  liftIO <| getPlainTermGoalAt? ctx rawPos
+
+def getInfoView : LeanWorker.Server.StatefulHandler Context State LoadNodeParam InfoViewResult := fun param => do
+  let some ⟨line, col⟩ := param
+    | throw <| invalidParamsError "params object required"
+  let ctx ← read
+  let rawPos ← rawPosAt ctx line col
+  liftIO <| getInfoViewAt ctx rawPos
+
 def server (transport : LeanWorker.Transport.Transport) : LeanWorker.Server.Server Context State where
-  handlers := LeanWorker.Server.HandlerRegistry.empty 
+  handlers := LeanWorker.Server.HandlerRegistry.empty
     |>.addStateful "get_goals" getGoals
     |>.addStateful "run_tactic" runTactic
     |>.addStateful "load_node" loadNode
+    |>.addStateful "get_hover" getHover
+    |>.addStateful "get_plain_goal" getPlainGoal
+    |>.addStateful "get_plain_term_goal" getPlainTermGoal
+    |>.addStateful "get_infoview" getInfoView
   notifications := .empty
   transport := transport
 
