@@ -1,6 +1,6 @@
 name = "aftk"
 version = "0.1.0"
-defaultTargets = ["aftk"]
+defaultTargets = ["aftk_server", "aftk_file_worker", "AFTK"]
 
 [[require]]
 name = "lean_worker"
@@ -8,7 +8,7 @@ git = "https://github.com/adamtopaz/lean_worker"
 rev = "main"
 
 [[lean_exe]]
-name = "file_worker"
+name = "aftk_file_worker"
 root = "AFTK.FileWorker"
 supportInterpreter = true
 
@@ -16,5 +16,6 @@ supportInterpreter = true
 name = "AFTK"
 
 [[lean_exe]]
-name = "aftk"
-root = "Main"
+name = "aftk_server"
+root = "AFTK.Server"
+supportInterpreter = true
