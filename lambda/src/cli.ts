@@ -283,9 +283,277 @@ function resolveBuiltInTools(options: CliOptions) {
 	return selected;
 }
 
+type RegistryModel = ReturnType<ModelRegistry["getAll"]>[number];
+
+// Keep this map aligned with pi-coding-agent's core/model-resolver defaults.
+const DEFAULT_MODEL_PER_PROVIDER: Record<string, string> = {
+	"amazon-bedrock": "us.anthropic.claude-opus-4-6-v1",
+	anthropic: "claude-opus-4-6",
+	openai: "gpt-5.1-codex",
+	"azure-openai-responses": "gpt-5.2",
+	"openai-codex": "gpt-5.3-codex",
+	google: "gemini-2.5-pro",
+	"google-gemini-cli": "gemini-2.5-pro",
+	"google-antigravity": "gemini-3.1-pro-high",
+	"google-vertex": "gemini-3-pro-preview",
+	"github-copilot": "gpt-4o",
+	openrouter: "openai/gpt-5.1-codex",
+	"vercel-ai-gateway": "anthropic/claude-opus-4-6",
+	xai: "grok-4-fast-non-reasoning",
+	groq: "openai/gpt-oss-120b",
+	cerebras: "zai-glm-4.6",
+	zai: "glm-4.6",
+	mistral: "devstral-medium-latest",
+	minimax: "MiniMax-M2.1",
+	"minimax-cn": "MiniMax-M2.1",
+	huggingface: "moonshotai/Kimi-K2.5",
+	opencode: "claude-opus-4-6",
+	"opencode-go": "kimi-k2.5",
+	"kimi-coding": "kimi-k2-thinking",
+};
+
+function isAlias(modelId: string): boolean {
+	if (modelId.endsWith("-latest")) return true;
+	const dateSuffix = /-\d{8}$/;
+	return !dateSuffix.test(modelId);
+}
+
+function tryMatchModel(modelPattern: string, availableModels: RegistryModel[]): RegistryModel | undefined {
+	const slashIndex = modelPattern.indexOf("/");
+	if (slashIndex !== -1) {
+		const provider = modelPattern.substring(0, slashIndex);
+		const modelId = modelPattern.substring(slashIndex + 1);
+		const providerMatch = availableModels.find(
+			(model) =>
+				model.provider.toLowerCase() === provider.toLowerCase() && model.id.toLowerCase() === modelId.toLowerCase(),
+		);
+		if (providerMatch) return providerMatch;
+	}
+
+	const exactMatch = availableModels.find((model) => model.id.toLowerCase() === modelPattern.toLowerCase());
+	if (exactMatch) return exactMatch;
+
+	const matches = availableModels.filter(
+		(model) =>
+			model.id.toLowerCase().includes(modelPattern.toLowerCase()) ||
+			model.name?.toLowerCase().includes(modelPattern.toLowerCase()),
+	);
+	if (matches.length === 0) return undefined;
+
+	const aliases = matches.filter((model) => isAlias(model.id));
+	const datedVersions = matches.filter((model) => !isAlias(model.id));
+
+	if (aliases.length > 0) {
+		aliases.sort((a, b) => b.id.localeCompare(a.id));
+		return aliases[0];
+	}
+
+	datedVersions.sort((a, b) => b.id.localeCompare(a.id));
+	return datedVersions[0];
+}
+
+function parseModelPattern(
+	pattern: string,
+	availableModels: RegistryModel[],
+	options?: { allowInvalidThinkingLevelFallback?: boolean },
+): {
+	model: RegistryModel | undefined;
+	thinkingLevel?: ThinkingLevel;
+	warning?: string;
+} {
+	const exactMatch = tryMatchModel(pattern, availableModels);
+	if (exactMatch) {
+		return { model: exactMatch, thinkingLevel: undefined, warning: undefined };
+	}
+
+	const lastColonIndex = pattern.lastIndexOf(":");
+	if (lastColonIndex === -1) {
+		return { model: undefined, thinkingLevel: undefined, warning: undefined };
+	}
+
+	const prefix = pattern.substring(0, lastColonIndex);
+	const suffix = pattern.substring(lastColonIndex + 1);
+
+	if (VALID_THINKING_LEVELS.includes(suffix as ThinkingLevel)) {
+		const result = parseModelPattern(prefix, availableModels, options);
+		if (result.model) {
+			return {
+				model: result.model,
+				thinkingLevel: result.warning ? undefined : (suffix as ThinkingLevel),
+				warning: result.warning,
+			};
+		}
+		return result;
+	}
+
+	const allowFallback = options?.allowInvalidThinkingLevelFallback ?? true;
+	if (!allowFallback) {
+		return { model: undefined, thinkingLevel: undefined, warning: undefined };
+	}
+
+	const result = parseModelPattern(prefix, availableModels, options);
+	if (result.model) {
+		return {
+			model: result.model,
+			thinkingLevel: undefined,
+			warning: `Invalid thinking level "${suffix}" in pattern "${pattern}". Using default instead.`,
+		};
+	}
+
+	return result;
+}
+
+function buildFallbackModel(
+	provider: string,
+	modelId: string,
+	availableModels: RegistryModel[],
+): RegistryModel | undefined {
+	const providerModels = availableModels.filter((model) => model.provider === provider);
+	if (providerModels.length === 0) return undefined;
+
+	const defaultId = DEFAULT_MODEL_PER_PROVIDER[provider];
+	const baseModel = defaultId
+		? (providerModels.find((model) => model.id === defaultId) ?? providerModels[0])
+		: providerModels[0];
+
+	return {
+		...baseModel,
+		id: modelId,
+		name: modelId,
+	} as RegistryModel;
+}
+
+function resolveCliModelLikePi(options: {
+	cliProvider?: string;
+	cliModel?: string;
+	modelRegistry: ModelRegistry;
+}): {
+	model: RegistryModel | undefined;
+	thinkingLevel?: ThinkingLevel;
+	warning?: string;
+	error?: string;
+} {
+	const { cliProvider, cliModel, modelRegistry } = options;
+
+	if (!cliModel) {
+		return { model: undefined, warning: undefined, error: undefined };
+	}
+
+	const availableModels = modelRegistry.getAll();
+	if (availableModels.length === 0) {
+		return {
+			model: undefined,
+			warning: undefined,
+			error: "No models available. Check your installation or add models to models.json.",
+		};
+	}
+
+	const providerMap = new Map<string, string>();
+	for (const model of availableModels) {
+		providerMap.set(model.provider.toLowerCase(), model.provider);
+	}
+
+	let provider = cliProvider ? providerMap.get(cliProvider.toLowerCase()) : undefined;
+	if (cliProvider && !provider) {
+		return {
+			model: undefined,
+			warning: undefined,
+			error: `Unknown provider "${cliProvider}".`,
+		};
+	}
+
+	let pattern = cliModel;
+	let inferredProvider = false;
+
+	if (!provider) {
+		const slashIndex = cliModel.indexOf("/");
+		if (slashIndex !== -1) {
+			const maybeProvider = cliModel.substring(0, slashIndex);
+			const canonical = providerMap.get(maybeProvider.toLowerCase());
+			if (canonical) {
+				provider = canonical;
+				pattern = cliModel.substring(slashIndex + 1);
+				inferredProvider = true;
+			}
+		}
+	}
+
+	if (!provider) {
+		const lower = cliModel.toLowerCase();
+		const exact = availableModels.find(
+			(model) => model.id.toLowerCase() === lower || `${model.provider}/${model.id}`.toLowerCase() === lower,
+		);
+		if (exact) {
+			return { model: exact, warning: undefined, thinkingLevel: undefined, error: undefined };
+		}
+	}
+
+	if (cliProvider && provider) {
+		const prefix = `${provider}/`;
+		if (cliModel.toLowerCase().startsWith(prefix.toLowerCase())) {
+			pattern = cliModel.substring(prefix.length);
+		}
+	}
+
+	const candidates = provider
+		? availableModels.filter((model) => model.provider === provider)
+		: availableModels;
+	const { model, thinkingLevel, warning } = parseModelPattern(pattern, candidates, {
+		allowInvalidThinkingLevelFallback: false,
+	});
+	if (model) {
+		return { model, thinkingLevel, warning, error: undefined };
+	}
+
+	if (inferredProvider) {
+		const lower = cliModel.toLowerCase();
+		const exact = availableModels.find(
+			(candidate) =>
+				candidate.id.toLowerCase() === lower || `${candidate.provider}/${candidate.id}`.toLowerCase() === lower,
+		);
+		if (exact) {
+			return { model: exact, warning: undefined, thinkingLevel: undefined, error: undefined };
+		}
+
+		const fallback = parseModelPattern(cliModel, availableModels, {
+			allowInvalidThinkingLevelFallback: false,
+		});
+		if (fallback.model) {
+			return {
+				model: fallback.model,
+				thinkingLevel: fallback.thinkingLevel,
+				warning: fallback.warning,
+				error: undefined,
+			};
+		}
+	}
+
+	if (provider) {
+		const fallbackModel = buildFallbackModel(provider, pattern, availableModels);
+		if (fallbackModel) {
+			const fallbackWarning = warning
+				? `${warning} Model "${pattern}" not found for provider "${provider}". Using custom model id.`
+				: `Model "${pattern}" not found for provider "${provider}". Using custom model id.`;
+			return {
+				model: fallbackModel,
+				thinkingLevel: undefined,
+				warning: fallbackWarning,
+				error: undefined,
+			};
+		}
+	}
+
+	const display = provider ? `${provider}/${pattern}` : cliModel;
+	return {
+		model: undefined,
+		thinkingLevel: undefined,
+		warning,
+		error: `Model "${display}" not found.`,
+	};
+}
+
 function resolveModelSelection(options: CliOptions, modelRegistry: ModelRegistry): {
-	provider?: string;
-	modelId?: string;
+	model?: RegistryModel;
 	thinking?: ThinkingLevel;
 } {
 	if (!options.model && !options.provider) {
@@ -296,40 +564,23 @@ function resolveModelSelection(options: CliOptions, modelRegistry: ModelRegistry
 		throw new Error("--provider requires --model (or use provider/model format in --model)");
 	}
 
-	let provider = options.provider;
-	let modelSpec = options.model!;
-	let thinking = options.thinking;
+	const resolved = resolveCliModelLikePi({
+		cliProvider: options.provider,
+		cliModel: options.model,
+		modelRegistry,
+	});
 
-	const slashIndex = modelSpec.indexOf("/");
-	if (slashIndex >= 0) {
-		provider = modelSpec.slice(0, slashIndex);
-		modelSpec = modelSpec.slice(slashIndex + 1);
+	if (resolved.warning) {
+		console.warn(`lambda warning: ${resolved.warning}`);
 	}
 
-	const colonIndex = modelSpec.lastIndexOf(":");
-	if (colonIndex > 0) {
-		const maybeThinking = modelSpec.slice(colonIndex + 1);
-		if (VALID_THINKING_LEVELS.includes(maybeThinking as ThinkingLevel)) {
-			modelSpec = modelSpec.slice(0, colonIndex);
-			if (!thinking) {
-				thinking = maybeThinking as ThinkingLevel;
-			}
-		}
-	}
-
-	if (!provider) {
-		throw new Error("Unable to resolve provider. Use --provider <name> or --model <provider/model>");
-	}
-
-	const model = modelRegistry.find(provider, modelSpec);
-	if (!model) {
-		throw new Error(`Model not found: ${provider}/${modelSpec}`);
+	if (resolved.error || !resolved.model) {
+		throw new Error(resolved.error ?? `Model not found: ${options.model}`);
 	}
 
 	return {
-		provider,
-		modelId: model.id,
-		thinking,
+		model: resolved.model,
+		thinking: options.thinking ?? resolved.thinkingLevel,
 	};
 }
 
@@ -375,11 +626,6 @@ async function run(): Promise<void> {
 
 	const aftkToolset = createAFTKTools({ cwd: options.cwd });
 
-	const resolvedModel =
-		modelSelection.provider && modelSelection.modelId
-			? modelRegistry.find(modelSelection.provider, modelSelection.modelId)
-			: undefined;
-
 	const { session } = await createAgentSession({
 		cwd: options.cwd,
 		agentDir: options.agentDir,
@@ -388,7 +634,7 @@ async function run(): Promise<void> {
 		resourceLoader,
 		sessionManager,
 		settingsManager,
-		model: resolvedModel,
+		model: modelSelection.model,
 		thinkingLevel: modelSelection.thinking,
 		tools: builtInTools,
 		customTools: aftkToolset.tools,

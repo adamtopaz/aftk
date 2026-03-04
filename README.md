@@ -220,6 +220,12 @@ bun run lambda -- --help
 bun run lambda -- -p "Summarize current goals"
 bun run lambda -- --mode rpc
 
+# model selection (same parsing behavior as upstream pi)
+# provider inferred from --model prefix
+bun run lambda -- --model groq/openai/gpt-oss-120b
+# explicit provider + slash-containing model id
+bun run lambda -- --provider groq --model meta-llama/llama-4-maverick-17b-128e-instruct
+
 # downstream equivalents
 lake run lambda --help
 lake run lambda -p "Summarize current goals"

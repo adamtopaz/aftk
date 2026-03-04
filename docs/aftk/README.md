@@ -55,6 +55,11 @@ lake run lambda
 lake run aftk/lambda
 ```
 
+Model-selection parsing follows upstream `pi` behavior:
+
+- `--model <provider/model-id>` infers provider from the prefix, and
+- `--provider <name> --model <model-id>` also supports model ids that contain `/`.
+
 ### Compatibility: upstream `pi` extension
 
 AFTK still ships a pi extension at:
