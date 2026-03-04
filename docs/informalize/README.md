@@ -70,6 +70,9 @@ Informalize is intended to be used together with AFTK hub tools.
 In particular, agents can query hover at an `informal[...]` term and recover the
 attached natural-language markdown context through AFTK (`get_hover` / `aftk_get_hover`).
 
+In the recommended `lambda` agent surface, `aftk_get_hover` is built in.
+(Upstream `pi` can still access it through the compatibility extension.)
+
 This gives a direct bridge from blueprint notes to local proof exploration.
 
 ---

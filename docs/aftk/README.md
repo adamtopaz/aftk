@@ -1,4 +1,4 @@
-# AFTK Hub + pi Extension
+# AFTK Hub Tools (`lambda` + pi compatibility)
 
 This document describes the **agent-facing Lean interaction layer** of AFTK.
 
@@ -30,13 +30,30 @@ If a file changes on disk, hub methods return `-32011` and the file must be reop
 
 ---
 
-## pi extension
+## Agent surfaces
 
-AFTK ships a pi extension at:
+### Recommended: `lambda`
+
+AFTK now ships a custom SDK-based agent named `lambda`:
+
+- same interactive TUI runtime as pi (`InteractiveMode` from SDK),
+- AFTK tools wired directly as SDK-native tools via `createAFTKTools`,
+- no dynamic extension install required for AFTK hub tools.
+
+From repository root:
+
+```bash
+bun install
+bun run lambda
+```
+
+### Compatibility: upstream `pi` extension
+
+AFTK still ships a pi extension at:
 
 - `extensions/aftk-hub.ts`
 
-Install from a downstream project:
+For downstream projects that still use upstream `pi`:
 
 ```bash
 lake run setup_pi_extension
@@ -57,7 +74,9 @@ This enables repository hooks that block:
 
 Example sensitive paths include `.envrc`.
 
-The extension exposes tools corresponding to hub methods:
+### Exposed tool names
+
+Both `lambda` and the compatibility extension expose the same hub tool names:
 
 - `aftk_open`
 - `aftk_close`
@@ -95,7 +114,7 @@ These are intended as machine-queryable analogues of editor infoview inspection.
 When a declaration uses `informal[Some.Id]`, the markdown content attached to that
 Informalize id can be surfaced as hover information. Agents can query it with:
 
-- `aftk_get_hover` (pi tool), or
+- `aftk_get_hover` (lambda tool, or pi compatibility tool), or
 - `get_hover` (hub RPC).
 
 This lets an agent recover natural-language blueprint context directly from code locations
