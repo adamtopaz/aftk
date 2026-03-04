@@ -1,1 +1,5 @@
 /.lake
+.envrc
+.env
+.env.local
+.env.*.local

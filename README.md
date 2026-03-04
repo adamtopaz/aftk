@@ -154,6 +154,25 @@ lake build aftk_server aftk_file_worker informalize
 
 ---
 
+## Install repository git hooks (recommended)
+
+AFTK ships repo-managed hooks that:
+
+- block local commits if sensitive files are staged (including `git add -f`), and
+- block `git push` if outgoing commits contain sensitive files.
+
+Examples: `.envrc`, `.env`, `.env.local`.
+
+Install once per clone:
+
+```bash
+./scripts/setup-git-hooks.sh
+```
+
+Customize blocked globs in `.githooks/sensitive-paths.txt`.
+
+---
+
 ## Install pi extension (from downstream project)
 
 ```bash

@@ -44,6 +44,19 @@ lake run setup_pi_extension
 lake run aftk/setup_pi_extension
 ```
 
+If you are developing inside this AFTK repository clone, also run:
+
+```bash
+./scripts/setup-git-hooks.sh
+```
+
+This enables repository hooks that block:
+
+- commits containing staged sensitive files, and
+- pushes whose outgoing commits contain sensitive files.
+
+Example sensitive paths include `.envrc`.
+
 The extension exposes tools corresponding to hub methods:
 
 - `aftk_open`

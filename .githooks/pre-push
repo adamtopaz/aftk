@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+if [[ -z "${repo_root:-}" ]]; then
+  exit 0
+fi
+
+deny_file="$repo_root/.githooks/sensitive-paths.txt"
+if [[ ! -f "$deny_file" ]]; then
+  exit 0
+fi
+
+patterns=()
+while IFS= read -r raw_line || [[ -n "$raw_line" ]]; do
+  line="${raw_line%%#*}"
+  line="${line#"${line%%[![:space:]]*}"}"
+  line="${line%"${line##*[![:space:]]}"}"
+  if [[ -n "$line" ]]; then
+    patterns+=("$line")
+  fi
+done < "$deny_file"
+
+if (( ${#patterns[@]} == 0 )); then
+  exit 0
+fi
+
+remote_name="${1:-}"
+remotes_arg="--remotes"
+if [[ -n "$remote_name" && -n "$(git for-each-ref --format='%(refname)' "refs/remotes/$remote_name/*")" ]]; then
+  remotes_arg="--remotes=$remote_name"
+fi
+
+zero_sha="0000000000000000000000000000000000000000"
+commits=()
+while IFS=' ' read -r local_ref local_sha remote_ref remote_sha; do
+  if [[ -z "${local_ref:-}" || -z "${local_sha:-}" || -z "${remote_ref:-}" || -z "${remote_sha:-}" ]]; then
+    continue
+  fi
+
+  # Deleting a remote ref: nothing to scan.
+  if [[ "$local_sha" == "$zero_sha" ]]; then
+    continue
+  fi
+
+  rev_list_cmd=()
+  if [[ "$remote_sha" == "$zero_sha" ]]; then
+    rev_list_cmd=(git rev-list "$local_sha" --not "$remotes_arg")
+  elif git cat-file -e "$remote_sha^{commit}" 2>/dev/null; then
+    rev_list_cmd=(git rev-list "$remote_sha..$local_sha")
+  else
+    # If the remote tip is unknown locally, fall back to excluding known remotes.
+    rev_list_cmd=(git rev-list "$local_sha" --not "$remotes_arg")
+  fi
+
+  while IFS= read -r commit; do
+    if [[ -n "$commit" ]]; then
+      commits+=("$commit")
+    fi
+  done < <("${rev_list_cmd[@]}")
+done
+
+if (( ${#commits[@]} == 0 )); then
+  exit 0
+fi
+
+declare -A seen_commits=()
+unique_commits=()
+for commit in "${commits[@]}"; do
+  if [[ -z "${seen_commits[$commit]+x}" ]]; then
+    seen_commits["$commit"]=1
+    unique_commits+=("$commit")
+  fi
+done
+
+blocked=()
+declare -A seen_blocked=()
+for commit in "${unique_commits[@]}"; do
+  while IFS= read -r path; do
+    if [[ -z "$path" ]]; then
+      continue
+    fi
+    for pattern in "${patterns[@]}"; do
+      if [[ "$path" == $pattern ]]; then
+        key="$commit:$path"
+        if [[ -z "${seen_blocked[$key]+x}" ]]; then
+          seen_blocked["$key"]=1
+          blocked+=("$commit	$path")
+        fi
+        break
+      fi
+    done
+  done < <(git diff-tree --root -m --no-commit-id --name-only --diff-filter=ACMRTUXB -r "$commit")
+done
+
+if (( ${#blocked[@]} == 0 )); then
+  exit 0
+fi
+
+printf '\n[pre-push] blocked push: sensitive file(s) found in commits being pushed:\n' >&2
+for row in "${blocked[@]}"; do
+  commit="${row%%$'\t'*}"
+  path="${row#*$'\t'}"
+  printf '  - %s %s\n' "${commit:0:12}" "$path" >&2
+done
+
+printf '\nDenylist: %s\n' "$deny_file" >&2
+printf 'Remove sensitive files from the pushed commit range and retry.\n' >&2
+printf '(Override with --no-verify only if you are absolutely sure.)\n\n' >&2
+
+exit 1

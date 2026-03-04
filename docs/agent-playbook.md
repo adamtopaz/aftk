@@ -10,12 +10,16 @@ This page shows the intended combined workflow:
 
 ## 0) Setup
 
-Build and ensure the AFTK pi extension is installed:
+Build, install git safety hooks, and ensure the AFTK pi extension is installed:
 
 ```bash
 lake build
+./scripts/setup-git-hooks.sh
 lake run setup_pi_extension
 ```
+
+The hook setup blocks both staged-sensitive commits and pushes that include
+sensitive files such as `.envrc`.
 
 ---
 
