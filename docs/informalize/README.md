@@ -120,6 +120,12 @@ lake exe informalize locations --module Tests.Integration.Imports.Top
 lake exe informalize location --module Tests.Integration.Imports.Top --location Foo.bar
 ```
 
+## Testing note
+
+Integration assertions for this CLI live in `Tests/Integration/Cli.lean` and are
+executed at runtime via `lake exe tests` (instead of compile-time `run_cmd`).
+This keeps CI build memory usage stable while preserving CLI coverage.
+
 ---
 
 ## Dependency interpretation (`deps`)

@@ -142,15 +142,28 @@ Expected agent behavior:
 
 ## Build
 
+Build everything in the workspace:
+
 ```bash
 lake build
 ```
 
-Build specific executables:
+Build only core targets (this is what CI uses before tests):
 
 ```bash
-lake build aftk_server aftk_file_worker informalize
+lake build AFTK Informalize aftk_file_worker aftk_server informalize
 ```
+
+## Test
+
+Run the full test suite:
+
+```bash
+lake exe tests
+```
+
+Informalize CLI integration checks are executed at test-runtime via `lake exe tests`
+(instead of compile-time `run_cmd`) to keep CI build memory usage stable.
 
 ---
 

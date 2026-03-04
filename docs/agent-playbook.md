@@ -10,10 +10,11 @@ This page shows the intended combined workflow:
 
 ## 0) Setup
 
-Build, install git safety hooks, and ensure the AFTK pi extension is installed:
+Build, run tests, install git safety hooks, and ensure the AFTK pi extension is installed:
 
 ```bash
 lake build
+lake exe tests
 ./scripts/setup-git-hooks.sh
 lake run setup_pi_extension
 ```
