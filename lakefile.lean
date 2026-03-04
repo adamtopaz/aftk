@@ -51,7 +51,7 @@ private def findAftkPackage (ws : Lake.Workspace) : Except String Lake.Package :
   | _ =>
     throw <| String.intercalate "\n" [
       "Multiple packages matched `aftk`.",
-      "Please invoke the script with an explicit package prefix, e.g. `lake run aftk/setup_pi_extension`.",
+      "Please invoke the script with an explicit package prefix, e.g. `lake run aftk/setup_pi_extension` or `lake run aftk/lambda`.",
       formatPackageMatches candidates
     ]
 
@@ -128,3 +128,109 @@ script setup_pi_extension (args) := do
 
   IO.println "Done. Restart pi or run /reload in the target project."
   return 0
+
+private def lambdaCliPathCandidates (aftkPkg : Lake.Package) : Array FilePath := #[
+  aftkPkg.dir / "lambda" / "src" / "cli.ts"
+]
+
+private def findLambdaCliPath (aftkPkg : Lake.Package) : IO (Option FilePath) := do
+  for candidate in lambdaCliPathCandidates aftkPkg do
+    if (← candidate.pathExists) then
+      return some candidate
+  return none
+
+private def lambdaUsage : String :=
+  String.intercalate "\n" [
+    "Run AFTK's lambda agent from the current Lake workspace.",
+    "",
+    "Usage:",
+    "  lake run lambda [<lambda-args...>]",
+    "  lake run lambda -- <lambda-args...>",
+    "  lake run aftk/lambda [<lambda-args...>]",
+    "",
+    "The script finds the AFTK dependency, ensures its Bun dependencies are installed,",
+    "and runs lambda with the current Lake workspace as --cwd.",
+    "",
+    "Requires `bun` to be installed and available on PATH."
+  ]
+
+private def ensureLambdaDependencies (aftkPkg : Lake.Package) : IO Unit := do
+  let nodeModulesDir := aftkPkg.dir / "node_modules"
+  if (← nodeModulesDir.pathExists) then
+    return
+
+  IO.println s!"Installing lambda dependencies in:\n- {aftkPkg.dir}"
+
+  let child ← IO.Process.spawn {
+    cmd := "bun"
+    args := #["install"]
+    cwd := some aftkPkg.dir
+    stdin := .inherit
+    stdout := .inherit
+    stderr := .inherit
+  }
+
+  let exitCode ← child.wait
+  unless exitCode == 0 do
+    throw <| .userError s!"`bun install` failed with exit code {exitCode}"
+
+/--
+Run AFTK's `lambda` agent in the current Lake workspace.
+
+This works both from the AFTK repo itself and from downstream Lake workspaces
+that include AFTK as a dependency (including aliased dependencies).
+-/
+script lambda (args) := do
+  if args.contains "--script-help" then
+    IO.println lambdaUsage
+    return 0
+
+  let ws ← getWorkspace
+  let aftkPkg ←
+    match findAftkPackage ws with
+    | .ok pkg =>
+      pure pkg
+    | .error message =>
+      throw <| .userError message
+
+  let cliCandidates := lambdaCliPathCandidates aftkPkg
+  let some cliPath ← findLambdaCliPath aftkPkg
+    | throw <| .userError <| String.intercalate "\n" <|
+      ["Could not locate lambda CLI entrypoint. Looked for:"] ++
+      (cliCandidates.toList.map (fun p => s!"- {p}"))
+
+  let packageJson := aftkPkg.dir / "package.json"
+  unless (← packageJson.pathExists) do
+    throw <| .userError <| String.intercalate "\n" [
+      "Could not locate lambda package manifest.",
+      s!"Expected: {packageJson}"
+    ]
+
+  try
+    ensureLambdaDependencies aftkPkg
+  catch err =>
+    throw <| .userError <| String.intercalate "\n\n" [
+      "Failed to prepare lambda dependencies. Ensure `bun` is installed and on PATH.",
+      toString err
+    ]
+
+  IO.println s!"Launching lambda from:\n- {cliPath}\nWorking directory:\n- {ws.dir}"
+
+  let forwardedArgs : Array String :=
+    match args with
+    | "--" :: rest => rest.toArray
+    | _ => args.toArray
+
+  let lambdaBaseArgs : Array String := #["run", cliPath.toString, "--cwd", ws.dir.toString]
+  let lambdaArgs : Array String := lambdaBaseArgs ++ forwardedArgs
+
+  let child ← IO.Process.spawn {
+    cmd := "bun"
+    args := lambdaArgs
+    cwd := some ws.dir
+    stdin := .inherit
+    stdout := .inherit
+    stderr := .inherit
+  }
+
+  return (← child.wait)

@@ -17,8 +17,10 @@ lake build
 lake exe tests
 ./scripts/setup-git-hooks.sh
 bun install
-# run agent
+# run agent (inside this repository)
 bun run lambda
+# downstream Lake workspace using AFTK dependency
+# lake run lambda
 ```
 
 The hook setup blocks both staged-sensitive commits and pushes that include

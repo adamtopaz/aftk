@@ -47,6 +47,14 @@ bun install
 bun run lambda
 ```
 
+From a downstream Lake project that depends on AFTK:
+
+```bash
+lake run lambda
+# or, when package prefix is required:
+lake run aftk/lambda
+```
+
 ### Compatibility: upstream `pi` extension
 
 AFTK still ships a pi extension at:

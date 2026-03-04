@@ -203,12 +203,26 @@ bun install
 bun run lambda
 ```
 
+From a downstream Lake project that depends on AFTK:
+
+```bash
+lake run lambda
+# or, when package prefix is required:
+lake run aftk/lambda
+```
+
+This script forwards args to lambda and runs it with the downstream workspace as `--cwd`.
+
 Common variants:
 
 ```bash
 bun run lambda -- --help
 bun run lambda -- -p "Summarize current goals"
 bun run lambda -- --mode rpc
+
+# downstream equivalents
+lake run lambda --help
+lake run lambda -p "Summarize current goals"
 ```
 
 ## pi extension compatibility (existing downstream workflows)
