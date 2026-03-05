@@ -66,6 +66,8 @@ For each tracked declaration, Informalize stores a deduplicated set of location 
 When hovering at an `informal[...]` occurrence, AFTK hover queries can surface the
 associated markdown/natural-language content for that id.
 
+In practice, agents usually do this via `aftk_get_hover` in `lambda`.
+
 This is useful for agent workflows that alternate between:
 
 - tactic exploration in Lean, and

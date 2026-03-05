@@ -3,7 +3,7 @@
 AFTK provides **two complementary layers** for autoformalization:
 
 1. **Informalize**: build and track an *informal blueprint* of the formalization project.
-2. **AFTK hub + pi extension**: query Lean semantic state and explore tactic strategies transiently.
+2. **AFTK hub tools** (via `lambda`, or via pi-extension compatibility): query Lean semantic state and explore tactic strategies transiently.
 
 The intended workflow is:
 
@@ -89,16 +89,18 @@ These commands are intended to support agent planning/triage over the blueprint.
 
 ---
 
-## Part 2: AFTK hub + pi extension (semantic query + proof exploration)
+## Part 2: AFTK hub tools (semantic query + proof exploration)
 
 AFTK ships two Lean JSON-RPC executables:
 
 - `aftk_file_worker`: file-scoped analysis/tactic worker
 - `aftk_server`: hub process managing multiple file workers
 
-And a pi extension:
+Agent interaction surfaces:
 
-- `extensions/aftk-hub.ts`
+- **`lambda`** (custom agent using `@mariozechner/pi-coding-agent` SDK + same TUI as pi),
+  with AFTK tools built in via `createAFTKTools`.
+- **pi extension compatibility** via `extensions/aftk-hub.ts` for existing downstream workflows.
 
 ### What agents use this for
 
@@ -186,7 +188,52 @@ Customize blocked globs in `.githooks/sensitive-paths.txt`.
 
 ---
 
-## Install pi extension (from downstream project)
+## Run `lambda` (recommended)
+
+`lambda` is the new AFTK agent surface:
+
+- built on `@mariozechner/pi-coding-agent` SDK,
+- uses the same interactive TUI runtime as pi,
+- ships AFTK hub tools as built-ins via `createAFTKTools`.
+
+From this repository root:
+
+```bash
+bun install
+bun run lambda
+```
+
+From a downstream Lake project that depends on AFTK:
+
+```bash
+lake run lambda
+# or, when package prefix is required:
+lake run aftk/lambda
+```
+
+This script forwards args to lambda and runs it with the downstream workspace as `--cwd`.
+
+Common variants:
+
+```bash
+bun run lambda -- --help
+bun run lambda -- -p "Summarize current goals"
+bun run lambda -- --mode rpc
+
+# model selection (same parsing behavior as upstream pi)
+# provider inferred from --model prefix
+bun run lambda -- --model groq/openai/gpt-oss-120b
+# explicit provider + slash-containing model id
+bun run lambda -- --provider groq --model meta-llama/llama-4-maverick-17b-128e-instruct
+
+# downstream equivalents
+lake run lambda --help
+lake run lambda -p "Summarize current goals"
+```
+
+## pi extension compatibility (existing downstream workflows)
+
+If you are using upstream `pi` directly, AFTK still provides extension compatibility:
 
 ```bash
 lake run setup_pi_extension
@@ -259,6 +306,6 @@ not a substitute for completed formal proofs.
 
 - Informalize overview: `docs/informalize/README.md`
 - Informal id rules: `docs/informalize/IdReference.md`
-- AFTK hub + extension details: `docs/aftk/README.md`
+- AFTK hub tool surfaces (`lambda` + pi compatibility): `docs/aftk/README.md`
 - End-to-end agent workflow playbook: `docs/agent-playbook.md`
 - Roadmap ideas: `docs/future/autoformalization-tools.md`

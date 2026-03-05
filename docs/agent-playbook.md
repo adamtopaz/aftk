@@ -10,17 +10,27 @@ This page shows the intended combined workflow:
 
 ## 0) Setup
 
-Build, run tests, install git safety hooks, and ensure the AFTK pi extension is installed:
+Build, run tests, install git safety hooks, and install Bun deps for `lambda`:
 
 ```bash
 lake build
 lake exe tests
 ./scripts/setup-git-hooks.sh
-lake run setup_pi_extension
+bun install
+# run agent (inside this repository)
+bun run lambda
+# downstream Lake workspace using AFTK dependency
+# lake run lambda
 ```
 
 The hook setup blocks both staged-sensitive commits and pushes that include
 sensitive files such as `.envrc`.
+
+If you are using upstream `pi` instead of `lambda`, install compatibility tools with:
+
+```bash
+lake run setup_pi_extension
+```
 
 ---
 
@@ -78,7 +88,7 @@ This confirms that:
 
 ## 3) Pull natural-language notes through AFTK hover
 
-Use the pi tool calls:
+Use the AFTK tool calls (from `lambda`, or pi compatibility mode):
 
 ### Open file
 

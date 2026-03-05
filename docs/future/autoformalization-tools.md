@@ -3,7 +3,8 @@
 This roadmap extends the current AFTK design:
 
 - **Informalize** organizes the blueprint layer,
-- **AFTK hub** supports semantic query + transient proof exploration.
+- **AFTK hub** supports semantic query + transient proof exploration,
+- **`lambda`** (SDK-based agent) is the primary tool surface for AFTK hub methods.
 
 The goal is to improve agent reliability in the loop:
 
