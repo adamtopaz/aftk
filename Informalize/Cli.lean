@@ -1151,6 +1151,18 @@ private unsafe def importEnvironment (modules : Array Name) : IO Environment := 
   let imports := modules.map fun moduleName => ({ module := moduleName : Import })
   Lean.importModules imports {} (loadExts := true)
 
+initialize importedEnvCache : IO.Ref (Std.HashMap (Array Name) Environment) ← IO.mkRef {}
+
+private unsafe def cachedEnvironment (modules : Array Name) : IO Environment := do
+  let cache ← importedEnvCache.get
+  match cache.get? modules with
+  | some env =>
+    pure env
+  | none =>
+    let env ← importEnvironment modules
+    importedEnvCache.modify fun cache => cache.insert modules env
+    pure env
+
 private def runCoreInEnv (env : Environment) (x : CoreM RenderedOutput) : IO RenderedOutput := do
   let ctx : Core.Context := {
     fileName := "<informalize-cli>"
@@ -1178,7 +1190,7 @@ def invoke (args : Array String) : IO InvocationResult := do
         if isMetaCommand cfg.command then
           runMetadataCommand cfg
         else do
-          let env ← unsafe importEnvironment cfg.modules
+          let env ← unsafe cachedEnvironment cfg.modules
           runCoreInEnv env (runTrackedCommand cfg)
       return {
         exitCode := 0
