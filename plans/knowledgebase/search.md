@@ -3,7 +3,7 @@
 ## Status
 
 Design-only component plan for knowledge-base search.
-This document refines the overall knowledge base plan in `plans/knowledgebase.md` and works together with `plans/knowledgebase/storage.md`, `plans/knowledgebase/node.md`, `plans/knowledgebase/metadata.md`, and `plans/knowledgebase/cli.md`.
+This document refines the overall knowledge base plan in `plans/knowledgebase.md` and works together with `plans/knowledgebase/storage.md`, `plans/knowledgebase/node.md`, `plans/knowledgebase/metadata.md`, `plans/knowledgebase/cli.md`, and `plans/knowledgebase/indexing.md`.
 
 ## Component implementation status
 
@@ -252,6 +252,7 @@ However, internally, these features are closely related to search/query infrastr
 
 The first implementation should not depend on a prebuilt index.
 A correct implementation may scan canonical files directly.
+The broader derived-index design is refined in `plans/knowledgebase/indexing.md`.
 
 However, the storage design already reserves:
 

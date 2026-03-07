@@ -329,6 +329,7 @@ Those may be explored later, but the first storage system should stay simple, lo
 - Should the manifest eventually include more global settings?
 - Should node assets be added later, and if so, where should they live?
 - How should storage-level repair remain coordinated with the broader repair design in `plans/knowledgebase/repair.md`?
+- How should the on-disk index layout evolve alongside the broader indexing design in `plans/knowledgebase/indexing.md`?
 - Should derived indexes eventually live outside `knowledgebase/` in some environments?
 - How much configurability should the CLI expose for nondefault storage roots?
 
