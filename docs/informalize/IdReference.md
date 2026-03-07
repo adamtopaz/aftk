@@ -98,6 +98,14 @@ lake exe informalize meta set-status --location <Location.Name> --status ready
 `deps --by location` reports derived location/node dependencies.
 Metadata sidecars should be managed through `meta ...` commands rather than hand-edited.
 
+If metadata includes `knowledgeRefs`, the intended targets are now concrete `kb.*` ids in the AFTK knowledge store.
+Inspect them with:
+
+```bash
+lake exe aftk kb show --id <kb.*>
+lake exe aftk kb query --location <Location.Name>
+```
+
 ---
 
 ## Naming recommendations

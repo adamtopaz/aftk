@@ -2,12 +2,13 @@
 
 This document defines the intended end-to-end workflow for building autoformalization projects on top of the current AFTK repository.
 
-The repository already gives us two key building blocks:
+The repository already gives us three key building blocks:
 
 - **Informalize** for scaffold placeholders (`informal[...]`) and markdown-backed blueprint notes.
-- **AFTK** for Lean semantic queries and transient tactic exploration during local formalization work.
+- **AFTK knowledge-base CLI** for repository-local sources, packets, knowledge entries, and provenance.
+- **AFTK hub tools** for Lean semantic queries and transient tactic exploration during local formalization work.
 
-What is still missing is the larger workflow layer that starts from source material, builds a knowledge store, constructs and refines a scaffold, and then drives formalization to completion. This document makes that larger loop precise.
+What is still missing is the larger orchestration layer that starts from source material, improves ingestion/extraction quality, constructs/refines a scaffold graph more explicitly, and then drives formalization to completion. This document makes that larger loop precise.
 
 See also:
 
@@ -196,6 +197,7 @@ Exit condition:
 
 Notes:
 
+- Today, the repository supports repository-local packet persistence through `lake exe aftk packet ingest ...`, but richer document normalization still needs to be built on top of it.
 - This step is about faithful representation, not yet about formalization.
 - If a source is low quality or incomplete, that should be represented explicitly rather than hidden.
 
@@ -228,6 +230,12 @@ Operational rule:
 
 - The knowledge store remains mutable for the entire project. The agent may query it or add to it at any stage.
 
+Current-project mapping:
+
+- `lake exe aftk source ...` manages source records.
+- `lake exe aftk packet ...` manages source packets and their markdown bodies.
+- `lake exe aftk kb ...` manages knowledge entries, provenance, links, scaffold refs, and query/writeback.
+
 ---
 
 ### 3. Build the initial scaffold with informal nodes
@@ -258,6 +266,7 @@ Current-project mapping:
 
 - `informal[...]`, `informal/.../*.md`, and optional `informal/.../*.json` sidecars are the natural first implementation of scaffold nodes.
 - `lake exe informalize ...` provides declaration/location tracking, derived dependency queries, and CLI-managed metadata operations for these placeholders.
+- Informalize metadata `knowledgeRefs` can now point at in-repo `kb.*` ids persisted under `aftk-data/knowledge/` and inspectable with `lake exe aftk kb ...`.
 
 ---
 
@@ -530,16 +539,17 @@ while unresolved_nodes_exist():
 
 ## How this maps to the current repository
 
-Today, the repository already supports the inner parts of this workflow:
+Today, the repository already supports the following workflow pieces:
 
 - **Scaffold anchors**: `informal[...]` terms, markdown files under `informal/`, and optional metadata sidecars.
 - **Scaffold inspection/management**: `lake exe informalize status|deps|decls|decl|locations|location|meta ...`.
+- **Repository-local knowledge store**: `lake exe aftk store|source|packet|kb ...` over `aftk-data/`.
 - **Lean-local exploration**: AFTK hover/goal/tactic tools, with hover able to surface effective Informalize metadata + notes.
 
-The main missing layers are the ones above those primitives:
+The main missing layers are now the ones above those primitives:
 
-- source ingestion,
-- a real knowledge store,
+- richer source ingestion / normalization,
+- automatic knowledge extraction,
 - explicit scaffold-node management beyond current declaration tracking,
 - readiness assessment,
 - source acquisition,

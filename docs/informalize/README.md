@@ -63,7 +63,7 @@ If the JSON sidecar exists but is invalid/unreadable, elaboration fails.
 
 The markdown file content is treated as the natural-language component of that blueprint location.
 Optional JSON sidecars provide structured workflow metadata such as status, parent links,
-source refs, issues, and tags.
+source refs, issues, tags, and `knowledgeRefs` pointing at knowledge-store entries.
 
 This enables a declaration to carry:
 
@@ -86,6 +86,10 @@ through AFTK (`get_hover` / `aftk_get_hover`).
 - the upstream `pi` extension wrapper at `lambda/src/aftk-extension.ts`.
 
 This gives a direct bridge from blueprint notes to local proof exploration.
+
+The knowledge-store side of that bridge now exists too: `knowledgeRefs` in Informalize metadata can point at
+actual `kb.*` entries persisted under `aftk-data/knowledge/`, inspectable through `lake exe aftk kb show ...`
+or discoverable via `lake exe aftk kb query --location <LocationId>`.
 
 ---
 
@@ -152,6 +156,13 @@ lake exe informalize meta set-status --location Foo.bar --status ready
 
 Agents are expected to manage metadata through the CLI rather than by editing JSON sidecars directly.
 If no sidecar exists yet, Informalize uses default metadata and the first metadata mutation command creates the JSON file.
+
+When metadata includes `knowledgeRefs`, use the AFTK knowledge-base CLI as the authority for those ids:
+
+```bash
+lake exe aftk kb show --id kb.some.entry
+lake exe aftk kb query --location Foo.bar --json
+```
 
 ## Testing note
 

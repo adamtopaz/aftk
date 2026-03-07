@@ -16,6 +16,11 @@ lean_lib Informalize
 lean_lib Tests
 
 @[default_target]
+lean_exe aftk where
+  root := `AFTKCli
+  supportInterpreter := true
+
+@[default_target]
 lean_exe aftk_file_worker where
   root := `AFTK.FileWorker
   supportInterpreter := true
@@ -31,7 +36,7 @@ lean_exe informalize where
   supportInterpreter := true
 
 lean_exe tests where
-  root := `Tests
+  root := `TestsMain
   supportInterpreter := true
 
 private def formatPackageMatches (pkgs : Array Lake.Package) : String :=

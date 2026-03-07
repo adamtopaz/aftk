@@ -1,1032 +1,1412 @@
-# PRD and Implementation Plan: Informalize Metadata Sidecars and CLI Metadata Management
+# PRD and Implementation Plan: Repository-Local Knowledge Base Infrastructure (Lean CLI)
 
 ## Status
 
 Planning only. This document specifies the intended product behavior and implementation plan.
 No code changes are made by this document itself.
 
+This document replaces the old `plan.md`, which planned Informalize metadata sidecars and CLI metadata management. That work is now already reflected in the repository (`Informalize/Metadata.lean`, `Informalize/Cli.lean`, tests, and docs), so the next planning target is the knowledge base layer.
+
 ---
 
-## 1. Overview
+## 1. Current project state
 
-We want to extend Informalize so that an `informal[Foo.bar]` node can carry not only markdown notes, but also structured metadata needed for the larger autoformalization workflow.
+The current repository already has two substantial foundations:
 
-Today, an Informalize location id resolves only to:
+### 1.1 Informalize blueprint layer exists now
 
-- `informal/Foo/bar.md`
+Implemented today:
 
-The planned design adds an optional JSON sidecar:
+- `informal[...]` placeholders in Lean,
+- required markdown sidecars under `informal/.../*.md`,
+- optional JSON metadata sidecars under `informal/.../*.json`,
+- a Lean CLI (`lake exe informalize ...`) for:
+  - declaration and location tracking,
+  - declaration-level and location-level dependency queries,
+  - metadata inspection and mutation,
+- tests for metadata parsing, hover formatting, and CLI behavior.
 
-- `informal/Foo/bar.json`
+So the scaffold/blueprint layer is no longer the missing piece.
 
-The JSON sidecar stores machine-readable workflow metadata. However, it should **not** be mandatory. If the JSON file does not exist, Informalize should use default metadata.
+### 1.2 AFTK Lean-local execution layer exists now
 
-Agents are expected to manage metadata through the Informalize CLI rather than editing JSON files directly. The CLI should therefore become the supported metadata-management surface. The JSON sidecar is a persistence layer, not the primary user interface.
+Implemented today:
 
-A second important design point is that dependencies between nodes should **not** be manually stored in the metadata. Instead, they should be computed automatically, similarly to how declaration dependencies are currently computed in the Informalize CLI.
+- `aftk_file_worker`,
+- `aftk_server`,
+- hover/goal/tactic exploration support in Lean.
+
+So the repository already supports the local formalization inner loop.
+
+### 1.3 The major missing layer is the knowledge base
+
+The docs describe a broader workflow that still does **not** exist yet in code:
+
+- source registry,
+- faithful source-packet ingestion/storage,
+- knowledge store entries,
+- knowledge query/writeback APIs,
+- provenance tracking across those layers.
+
+That gap is explicit in:
+
+- `docs/workflow.md`,
+- `docs/components.md`,
+- `docs/future/autoformalization-tools.md`.
+
+### 1.4 Important implication for this plan
+
+We should **not** redesign Informalize metadata or the existing `informalize` CLI as the main vehicle for the knowledge base.
+
+Instead, we should build a **new knowledge-base-focused CLI in Lean**, while keeping it consistent with the style and patterns already established by `Informalize.Cli`.
 
 ---
 
 ## 2. Problem statement
 
-The current Informalize model is useful as a blueprint anchor, but it is missing structured scaffold state needed by the broader workflow in `docs/workflow.md`.
+Right now, the repository can:
 
-In particular, we need a place to attach information such as:
+- represent scaffold nodes in Lean,
+- attach markdown and metadata to those nodes,
+- inspect declaration/location dependencies,
+- explore local tactic branches.
 
-- node workflow status,
-- source references,
-- knowledge-base references,
-- refinement structure,
-- issues/blockers,
-- tags or lightweight classification.
+But it cannot yet do the source-first memory management that the workflow requires.
 
-At the same time, we do **not** want to:
+In particular, there is currently no repository-local system for:
 
-- force users to author JSON sidecars before they can use `informal[...]`,
-- require agents to edit JSON by hand,
-- store manually maintained dependency relations that can become stale.
+1. registering sources with stable ids,
+2. storing faithful, queryable source packets,
+3. creating reusable knowledge entries derived from those packets,
+4. distinguishing source-backed knowledge from agent-derived knowledge,
+5. querying that knowledge from a stable machine-facing interface,
+6. writing new knowledge back into the project over time,
+7. validating that provenance remains explicit and inspectable.
 
-So the system needs:
+This means that:
 
-1. effective default metadata when no JSON sidecar exists,
-2. a CLI workflow for reading/updating metadata,
-3. automatically derived dependency information.
-
----
-
-## 3. Goals
-
-### 3.1 Functional goals
-
-1. `informal[Foo.bar]` continues to require `informal/Foo/bar.md`.
-2. `informal/Foo/bar.json` becomes optional.
-3. If the JSON file is absent, Informalize uses default metadata.
-4. If the JSON file is present, it is parsed into a Lean-side metadata type.
-5. Metadata is included in hover output for informal nodes.
-6. The Informalize CLI can read, initialize, validate, create, and update metadata.
-7. Dependency information between informal nodes is computed automatically rather than stored in the JSON.
-8. Agents can manage metadata entirely through the CLI.
-
-### 3.2 Workflow goals
-
-1. Preserve the current low-friction workflow where adding `informal[...]` only requires a markdown file.
-2. Make metadata adoption incremental: existing informal nodes can acquire metadata over time.
-3. Support future workflow orchestration by making key scaffold state machine-readable.
-4. Keep source-backed and agent-authored information separable and explicit.
-
-### 3.3 Compatibility goals
-
-1. Existing markdown-backed Informalize projects should continue to elaborate if no `.json` files exist.
-2. Existing `deps` declaration output should remain available.
-3. The initial implementation should not require AFTK protocol changes.
+- `knowledgeRefs` in Informalize metadata are currently just string pointers with no in-repo authority behind them,
+- agents must improvise their own source/knowledge memory outside the project,
+- the documented workflow cannot yet be executed end-to-end inside the repo.
 
 ---
 
-## 4. Non-goals
+## 3. Product vision
 
-The first implementation should **not** try to solve all workflow problems at once.
+We want a **repository-local, source-first knowledge base infrastructure** whose primary interaction surface is a **Lean CLI**.
 
-Out of scope for this change:
+The first implementation should make the repository able to persist and query:
 
-1. A full knowledge-store implementation.
-2. Automatic frontier/readiness orchestration.
-3. Persisting derived dependency information into metadata.
-4. Making hover dynamically compute and inject dependency summaries.
-5. Replacing the current declaration-level extension with a full scaffold graph service.
-6. Rich attempt-log persistence.
-7. Editing markdown notes through the CLI.
+- source records,
+- source packets,
+- knowledge entries,
+- provenance links among them,
+- links from knowledge entries to scaffold nodes.
+
+The knowledge base should be:
+
+- machine-readable,
+- agent-friendly,
+- human-inspectable in git,
+- incrementally updateable,
+- explicit about provenance,
+- explicit about source-backed vs derived content.
+
+The CLI should be the supported interaction surface for agents, just as the Informalize CLI is the supported interaction surface for scaffold metadata.
 
 ---
 
-## 5. Key product decisions
+## 4. Goals
 
-These decisions are settled for this feature.
+## 4.1 Functional goals
 
-### 5.1 Markdown remains required
+1. Register raw sources with stable ids and metadata.
+2. Store faithful source packets derived from those sources.
+3. Store reusable knowledge entries derived from sources, packets, or later workflow steps.
+4. Support both source-backed entries and agent-derived entries.
+5. Support explicit provenance and links among records.
+6. Support incremental writeback at any point in the workflow.
+7. Provide query operations through a Lean CLI.
+8. Provide machine-readable `--json` output from the beginning.
+9. Keep the storage local to the repository and inspectable in git.
+10. Integrate cleanly with existing Informalize location ids and `knowledgeRefs` conventions.
 
-For `informal[Foo.bar]`, the markdown file remains mandatory:
+## 4.2 Workflow goals
 
-- required: `informal/Foo/bar.md`
+1. Make the knowledge base available at any point in the workflow, as required by `docs/workflow.md`.
+2. Preserve source traceability throughout the project.
+3. Let agents query definitions, theorems, notation, examples, proof sketches, and outcomes without re-reading raw sources every time.
+4. Let agents record derived notes, failures, and formalization outcomes back into the project.
+5. Create a foundation for later readiness assessment, frontier prioritization, and orchestration.
 
-If the markdown file is missing or unreadable, elaboration fails.
+## 4.3 Implementation goals
 
-### 5.2 JSON metadata is optional
+1. Implement the primary interface in Lean.
+2. Reuse patterns from the existing Informalize CLI where sensible:
+   - manual argument parsing,
+   - plain text + JSON outputs,
+   - explicit validation,
+   - canonical file writes.
+3. Keep the initial backend file-backed and repository-local.
+4. Keep the initial query engine simple and deterministic.
 
-For `informal[Foo.bar]`, the metadata file is optional:
+---
 
-- optional: `informal/Foo/bar.json`
+## 5. Non-goals for the first implementation
 
-If the JSON file is missing, Informalize uses default metadata.
+The first knowledge-base implementation should **not** attempt to solve the entire autoformalization framework.
 
-### 5.3 Invalid JSON is an error
+Out of scope for v1:
 
-If `informal/Foo/bar.json` exists but is unreadable or invalid, elaboration fails.
+1. PDF parsing, OCR, or rich document conversion pipelines.
+2. LLM-driven automatic knowledge extraction.
+3. Embedding search or vector databases.
+4. A long-running knowledge-base server process.
+5. A distributed or remote multi-user knowledge service.
+6. Full workflow orchestration, frontier computation, or readiness classification.
+7. Automatic scaffold generation.
+8. Automatic synchronization of Informalize `knowledgeRefs` with the new store in both directions.
+9. Rich ranking/relevance modeling beyond deterministic filtering and simple text search.
+10. Replacing Informalize CLI or AFTK hub surfaces.
+
+The v1 goal is infrastructure: persistent storage, validation, query, and writeback.
+
+---
+
+## 6. Knowledge-base requirements extracted from current docs
+
+This section consolidates the requirements already present in the project documentation.
+
+## 6.1 Source-first requirement
+
+Per `docs/workflow.md`, the system must remain source-first:
+
+- scaffold nodes and formalization decisions should be traceable to source material or explicit derived reasoning,
+- source provenance must not be lost during ingestion or knowledge extraction.
+
+## 6.2 Faithful-ingestion requirement
+
+Source packets must preserve:
+
+- normalized text,
+- structural anchors,
+- chunk boundaries,
+- provenance back to the raw source,
+- explicit representation of incomplete/low-quality inputs rather than silently hiding that fact.
+
+## 6.3 Knowledge-store requirement
+
+Knowledge entries must support at least:
+
+- stable ids,
+- type/classification,
+- provenance,
+- links to related entries,
+- explicit distinction between source-backed and derived.
+
+## 6.4 Query/writeback requirement
+
+The docs explicitly require that the agent can:
+
+- query the knowledge base at any time,
+- add new material to it at any time.
+
+So the CLI must support both read and mutation flows from the start.
+
+## 6.5 Provenance discipline requirement
+
+The knowledge base must never blur together:
+
+- source-backed facts,
+- derived notes or hypotheses,
+- later formalization outcomes.
+
+This must be a schema-level invariant, not just a social convention.
+
+## 6.6 Incrementality requirement
+
+The store must support repeated updates without full rebuilds.
+
+That means:
+
+- add one source,
+- ingest one packet,
+- add one knowledge entry,
+- mutate one entry,
+- query immediately.
+
+## 6.7 Agent-readable requirement
+
+Outputs should be designed for agents, not only humans.
+
+Therefore:
+
+- `--json` output is mandatory for the main read/query commands,
+- ids and schemas should be stable,
+- errors should be explicit and actionable.
+
+---
+
+## 7. Key product decisions
+
+## 7.1 Build a new AFTK CLI instead of extending `informalize`
+
+The knowledge base is broader than blueprint metadata.
+
+Planned decision:
+
+- keep `lake exe informalize ...` focused on scaffold state,
+- add a new Lean CLI for knowledge-base operations.
+
+Recommended executable:
+
+- `lake exe aftk ...`
+
+Recommended initial command namespaces:
+
+- `source ...`
+- `packet ...`
+- `kb ...`
+- optionally `store ...` or `index ...`
 
 Rationale:
 
-- missing metadata is fine,
-- malformed metadata should not be silently ignored.
+- avoids overloading the blueprint CLI,
+- matches the repository architecture more naturally,
+- leaves room for future orchestration commands under the same executable.
 
-### 5.4 Agents should not edit JSON directly
+## 7.2 Use a repository-local file-backed backend for v1
 
-The supported metadata-management path is the Informalize CLI.
+Planned decision:
+
+- store records in the repository as JSON and markdown sidecars,
+- do not depend on SQLite or a long-running service in v1.
 
 Rationale:
 
-- avoids manual format drift,
-- lets us preserve canonical JSON formatting,
-- gives agents a stable API,
-- allows future validation and migration logic.
+- easier to implement in Lean now,
+- inspectable in git,
+- aligns with the project’s existing sidecar/document style,
+- good enough for MVP-scale stores.
 
-### 5.5 Dependencies are derived, not stored
+## 7.3 Use typed stable ids with dotted-string encoding
 
-The JSON sidecar should not contain manually authored dependency edges. Dependency information is computed automatically from Lean declaration dependencies plus Informalize location usage.
+Planned id families:
 
-### 5.6 Refinement structure is authored metadata
+- `src.*` for sources,
+- `pkt.*` for source packets,
+- `kb.*` for knowledge entries.
 
-Refinement structure should be represented explicitly in metadata, but in a minimal direction.
+Examples:
 
-Planned choice:
+- `src.paper.smith2024`
+- `pkt.paper.smith2024.thm_2_3`
+- `kb.group.definition`
 
-- store `parent?` in metadata,
-- derive `children` by reverse lookup,
-- do not store `children` redundantly.
+Rationale:
 
----
+- stable and readable,
+- easy to render in JSON,
+- easy to map to filesystem paths,
+- consistent with existing `knowledgeRefs` examples like `kb.fixture.foo_bar`.
 
-## 6. Conceptual model
+## 7.4 Long-form text should live in sidecars, not inside giant JSON blobs
 
-The system should distinguish the following concepts.
+Planned decision:
 
-### 6.1 Persisted metadata
+- structured metadata in JSON,
+- larger textual bodies in adjacent markdown files when needed.
 
-The metadata actually stored on disk in `informal/.../*.json`.
+Rationale:
 
-### 6.2 Effective metadata
+- better diffs,
+- better human inspection,
+- consistent with Informalize’s successful `.json` + `.md` pattern.
 
-The metadata the system uses for a location:
+## 7.5 Source-backed vs derived must be an explicit field
 
-- if the `.json` file exists, parse and use it,
-- otherwise, use default metadata.
+Planned decision:
 
-### 6.3 Metadata origin
+- store this distinction directly in each knowledge entry.
 
-When reading metadata, it is useful to know whether it came from:
+Do **not** infer it heuristically from whether citations exist.
 
-- a file, or
-- defaults.
+Rationale:
 
-This is relevant for hover, CLI `show`, and validation output.
+- derived notes can still cite sources,
+- source-backed entries may still include interpretation notes,
+- explicit classification is more reliable for agents.
 
-### 6.4 Scaffold structure
+## 7.6 Start with scan-based queries; optimize later only if needed
 
-The authored refinement structure of informal nodes.
+Planned decision:
 
-Planned representation:
+- v1 query execution can scan canonical on-disk records,
+- persistent secondary indexes are optional follow-on work.
 
-- persisted `parent?`,
-- derived `children`.
+Rationale:
 
-### 6.5 Dependency structure
+- simplifies correctness,
+- avoids premature backend complexity,
+- acceptable for the likely initial repository scale.
 
-The automatically computed Lean dependency relation among declarations, projected to informal locations.
+## 7.7 JSON output is part of the MVP, not a follow-up
 
-This is distinct from scaffold structure.
+All important read/query commands should support:
 
----
-
-## 7. Proposed metadata model
-
-## 7.1 Design principles
-
-The metadata should be:
-
-- small,
-- stable,
-- hand-inspectable when needed,
-- expressive enough for workflow state,
-- not overloaded with data we can derive automatically.
-
-## 7.2 Proposed Lean-side types
-
-The names below are the planned conceptual API. Exact file/module placement can be adjusted during implementation.
-
-### `Informalize.LocationId`
-
-A wrapper around a location id represented canonically as a dotted name string in JSON.
-
-Purpose:
-
-- avoid exposing raw `Lean.Name` JSON internals,
-- centralize rendering/parsing,
-- share path-resolution logic between elaborator and CLI.
-
-### `Informalize.NodeStatus`
-
-Planned cases:
-
-- `scaffolded`
-- `needsSources`
-- `needsRefinement`
-- `ready`
-- `formalizing`
-- `formalized`
-- `blocked`
-
-Planned JSON encoding:
-
-- `"scaffolded"`
-- `"needs_sources"`
-- `"needs_refinement"`
-- `"ready"`
-- `"formalizing"`
-- `"formalized"`
-- `"blocked"`
-
-### `Informalize.SourceRef`
-
-Planned fields:
-
-- `sourceId : String`
-- `anchors : Array String := #[]`
-- `locator? : Option String := none`
-- `role? : Option String := none`
-
-Purpose:
-
-- link nodes to future source-registry entries,
-- preserve basic provenance hooks.
-
-### `Informalize.WorkflowIssue`
-
-Planned fields:
-
-- `id : String`
-- `kind : String`
-- `refs : Array String := #[]`
-- `note : String`
-
-Purpose:
-
-- record blockers/rationale in a structured way,
-- support fine-grained CLI add/remove operations.
-
-Typical `kind` values may include:
-
-- `source`
-- `dependency`
-- `refinement`
-- `notation`
-- `scope`
-- `verification`
-- `other`
-
-### `Informalize.Metadata`
-
-Planned fields:
-
-- `schemaVersion : Nat := 1`
-- `kind? : Option String := none`
-- `status : NodeStatus := .scaffolded`
-- `parent? : Option LocationId := none`
-- `sources : Array SourceRef := #[]`
-- `knowledgeRefs : Array String := #[]`
-- `issues : Array WorkflowIssue := #[]`
-- `tags : Array String := #[]`
-
-## 7.3 Fields intentionally excluded
-
-The initial metadata should **not** include:
-
-- `dependsOn`
-- `children`
-- attempt logs
-- Lean declaration ownership
-- large prose notes
-
-Reason:
-
-- `dependsOn` should be derived automatically,
-- `children` should be derived from `parent?`,
-- long prose belongs in the markdown file,
-- declaration ownership is occurrence-dependent rather than location-intrinsic.
-
-## 7.4 Default metadata
-
-If no JSON file exists, the effective metadata should be the default value:
-
-- `schemaVersion = 1`
-- `status = scaffolded`
-- everything else empty/none
-
-Conceptually:
-
-```json
-{
-  "schemaVersion": 1,
-  "status": "scaffolded"
-}
-```
-
-This default need not be materialized on disk unless the CLI is used to initialize or modify metadata.
-
----
-
-## 8. File/path semantics
-
-For a location id `Foo.bar`:
-
-- markdown path: `informal/Foo/bar.md`
-- metadata path: `informal/Foo/bar.json`
-
-For `Foo.bar.baz`:
-
-- markdown path: `informal/Foo/bar/baz.md`
-- metadata path: `informal/Foo/bar/baz.json`
-
-The path-mapping rule should be shared between:
-
-- the elaborator,
-- metadata loader/saver,
-- the CLI.
-
-This likely warrants extracting the current private location-resolution logic into a shared utility module.
-
----
-
-## 9. Product requirements
-
-## 9.1 Elaborator behavior
-
-### For `informal[Foo.bar]`
-
-The elaborator should:
-
-1. validate the location id syntax,
-2. resolve the markdown path,
-3. require that the markdown file exists and is readable,
-4. resolve the metadata path,
-5. if the metadata file exists, parse it,
-6. if the metadata file does not exist, use default metadata,
-7. attach combined hover text that includes metadata and markdown,
-8. continue to register the declaration/location occurrence as today.
-
-### For bare `informal`
-
-Behavior remains unchanged.
-
-No metadata lookup should occur for bare `informal`.
-
-## 9.2 Hover behavior
-
-Hover for an informal location should include:
-
-1. the location id,
-2. a metadata-origin indicator (`default` vs `file`),
-3. a concise metadata summary,
-4. the markdown notes.
-
-The initial hover should include only persisted/effective metadata, not derived dependency summaries.
-
-### Example hover shape
-
-```text
-Informalize location: Foo.bar
-Metadata source: default
-
-Metadata
---------
-status: scaffolded
-kind: (none)
-parent: (none)
-sources: 0
-knowledgeRefs: 0
-issues: 0
-tags: 0
-
-Notes
------
-# Foo.bar
-...
-```
-
-If file-backed metadata exists, `Metadata source: file` should be shown.
-
-## 9.3 CLI metadata management
-
-The CLI should become the supported interface for reading and mutating metadata.
-
-### Read operations should use effective metadata
-
-If `.json` is absent:
-
-- `meta show` should still succeed,
-- `meta validate` should still succeed,
-- the result should indicate metadata origin = `default`.
-
-### Write operations should create the JSON file if absent
-
-Mutation commands should:
-
-1. load effective metadata,
-2. apply the mutation,
-3. write the resulting metadata to `informal/.../*.json`.
-
-This means the first metadata mutation materializes the JSON file.
-
-## 9.4 Dependency computation
-
-Dependency information should be derived automatically.
-
-### Declaration dependencies
-
-Existing declaration dependency computation should be preserved.
-
-### Location dependencies
-
-We should add a location-level projection derived from declaration dependencies.
-
-For a location `L`:
-
-1. find tracked declarations that reference `L`,
-2. compute their transitive tracked declaration dependencies using the existing algorithm,
-3. collect all informal locations referenced by those dependent declarations,
-4. union them,
-5. remove `L` itself.
-
-This gives a location dependency relation without storing dependency edges in metadata.
-
-## 9.5 Refinement structure
-
-Metadata should support explicit scaffold refinement structure by storing `parent?`.
-
-Children should be derived by reverse lookup over metadata files/effective metadata.
-
-This does not need to be fully surfaced in the first CLI release, but the data model should support it from the start.
-
-## 9.6 Agent-facing stability requirements
-
-Because agents will use the CLI:
-
-1. command names should be stable,
-2. machine-readable output should be available,
-3. mutation commands should validate inputs strictly,
-4. error messages should be explicit and actionable.
-
-A `--json` output mode should be part of the design from the beginning, even if implemented incrementally.
-
----
-
-## 10. Proposed CLI surface
-
-## 10.1 Design principles
-
-1. Metadata commands should not require agents to touch JSON directly.
-2. Commands that mutate metadata should operate by location id.
-3. Commands that compute environment-derived relations should require module imports when necessary.
-4. Existing command behavior should remain available where practical.
-
-## 10.2 New metadata namespace
-
-Planned namespace:
-
-- `lake exe informalize meta ...`
-
-This is cleaner than adding many unrelated top-level commands.
-
-## 10.3 Planned metadata commands
-
-### Read/show
-
-- `meta show --location <Location>`
-- `meta validate --location <Location>`
-
-### File materialization
-
-- `meta init --location <Location>`
-
-Behavior:
-
-- if no JSON file exists, write the default metadata,
-- if JSON exists, leave it unchanged or report success idempotently.
-
-### Scalar-field updates
-
-- `meta set-status --location <Location> --status <Status>`
-- `meta set-parent --location <Location> --parent <Location>`
-- `meta clear-parent --location <Location>`
-- `meta set-kind --location <Location> --kind <Kind>`
-- `meta clear-kind --location <Location>`
-
-### Collection updates
-
-- `meta add-tag --location <Location> --tag <Tag>`
-- `meta remove-tag --location <Location> --tag <Tag>`
-- `meta add-knowledge-ref --location <Location> --ref <Ref>`
-- `meta remove-knowledge-ref --location <Location> --ref <Ref>`
-
-### Source management
-
-- `meta add-source --location <Location> --source-id <Id> [--anchor <Anchor>]... [--locator <Locator>] [--role <Role>]`
-- `meta remove-source --location <Location> --source-id <Id> [--locator <Locator>]`
-
-Exact removal-key semantics can be finalized during implementation, but removals should be deterministic.
-
-### Issue management
-
-- `meta add-issue --location <Location> --id <IssueId> --kind <Kind> --note <Note> [--ref <Ref>]...`
-- `meta remove-issue --location <Location> --id <IssueId>`
-
-Issue ids are important so agents can manage individual issues reliably.
-
-## 10.4 Dependency commands
-
-### Existing behavior
-
-Keep the current declaration-oriented dependency behavior available.
-
-### Planned extension
-
-Extend `deps` to support modes such as:
-
-- `deps --by decl`
-- `deps --by location`
-
-Backward-compatibility plan:
-
-- default `deps` behavior remains declaration-oriented unless deliberately changed later.
-
-Location-mode output should present derived location dependencies rather than stored metadata edges.
-
-## 10.5 Future scaffold-structure queries
-
-Not required in the first code change, but planned as natural follow-ons:
-
-- `children --location <Location>`
-- `frontier --module <Module>`
-
-These should be built from authored `parent?` metadata plus derived status filters, not from stored dependency lists.
-
-## 10.6 Output modes
-
-Planned output modes:
-
-- default plain-text output for humans,
+- plain text output for humans,
 - `--json` output for agents.
 
 This is especially important for:
 
-- `meta show`
-- `meta validate`
-- `deps --by location`
-- future `children` / `frontier`
+- `source show`
+- `source list`
+- `packet show`
+- `packet list`
+- `kb show`
+- `kb list`
+- `kb query`
+- validation commands.
 
 ---
 
-## 11. Error model
+## 8. Proposed repository layout
 
-## 11.1 Elaborator errors
+Recommended root directory:
 
-### Missing markdown file
+- `aftk-data/`
 
-Still an error:
+Recommended layout:
 
-- `informal id 'Foo.bar' points to missing file 'informal/Foo/bar.md'`
+```text
+aftk-data/
+  store.json
+  sources/
+    ...source record json files...
+  packets/
+    ...packet json files...
+    ...packet markdown bodies...
+  knowledge/
+    ...knowledge entry json files...
+    ...knowledge entry markdown bodies...
+```
 
-### Missing metadata file
+Concrete layout:
 
-Not an error.
+```text
+aftk-data/
+  store.json
+  sources/
+    paper/
+      smith2024.json              # src.paper.smith2024
+  packets/
+    paper/
+      smith2024/
+        thm_2_3.json              # pkt.paper.smith2024.thm_2_3
+        thm_2_3.md
+  knowledge/
+    group/
+      definition.json             # kb.group.definition
+      definition.md
+```
 
-Use default metadata.
+## 8.1 `store.json`
 
-### Unreadable metadata file
+Purpose:
 
-Error.
+- mark the repository as containing an AFTK knowledge store,
+- hold store-level schema/version metadata,
+- possibly hold small future configuration settings.
 
-### Invalid metadata JSON
+Minimal planned contents:
 
-Error.
+```json
+{
+  "schemaVersion": 1
+}
+```
+
+## 8.2 Path-mapping rule
+
+For dotted ids, the first component is the family prefix and the remaining components map to directories + final filename.
+
+Examples:
+
+- `src.paper.smith2024` -> `aftk-data/sources/paper/smith2024.json`
+- `pkt.paper.smith2024.thm_2_3` ->
+  - `aftk-data/packets/paper/smith2024/thm_2_3.json`
+  - `aftk-data/packets/paper/smith2024/thm_2_3.md`
+- `kb.group.definition` ->
+  - `aftk-data/knowledge/group/definition.json`
+  - `aftk-data/knowledge/group/definition.md`
+
+This path logic should be centralized in a shared Lean module.
+
+## 8.3 Store discovery
+
+Planned behavior:
+
+- CLI resolves the nearest ancestor containing `aftk-data/store.json`,
+- `--store <path>` can override discovery.
+
+Rationale:
+
+- agent-friendly inside nested working directories,
+- explicit override when operating on a non-default store.
+
+---
+
+## 9. Proposed data model
+
+## 9.1 ID types
+
+Add typed wrappers rather than using raw strings everywhere.
+
+Planned types:
+
+- `AFTK.SourceId`
+- `AFTK.PacketId`
+- `AFTK.KnowledgeId`
+
+Planned encoding:
+
+- opaque dotted strings in JSON.
+
+Validation should require:
+
+- a correct family prefix (`src`, `pkt`, `kb`),
+- at least one component after the prefix,
+- non-empty components,
+- a conservative allowed-character set per component.
+
+Unlike Informalize location ids, these ids should **not** be constrained to `Lean.Name` syntax.
+
+## 9.2 Source model
+
+### `AFTK.SourceKind`
+
+Planned values:
+
+- `paper`
+- `book`
+- `notes`
+- `prior_formalization`
+- `web`
+- `local_file`
+- `other`
+
+### `AFTK.SourceLocator`
+
+Minimal initial representation should support:
+
+- local path,
+- URI,
+- freeform locator note.
+
+### `AFTK.SourceRecord`
+
+Planned fields:
+
+- `id : SourceId`
+- `kind : SourceKind`
+- `title : String`
+- `authors : Array String := #[]`
+- `locator : SourceLocator`
+- `version? : Option String := none`
+- `contentHash? : Option String := none`
+- `license? : Option String := none`
+- `tags : Array String := #[]`
+- `note? : Option String := none`
+
+Purpose:
+
+- register raw sources with stable ids and enough metadata for later provenance.
+
+## 9.3 Source-packet model
+
+### `AFTK.PacketAnchor`
+
+Planned fields:
+
+- `id : String`
+- `kind? : Option String := none`
+- `label? : Option String := none`
+- `locator? : Option String := none`
+
+Examples of anchor kinds:
+
+- `section`
+- `subsection`
+- `definition`
+- `theorem`
+- `example`
+- `equation`
+- `page_range`
+- `chunk`
+
+### `AFTK.PacketProvenance`
+
+Minimal planned fields:
+
+- `source : SourceId`
+- `locator? : Option String := none`
+- `anchors : Array String := #[]`
+- `note? : Option String := none`
+
+### `AFTK.SourcePacket`
+
+Planned fields:
+
+- `id : PacketId`
+- `source : SourceId`
+- `title : String`
+- `summary? : Option String := none`
+- `anchors : Array PacketAnchor := #[]`
+- `provenance : Array PacketProvenance := #[]`
+- `tags : Array String := #[]`
+
+Long-form packet content lives in the packet markdown body sidecar.
+
+Purpose:
+
+- persist a faithful, agent-readable chunk or normalized unit derived from a source.
+
+## 9.4 Knowledge model
+
+### `AFTK.KnowledgeBasis`
+
+Planned values:
+
+- `source_backed`
+- `derived`
+
+### `AFTK.KnowledgeKind`
+
+Planned values:
+
+- `definition`
+- `theorem_statement`
+- `proof_sketch`
+- `notation`
+- `example`
+- `counterexample`
+- `dependency_hint`
+- `plan_note`
+- `formalization_outcome`
+- `other`
+
+### `AFTK.ProvenanceRef`
+
+This is the main provenance/citation primitive for knowledge entries.
+
+Planned fields:
+
+- `targetId : String`
+- `targetKind : String`  
+  planned values initially: `source`, `packet`, `knowledge`, `scaffold`
+- `anchors : Array String := #[]`
+- `locator? : Option String := none`
+- `note? : Option String := none`
+- `quote? : Option String := none`
+
+Validation should ensure that `targetId` matches the declared family where possible.
+
+### `AFTK.KnowledgeLink`
+
+Planned fields:
+
+- `relation : String`
+- `target : KnowledgeId`
+
+Typical relation values:
+
+- `supports`
+- `related`
+- `uses_notation`
+- `specializes`
+- `generalizes`
+- `example_for`
+- `counterexample_for`
+- `outcome_for`
+
+### `AFTK.KnowledgeEntry`
+
+Planned fields:
+
+- `id : KnowledgeId`
+- `kind : KnowledgeKind`
+- `basis : KnowledgeBasis`
+- `title : String`
+- `summary? : Option String := none`
+- `packetRefs : Array PacketId := #[]`
+- `sourceRefs : Array SourceId := #[]`
+- `scaffoldRefs : Array Informalize.LocationId := #[]`
+- `provenance : Array ProvenanceRef := #[]`
+- `links : Array KnowledgeLink := #[]`
+- `tags : Array String := #[]`
+
+Long-form knowledge content lives in the knowledge-entry markdown body sidecar.
+
+Purpose:
+
+- represent reusable mathematical/project knowledge retrievable during the workflow.
+
+## 9.5 Validation invariants
+
+At minimum:
+
+### Sources
+
+- source ids are unique,
+- `title` is non-empty,
+- locator is well-formed,
+- tags/authors are normalized.
+
+### Packets
+
+- packet ids are unique,
+- referenced source exists,
+- title is non-empty,
+- packet provenance points back to the owning source or another explicitly allowed source,
+- anchor ids are unique within a packet.
+
+### Knowledge entries
+
+- knowledge ids are unique,
+- `title` is non-empty,
+- referenced sources/packets exist,
+- referenced scaffold ids parse as valid Informalize locations,
+- link targets exist,
+- provenance references are well-formed,
+- if `basis = source_backed`, at least one source- or packet-level provenance ref exists.
+
+---
+
+## 10. CLI surface
+
+## 10.1 Top-level shape
+
+Recommended executable:
+
+```bash
+lake exe aftk <namespace> <command> [options]
+```
+
+Namespaces for v1:
+
+- `store`
+- `source`
+- `packet`
+- `kb`
+
+## 10.2 Store commands
+
+### `store init`
+
+Initialize `aftk-data/` in the current directory.
+
+Example:
+
+```bash
+lake exe aftk store init
+```
+
+### `store validate`
+
+Validate the whole store.
+
+Example:
+
+```bash
+lake exe aftk store validate
+```
+
+### `store stats`
+
+Show counts of sources, packets, and knowledge entries.
+
+Example:
+
+```bash
+lake exe aftk store stats --json
+```
+
+## 10.3 Source commands
+
+### Read operations
+
+- `source list`
+- `source show --id <SourceId>`
+- `source validate --id <SourceId>`
+
+### Write operations
+
+- `source register --id <SourceId> --kind <Kind> --title <Title> (--path <Path> | --uri <Uri> | --locator-note <Text>) [options]`
+- `source update --id <SourceId> [field options or --from-json <File>]`
+- `source remove --id <SourceId>`
+
+Useful repeatable options:
+
+- `--author <Author>`
+- `--tag <Tag>`
+
+## 10.4 Packet commands
+
+### Read operations
+
+- `packet list [--source <SourceId>]`
+- `packet show --id <PacketId>`
+- `packet validate --id <PacketId>`
+
+### Write operations
+
+- `packet ingest --id <PacketId> --source <SourceId> --title <Title> --body-file <Path> [options]`
+- `packet update --id <PacketId> [field options or --from-json <File>]`
+- `packet remove --id <PacketId>`
+
+Useful repeatable options:
+
+- `--anchor <AnchorId>`
+- `--anchor-kind <Kind>`
+- `--anchor-label <Label>`
+- `--anchor-locator <Locator>`
+- `--prov-anchor <Anchor>`
+- `--prov-locator <Locator>`
+- `--tag <Tag>`
+
+For complex packet metadata, `--from-json <File>` should be supported.
+
+## 10.5 Knowledge-entry commands
+
+### Read operations
+
+- `kb list`
+- `kb show --id <KnowledgeId>`
+- `kb validate --id <KnowledgeId>`
+- `kb query [filters...]`
+
+### Write operations
+
+- `kb create --id <KnowledgeId> --kind <Kind> --basis <Basis> --title <Title> --body-file <Path> [options]`
+- `kb update --id <KnowledgeId> [field options or --from-json <File>]`
+- `kb remove --id <KnowledgeId>`
+- `kb add-link --id <KnowledgeId> --relation <Relation> --target <KnowledgeId>`
+- `kb remove-link --id <KnowledgeId> --relation <Relation> --target <KnowledgeId>`
+- `kb add-tag --id <KnowledgeId> --tag <Tag>`
+- `kb remove-tag --id <KnowledgeId> --tag <Tag>`
+- `kb add-scaffold-ref --id <KnowledgeId> --location <Informalize.Location>`
+- `kb remove-scaffold-ref --id <KnowledgeId> --location <Informalize.Location>`
+
+Useful repeatable options for `kb create` / `kb update`:
+
+- `--packet <PacketId>`
+- `--source <SourceId>`
+- `--location <Informalize.Location>`
+- `--tag <Tag>`
+- `--prov-target <Id>`
+- `--prov-kind <source|packet|knowledge|scaffold>`
+- `--prov-anchor <Anchor>`
+- `--prov-locator <Locator>`
+- `--prov-note <Note>`
+- `--prov-quote <Quote>`
+
+## 10.6 Query semantics
+
+The initial `kb query` should support deterministic filters for:
+
+- `--id-prefix <Prefix>`
+- `--kind <KnowledgeKind>`
+- `--basis <source_backed|derived>`
+- `--tag <Tag>`
+- `--source <SourceId>`
+- `--packet <PacketId>`
+- `--location <Informalize.Location>`
+- `--related-to <KnowledgeId>`
+- `--text <Substring>`
+- `--limit <Nat>`
+
+Initial text search can be case-insensitive substring matching over:
+
+- id,
+- title,
+- summary,
+- markdown body.
+
+Results should be sorted deterministically, with no opaque ranking requirement in v1.
+
+## 10.7 Output modes
+
+All major commands should support:
+
+- plain text default,
+- `--json` structured output.
+
+For mutation commands, JSON output should include:
+
+- action,
+- id,
+- paths written,
+- resulting record summary.
+
+---
+
+## 11. Example user flows
+
+## 11.1 Register a source and ingest a packet
+
+```bash
+lake exe aftk store init
+lake exe aftk source register \
+  --id src.paper.smith2024 \
+  --kind paper \
+  --title "Smith 2024" \
+  --path sources/smith2024.txt
+
+lake exe aftk packet ingest \
+  --id pkt.paper.smith2024.thm_2_3 \
+  --source src.paper.smith2024 \
+  --title "Theorem 2.3 excerpt" \
+  --body-file tmp/thm_2_3.md \
+  --anchor thm-2-3 \
+  --anchor-kind theorem \
+  --prov-locator "Theorem 2.3"
+```
+
+## 11.2 Create a source-backed knowledge entry
+
+```bash
+lake exe aftk kb create \
+  --id kb.group.definition \
+  --kind definition \
+  --basis source_backed \
+  --title "Definition of group" \
+  --body-file tmp/group-definition.md \
+  --packet pkt.paper.smith2024.thm_2_3 \
+  --source src.paper.smith2024 \
+  --location Algebra.Group.definition \
+  --tag algebra
+```
+
+## 11.3 Query knowledge for a scaffold node
+
+```bash
+lake exe aftk kb query --location Algebra.Group.definition --json
+```
+
+## 11.4 Write back a derived project note
+
+```bash
+lake exe aftk kb create \
+  --id kb.plan.group.definition.translation_note \
+  --kind plan_note \
+  --basis derived \
+  --title "Translation note for group definition" \
+  --body-file tmp/translation-note.md \
+  --location Algebra.Group.definition \
+  --packet pkt.paper.smith2024.thm_2_3
+```
+
+---
+
+## 12. Error model
+
+## 12.1 Store-level errors
+
+### Missing store root
+
+If no `aftk-data/store.json` is found and no `--store` path is provided, commands should fail clearly.
 
 Suggested style:
 
-- `invalid metadata in 'informal/Foo/bar.json' for informal id 'Foo.bar': ...`
+- `no AFTK knowledge store found (expected aftk-data/store.json in this directory or an ancestor)`
 
-## 11.2 CLI errors
+### Store not initialized
 
-### Metadata read commands
+Mutation commands should not silently initialize the store.
 
-- missing markdown file: error
-- missing JSON file: not an error
-- invalid JSON file: error
+Suggested policy:
 
-### Metadata mutation commands
+- require explicit `store init`.
 
-- missing markdown file: error
-- missing JSON file: not an error; create it
-- invalid JSON file: error
+## 12.2 Validation errors
 
-### Dependency commands
+Examples:
 
-Errors should remain explicit when required module imports are missing or malformed.
+- invalid id family prefix,
+- duplicate anchor id,
+- source-backed knowledge entry with no source/packet provenance,
+- packet references unknown source,
+- knowledge link target missing,
+- malformed JSON record.
+
+Errors should mention:
+
+- the path or id involved,
+- the field or relation that failed,
+- the expected correction when possible.
+
+## 12.3 Removal errors
+
+Planned policy for v1:
+
+- default behavior should reject removal of records that are still referenced,
+- optional future `--force` can be considered later.
+
+This is safer for provenance integrity.
 
 ---
 
-## 12. Architecture and module plan
+## 13. Architecture and module plan
 
-## 12.1 New/shared functionality likely needed
+## 13.1 New executable
 
-### Shared location/path utilities
+Add:
 
-Current location-id parsing/path construction logic is private to `Informalize/Elaborator.lean`.
+- `AFTKCli.lean`
+- `lean_exe aftk` in `lakefile.lean`
 
-Because the CLI also needs:
+## 13.2 Proposed module structure
 
-- location parsing,
-- dotted-name rendering,
-- `.md` path derivation,
-- `.json` path derivation,
+Possible Lean modules:
 
-we should extract this into a shared utility module.
-
-Possible module names:
-
-- `Informalize/Location.lean`
-- `Informalize/Path.lean`
-
-This module should centralize:
-
-- dotted location parsing/rendering,
-- path mapping rules,
-- validation constraints.
-
-### Metadata module
-
-Add a new module:
-
-- `Informalize/Metadata.lean`
+- `AFTK/Cli.lean`
+- `AFTK/Store.lean`
+- `AFTK/StoreDiscovery.lean`
+- `AFTK/Id.lean`
+- `AFTK/Source.lean`
+- `AFTK/Packet.lean`
+- `AFTK/Knowledge.lean`
+- `AFTK/Provenance.lean`
+- `AFTK/Query.lean`
+- `AFTK/Filesystem.lean`
 
 Responsibilities:
 
-- metadata types,
-- JSON encoding/decoding,
-- effective-metadata loading,
-- metadata origin tracking,
-- canonical save/write helpers,
-- hover-summary rendering.
+### `AFTK/Id.lean`
 
-## 12.2 Existing files likely to change
+- typed ids,
+- dotted-string validation,
+- path derivation helpers.
 
-### `Informalize.lean`
+### `AFTK/Filesystem.lean`
 
-Export the new metadata module and any shared location utilities.
+- canonical JSON write helpers,
+- atomic write/rename helpers,
+- directory creation,
+- safe deletion helpers.
 
-### `Informalize/Elaborator.lean`
+### `AFTK/StoreDiscovery.lean`
 
-Refactor location resolution so that:
+- nearest-store lookup,
+- explicit `--store` override resolution,
+- `store.json` loading/validation.
 
-- markdown remains required,
-- metadata is optional with default fallback,
-- hover includes metadata summary + markdown.
+### `AFTK/Source.lean`
 
-### `Informalize/Cli.lean`
+- source schema,
+- JSON codecs,
+- validation,
+- load/save helpers.
 
-Extend the parser, config, and command execution layer to support:
+### `AFTK/Packet.lean`
 
-- metadata commands,
-- metadata loading/writing,
-- location-level dependency queries,
-- optional JSON output.
+- packet schema,
+- markdown body helpers,
+- validation,
+- load/save helpers.
 
-### Potentially `Informalize/Extension.lean`
+### `AFTK/Knowledge.lean`
 
-Likely no fundamental schema change is required for v1, since the extension can continue tracking declaration -> locations. But helper queries may be added to support location projection cleanly.
+- knowledge schema,
+- link/provenance validation,
+- markdown body helpers,
+- load/save helpers.
 
-### AFTK / TypeScript layers
+### `AFTK/Query.lean`
 
-Probably no changes are required initially, because AFTK hover already relays Lean hover text. If Informalize hover text changes, the existing AFTK stack should surface it automatically.
+- list/filter/query logic over sources, packets, and knowledge entries,
+- deterministic result ordering,
+- JSON rendering for query output.
+
+### `AFTK/Cli.lean`
+
+- argument parsing,
+- command dispatch,
+- plain text / JSON output,
+- error rendering.
+
+## 13.3 Informalize integration
+
+The knowledge base should integrate with existing Informalize types where that helps, but without entangling the two CLIs.
+
+Recommended integration point for v1:
+
+- `KnowledgeEntry.scaffoldRefs : Array Informalize.LocationId`
+
+Recommended deferred integration:
+
+- automatic validation/sync of Informalize metadata `knowledgeRefs` against knowledge-entry ids.
+
+This keeps v1 useful without turning it into a cross-tool synchronization project.
 
 ---
 
-## 13. Detailed implementation plan
+## 14. Detailed implementation plan
 
-## Phase 0: finalize data model and CLI contract
+## Phase 0: finalize schema and CLI contract
 
 Deliverables:
 
-- settled metadata schema,
-- settled CLI surface,
-- settled dependency-derivation rules,
-- settled hover summary shape.
+- settled store root/layout,
+- settled id families,
+- settled record schemas,
+- settled initial CLI surface,
+- settled error model.
 
 This document is Phase 0.
 
-## Phase 1: shared location/path utilities
+## Phase 1: core store and id infrastructure
 
 Tasks:
 
-1. Extract location parsing/rendering logic out of `Informalize/Elaborator.lean`.
-2. Provide shared helpers for:
-   - dotted id parsing,
-   - `LocationId` conversion,
-   - markdown path derivation,
-   - metadata path derivation.
-3. Preserve existing validation behavior:
-   - at least two components,
-   - no numeric components.
+1. Add `AFTKCli.lean` and `lean_exe aftk`.
+2. Implement typed id parsing/rendering/path derivation.
+3. Implement store discovery and `store init`.
+4. Implement canonical JSON writing and atomic file persistence helpers.
+5. Add `store validate` and `store stats`.
 
 Acceptance:
 
-- elaborator and CLI can both use the same path/validation logic.
+- `lake exe aftk store init` creates a valid empty store,
+- ids and paths are validated centrally,
+- the CLI can discover the store from subdirectories.
 
-## Phase 2: metadata types and effective-metadata loading
+## Phase 2: source registry
 
 Tasks:
 
-1. Add `Informalize/Metadata.lean`.
-2. Define:
-   - `LocationId`
-   - `NodeStatus`
-   - `SourceRef`
-   - `WorkflowIssue`
-   - `Metadata`
-   - `MetadataOrigin`
-   - optionally `LoadedMetadata`
-3. Implement `ToJson` / `FromJson`.
-4. Prefer explicit/manual JSON handling where it improves stability, especially for:
-   - status string encoding,
-   - defaults,
-   - location-id encoding.
-5. Implement helpers for:
-   - default metadata,
-   - loading effective metadata,
-   - loading persisted metadata optionally,
-   - writing canonical metadata JSON.
+1. Define `SourceKind`, `SourceLocator`, `SourceRecord`.
+2. Implement JSON codecs and validation.
+3. Implement source load/save/list helpers.
+4. Add CLI commands:
+   - `source register`
+   - `source show`
+   - `source list`
+   - `source validate`
+   - `source update`
+   - `source remove`
+5. Ensure plain-text and JSON outputs.
 
 Acceptance:
 
-- metadata can be loaded from disk or synthesized from defaults,
-- a caller can tell whether metadata origin is `default` or `file`.
+- sources can be registered and queried from the CLI,
+- invalid source metadata is rejected clearly,
+- source records are written canonically.
 
-## Phase 3: elaborator integration and hover rendering
+## Phase 3: source packets
 
 Tasks:
 
-1. Extend the resolved-informal-id path to load effective metadata.
-2. Keep markdown required.
-3. If metadata file is missing, use defaults.
-4. If metadata file is malformed, fail elaboration.
-5. Replace raw markdown-only hover text with combined hover text:
-   - location id,
-   - metadata origin,
-   - metadata summary,
-   - markdown notes.
-6. Preserve current occurrence tracking behavior.
+1. Define packet anchors and packet provenance schema.
+2. Define `SourcePacket` and packet markdown-body conventions.
+3. Implement `packet ingest` from an existing file path.
+4. Implement packet load/save/list/validate helpers.
+5. Add CLI commands:
+   - `packet ingest`
+   - `packet show`
+   - `packet list`
+   - `packet validate`
+   - `packet update`
+   - `packet remove`
+
+Important v1 limitation:
+
+- `packet ingest` should copy or normalize from an already prepared text/markdown file,
+- it does not need to solve PDF/OCR/document parsing.
 
 Acceptance:
 
-- existing markdown-only informal nodes still elaborate,
-- hover includes effective metadata even when `.json` is absent.
+- packet metadata and packet body are persisted separately,
+- packets can be queried by source id,
+- packet provenance remains explicit.
 
-## Phase 4: CLI metadata commands
+## Phase 4: knowledge entries
 
 Tasks:
 
-1. Extend CLI command model to add `meta` namespace.
-2. Add read commands:
-   - `meta show`
-   - `meta validate`
-   - `meta init`
-3. Add mutation commands for:
-   - status,
-   - parent,
-   - kind,
-   - tags,
-   - knowledge refs,
-   - sources,
-   - issues.
-4. Mutation commands should:
-   - load effective metadata,
-   - apply update,
-   - write canonical JSON.
-5. Decide and implement atomic write strategy.
-6. Add optional `--json` output mode, at least for metadata commands.
+1. Define `KnowledgeBasis`, `KnowledgeKind`, `ProvenanceRef`, `KnowledgeLink`, `KnowledgeEntry`.
+2. Implement validation rules for:
+   - basis,
+   - references,
+   - links,
+   - scaffold refs.
+3. Implement knowledge entry load/save/list helpers.
+4. Add CLI commands:
+   - `kb create`
+   - `kb show`
+   - `kb list`
+   - `kb validate`
+   - `kb update`
+   - `kb remove`
+   - `kb add-link` / `kb remove-link`
+   - `kb add-tag` / `kb remove-tag`
+   - `kb add-scaffold-ref` / `kb remove-scaffold-ref`
 
 Acceptance:
 
-- agents can create and manage metadata through CLI without editing files manually,
-- first metadata mutation creates the JSON sidecar if absent.
+- source-backed and derived knowledge entries can both be represented,
+- knowledge entries can cite packets/sources explicitly,
+- knowledge entries can link to scaffold nodes.
 
-## Phase 5: location-level dependency queries
+## Phase 5: query engine
 
 Tasks:
 
-1. Preserve current declaration dependency output.
-2. Add location-level dependency projection.
-3. Extend `deps` or add a related query mode to expose derived location dependencies.
-4. Keep output available in both plain text and structured JSON.
+1. Implement deterministic scan-based queries.
+2. Add filter support for kind/basis/tag/source/packet/location/related/text.
+3. Add `kb query` JSON output suitable for agents.
+4. Ensure output stays bounded and stable; support `--limit` from the beginning.
 
 Acceptance:
 
-- dependency edges between informal nodes are available without being stored in metadata.
+- agents can retrieve relevant knowledge entries without manually traversing files,
+- results are deterministic and machine-readable.
 
-## Phase 6: documentation and examples
+## Phase 6: consistency checks and cross-reference validation
 
 Tasks:
 
-Update at least:
+1. Strengthen store-wide validation:
+   - missing referenced ids,
+   - dangling links,
+   - unsafe removals,
+   - malformed sidecars.
+2. Add optional checks involving Informalize references, such as:
+   - scaffold refs parse as valid location ids,
+   - future: validate `informal/...json` knowledge refs against `kb.*` ids.
+
+Acceptance:
+
+- the store can be validated as a coherent graph rather than only record-by-record.
+
+## Phase 7: documentation and examples
+
+Because `AGENTS.md` requires documentation updates alongside project changes, the implementation PR must update the relevant docs when code lands.
+
+Minimum docs to review/update when implementation happens:
 
 - `README.md`
-- `docs/informalize/README.md`
-- `docs/informalize/IdReference.md`
+- `docs/aftk/README.md`
 - `docs/agent-playbook.md`
-- `docs/workflow.md` if terminology/examples need adjustment
-- `docs/future/autoformalization-tools.md` if roadmap positioning changes
+- `docs/future/autoformalization-tools.md`
+- `docs/workflow.md`
+- `docs/components.md`
+- `docs/informalize/README.md` if Informalize integration behavior changes
 
 Docs should explain:
 
-- `.md` required / `.json` optional semantics,
-- default metadata behavior,
-- CLI-based metadata management,
-- dependency derivation,
-- hover behavior.
+- store layout,
+- source registration,
+- packet ingestion,
+- knowledge entry creation,
+- query flows,
+- provenance model,
+- relationship to Informalize `knowledgeRefs`.
 
-Acceptance:
+## Phase 8: tests
 
-- docs describe the implemented behavior accurately and give agent-usable examples.
+Add unit and integration coverage throughout the phases rather than waiting until the end.
 
 ---
 
-## 14. Test plan
+## 15. Test plan
 
-## 14.1 Unit tests for metadata model
+## 15.1 Unit tests
 
 Add tests for:
 
-- `NodeStatus` JSON encoding/decoding,
-- `LocationId` dotted-string JSON encoding/decoding,
-- metadata defaulting behavior,
-- malformed metadata rejection,
-- metadata roundtrips where appropriate.
+- id parsing/rendering/path derivation,
+- source/packet/knowledge JSON codecs,
+- validation invariants,
+- markdown-sidecar path helpers,
+- store discovery logic,
+- deterministic query filtering.
 
-## 14.2 Elaborator tests
+## 15.2 CLI integration tests
 
-Add/adjust tests for:
+Add runtime CLI tests similar in style to `Tests/Integration/Cli.lean`.
 
-- `informal[...]` with markdown present and JSON absent,
-- `informal[...]` with valid JSON present,
-- `informal[...]` with malformed JSON,
-- `informal[...]` with unreadable/missing markdown,
-- unchanged behavior for bare `informal`.
+Recommended new file:
 
-## 14.3 Hover-format tests
+- `Tests/Integration/AFTKCli.lean`
 
-There are currently no AFTK hover integration tests in the Lean test suite.
+Test cases should include:
 
-Initial recommendation:
+1. `store init`
+2. `source register` + `source show`
+3. `packet ingest` + `packet show`
+4. `kb create` + `kb show`
+5. `kb query` by kind/tag/source/location
+6. invalid source-backed entry rejected without provenance
+7. missing referenced packet/source rejected
+8. removal blocked when references still exist
+9. `--json` output shape checks
 
-- factor metadata hover rendering into a pure function and test that function directly.
+## 15.3 Fixture strategy
 
-This gives strong coverage without immediately expanding AFTK integration testing.
+Recommended fixture structure:
 
-## 14.4 CLI tests
+- small runtime-created test store under `aftk-data/` in test-only locations,
+- a few static invalid fixtures for negative parsing/validation tests.
 
-Add integration/runtime tests for:
+## 15.4 Regression coverage for canonical writes
 
-- `meta show` on a location with no JSON file,
-- `meta init` materializing default JSON,
-- `meta set-status` creating JSON when absent,
-- tag/source/issue add/remove commands,
-- validation errors for malformed metadata,
-- `deps --by location` or equivalent location-level dependency mode.
+Add tests to ensure:
 
-## 14.5 Fixture updates
-
-Existing fixtures can remain markdown-only in many cases, since JSON is optional.
-
-Add a small number of explicit `.json` fixtures for:
-
-- valid file-backed metadata,
-- malformed JSON,
-- representative status/source/issue data.
+- repeated writes are stable,
+- JSON field ordering remains canonical,
+- markdown bodies are written where expected,
+- update commands do not accidentally erase unrelated fields.
 
 ---
 
-## 15. Acceptance criteria
+## 16. Acceptance criteria
 
-The feature is complete when all of the following hold.
+The knowledge-base infrastructure is complete when all of the following hold.
 
-### Core behavior
+### Core storage behavior
 
-1. Existing markdown-backed `informal[...]` terms elaborate without requiring `.json` files.
-2. If a JSON sidecar exists and is valid, it is parsed and used.
-3. If a JSON sidecar exists and is invalid, elaboration fails clearly.
-4. Hover includes metadata information plus markdown notes.
+1. A repository-local AFTK store can be initialized explicitly.
+2. Source ids, packet ids, and knowledge ids are validated and path-resolved consistently.
+3. Sources, packets, and knowledge entries are persisted canonically on disk.
+4. Long-form packet/knowledge content is stored in markdown sidecars.
 
-### CLI behavior
+### Source/provenance behavior
 
-5. `meta show` works whether or not the JSON file exists.
-6. Metadata mutation commands create the JSON file on demand.
-7. Agents can update metadata without editing JSON directly.
+5. Sources can be registered and shown through the CLI.
+6. Packets can be ingested from prepared text/markdown files and shown through the CLI.
+7. Knowledge entries can explicitly distinguish `source_backed` from `derived`.
+8. Source-backed entries must carry explicit source/packet provenance.
 
-### Dependency behavior
+### Query behavior
 
-8. Declaration dependency queries still work.
-9. Location/node dependency queries are available and derived automatically.
-10. No manually authored dependency edges are stored in metadata.
+9. Agents can query knowledge entries by structured filters.
+10. Query output is available in JSON.
+11. Results are deterministic.
 
-### Documentation/testing
+### Integration behavior
 
-11. Relevant docs are updated.
-12. Tests cover default metadata, file-backed metadata, CLI mutation, and derived dependencies.
+12. Knowledge entries can refer to Informalize scaffold locations.
+13. The design is compatible with existing `kb.*` references in Informalize metadata.
 
----
+### Quality behavior
 
-## 16. Risks and mitigation
-
-## 16.1 Risk: conflating scaffold structure and dependency structure
-
-Mitigation:
-
-- explicitly keep `parent?`-based scaffold structure separate from automatically derived dependencies.
-
-## 16.2 Risk: unstable agent interaction if CLI output is only text
-
-Mitigation:
-
-- plan `--json` output early,
-- use stable field names and machine-readable errors.
-
-## 16.3 Risk: duplicated path-resolution logic between elaborator and CLI
-
-Mitigation:
-
-- extract shared location/path helpers before adding CLI metadata management.
-
-## 16.4 Risk: malformed metadata silently breaking user expectations
-
-Mitigation:
-
-- treat present-but-invalid JSON as an elaboration/CLI error,
-- provide explicit validation command.
-
-## 16.5 Risk: hover becomes noisy
-
-Mitigation:
-
-- render a concise metadata summary rather than dumping raw JSON by default.
+14. Validation catches malformed or dangling references clearly.
+15. Tests cover the main happy-path and failure-path CLI behaviors.
+16. Repository docs are updated when the code implementation lands.
 
 ---
 
-## 17. Migration and compatibility
+## 17. Risks and mitigations
 
-This change should be backward-compatible for existing markdown-only projects.
+## 17.1 Risk: over-scoping the first version into a full workflow engine
 
-Migration story:
+Mitigation:
 
-1. existing nodes keep working with `.md` only,
-2. metadata is introduced incrementally,
-3. the CLI can materialize sidecars on demand,
-4. dependency information is added without requiring metadata edits.
+- keep v1 focused on storage/query/writeback infrastructure,
+- explicitly defer orchestration, readiness, and automated extraction.
 
-No bulk migration should be required.
+## 17.2 Risk: CLI write surface becomes too wide and awkward
+
+Mitigation:
+
+- support `--from-json <File>` for complex records,
+- keep common mutations as dedicated subcommands,
+- keep output schemas stable.
+
+## 17.3 Risk: provenance becomes optional in practice
+
+Mitigation:
+
+- make provenance validation strict for `source_backed` entries,
+- expose store-wide validation commands early.
+
+## 17.4 Risk: file-backed query becomes slow later
+
+Mitigation:
+
+- start with scan-based queries for correctness,
+- leave room for derived indexes in a later phase without changing user-facing ids.
+
+## 17.5 Risk: cross-linking with Informalize becomes inconsistent
+
+Mitigation:
+
+- keep integration narrow in v1,
+- validate scaffold refs structurally,
+- add explicit future sync/consistency tooling rather than hidden side effects.
+
+## 17.6 Risk: arbitrary source ingestion expectations exceed Lean-only MVP scope
+
+Mitigation:
+
+- clearly scope `packet ingest` to prepared text/markdown inputs in v1,
+- treat richer ingestion pipelines as future work.
 
 ---
 
-## 18. Recommended implementation order
+## 18. Open questions to resolve before implementation starts
+
+1. Should `lake exe aftk` be introduced now as a general umbrella CLI, or should the executable be named something narrower such as `aftk_kb`?
+   - Recommendation: use `aftk` now.
+
+2. Should `source update` / `packet update` / `kb update` be granular flag-based mutations, whole-record replacement from JSON, or both?
+   - Recommendation: both, with `--from-json` for complex inputs.
+
+3. Should the store root be `aftk-data/` or something hidden like `.aftk/`?
+   - Recommendation: `aftk-data/` for visibility and git inspectability.
+
+4. Should packet and knowledge sidecars always be markdown, or should plain-text sidecars also be supported?
+   - Recommendation: markdown-only in v1 unless plain-text support becomes necessary.
+
+5. Should store validation reject all dangling references immediately, including links to not-yet-created intended ids?
+   - Recommendation: yes for committed records; agents should create referenced records explicitly.
+
+---
+
+## 19. Recommended implementation order
 
 Recommended order of work:
 
-1. shared location/path utilities,
-2. metadata types + effective-metadata loader/writer,
-3. elaborator hover integration,
-4. CLI metadata commands,
-5. location dependency queries,
-6. docs/tests cleanup.
+1. `aftk` executable + store discovery/init,
+2. typed ids + filesystem/path helpers,
+3. source registry,
+4. source packets,
+5. knowledge entries,
+6. query engine,
+7. store-wide validation,
+8. docs/tests polish.
 
-This order preserves backward compatibility early while unlocking agent-facing metadata management quickly.
+This order keeps the implementation aligned with the workflow’s source-first requirements.
 
 ---
 
-## 19. Summary of the intended user experience
+## 20. Summary
 
-### Authoring a new informal node
+The repository already has:
 
-1. create `informal/Foo/bar.md`
-2. write `informal[Foo.bar]` in Lean
-3. elaboration succeeds even if `informal/Foo/bar.json` does not exist
-4. hover shows default metadata + notes
+- a blueprint layer (`Informalize`), and
+- a Lean-local execution layer (`AFTK` hub tools).
 
-### Adding metadata later
+The main missing framework layer is now the **knowledge base**.
 
-1. run `lake exe informalize meta init --location Foo.bar`
-2. or directly run `lake exe informalize meta set-status --location Foo.bar --status ready`
-3. the CLI creates/updates `informal/Foo/bar.json`
-4. hover now reflects file-backed metadata
+The recommended next step is to build a **new Lean CLI** under `lake exe aftk ...` with a **file-backed repository-local store** rooted at `aftk-data/`, supporting:
 
-### Querying dependencies
+- source registration,
+- source-packet persistence,
+- knowledge entry persistence,
+- provenance and linking,
+- deterministic agent-facing queries,
+- incremental writeback.
 
-1. run `lake exe informalize deps --module My.Module`
-2. optionally request location/node mode
-3. use the derived dependency information without manually maintaining dependency fields in metadata
-
-This is the intended product direction for the first metadata-enabled Informalize release.
+That provides the missing infrastructure needed to make the documented workflow materially real inside the repository, while staying small enough for a practical first implementation.
