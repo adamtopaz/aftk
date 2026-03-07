@@ -102,33 +102,33 @@ What it does **not** yet provide:
 ### A. Source and corpus layer
 
 #### 5. Source registry
-**Status:** New
+**Status:** Existing
 
 Responsibility:
 
 - register every raw source intended for autoformalization.
 
-Inputs:
+What now exists:
 
-- files, URLs, local notes, textbooks, papers, prior formal developments, etc.
+- repository-local source records under `aftk-data/sources/`,
+- stable `src.*` ids,
+- file-backed source metadata managed through `lake exe aftk source ...`.
 
-Outputs:
+Current strengths:
 
-- stable source ids,
-- source metadata,
-- version/hash information when available.
+- explicit ids,
+- explicit locator kind (`path`, `uri`, `note`),
+- git-inspectable JSON persistence,
+- validation via `source validate` and `store validate`.
 
-Why it is needed:
+What is still missing:
 
-- the workflow is source-first,
-- we need stable provenance from the beginning.
-
-Minimal first version:
-
-- a file-backed manifest is enough.
+- richer acquisition/planning workflows,
+- bulk import helpers,
+- remote corpus integration.
 
 #### 6. Faithful source ingester / normalizer
-**Status:** New
+**Status:** Partial
 
 Responsibility:
 
@@ -154,21 +154,31 @@ Important requirement:
 - normalization must preserve structure and provenance rather than silently paraphrasing the source.
 
 #### 7. Source-packet storage layer
-**Status:** New
+**Status:** Existing
 
 Responsibility:
 
 - persist the ingested source packets in a form that can be queried later.
 
-Outputs should support:
+What now exists:
 
-- lookup by source id,
-- lookup by theorem/section anchors,
-- chunk retrieval with provenance.
+- packet records under `aftk-data/packets/`,
+- `pkt.*` ids,
+- markdown body sidecars,
+- source-linked provenance,
+- CLI operations via `lake exe aftk packet ...`.
 
-Why it is needed:
+Current outputs support:
 
-- knowledge extraction and later retrieval both depend on stable stored source packets.
+- lookup by packet id,
+- lookup by source id (`packet list --source ...`),
+- retrieval of stored markdown bodies with provenance metadata.
+
+What is still missing:
+
+- automated normalization from richer raw inputs,
+- richer anchor extraction,
+- higher-level ingestion pipelines.
 
 ---
 
@@ -195,75 +205,90 @@ Why it is needed:
 - the agent should not repeatedly re-read raw sources for every local task.
 
 #### 9. Knowledge store
-**Status:** New
+**Status:** Existing
 
 Responsibility:
 
 - store retrievable mathematical knowledge derived from sources and later workflow steps.
 
-The store must support at least:
+What now exists:
 
-- source-backed entries,
-- agent-derived entries,
+- knowledge entries under `aftk-data/knowledge/`,
+- stable `kb.*` ids,
+- explicit `source_backed` vs `derived` basis,
 - links among entries,
-- provenance,
-- updates over time.
+- provenance refs,
+- scaffold refs to Informalize locations,
+- markdown body sidecars,
+- store-wide validation and safe-removal checks.
 
-Why it is needed:
+Why it matters now:
 
-- it is the central memory of the workflow.
+- the repository finally has a central in-repo memory layer rather than only placeholder metadata.
 
-Important requirement:
+Important current requirement:
 
-- source-backed and agent-derived content must be clearly distinguished.
+- source-backed and agent-derived content are stored explicitly, not inferred.
 
 #### 10. Knowledge retrieval/query API
-**Status:** New
+**Status:** Existing
 
 Responsibility:
 
 - let the agent query the knowledge store at any point in the workflow.
 
-Typical queries:
+What now exists:
 
-- “what source-backed statements mention this concept?”,
-- “what definitions or notation are relevant to this scaffold node?”,
-- “what prior formalization attempts or examples exist for this topic?”.
+- `lake exe aftk kb list`
+- `lake exe aftk kb show --id <KnowledgeId>`
+- `lake exe aftk kb query` with filters for id prefix, kind, basis, tag, source, packet, scaffold location, related knowledge id, text, and limit
+- `--json` output for agent-facing consumption
 
-Why it is needed:
+What is still missing:
 
-- the user’s intended loop allows querying the knowledge base at any time.
+- richer ranking/retrieval,
+- knowledge extraction/indexing beyond scan-based filtering,
+- premise-selection level retrieval tied directly to Lean tasks.
 
 #### 11. Knowledge writeback/update API
-**Status:** New
+**Status:** Existing
 
 Responsibility:
 
 - let the agent add new material to the knowledge store at any point.
 
-Examples:
+What now exists:
 
-- newly ingested sources,
-- refined scaffold notes,
-- successful formalization outcomes,
-- failed-attempt diagnostics,
-- derived strategy notes.
+- `source register/update/remove`
+- `packet ingest/update/remove`
+- `kb create/update/remove`
+- small targeted knowledge mutations (`add/remove-tag`, `add/remove-link`, `add/remove-scaffold-ref`)
 
-Why it is needed:
+What is still missing:
 
-- the knowledge store must evolve as the project evolves.
+- richer append-only attempt logs,
+- higher-level workflow writeback helpers,
+- automated synchronization between Informalize metadata `knowledgeRefs` and the store.
 
 #### 12. Provenance and citation layer
-**Status:** New
+**Status:** Existing
 
 Responsibility:
 
 - track where each knowledge item, scaffold node, and formalization decision came from.
 
-Why it is needed:
+What now exists:
 
-- source traceability is one of the main workflow invariants,
-- without it, the knowledge store becomes unreliable.
+- source-linked packet provenance,
+- knowledge provenance refs to sources, packets, knowledge entries, and scaffold ids,
+- explicit `source_backed` vs `derived` basis,
+- store validation enforcing provenance-target integrity.
+
+What is still missing:
+
+- automatic provenance extraction,
+- richer citation capture during ingestion,
+- provenance-aware orchestration/reporting across later workflow stages.
 
 ---
 
@@ -613,38 +638,42 @@ Outputs of each component should be designed for machine consumption, not only f
 
 ## Suggested implementation order
 
-A reasonable development order is:
+A reasonable development order is now:
 
-1. **Source registry + faithful ingester + source-packet storage**
-   - because everything else depends on faithful input.
+1. **Improve faithful ingestion / normalization**
+   - because the file-backed store exists, but richer source preparation is still missing.
 
-2. **Knowledge store + query/writeback + provenance layer**
-   - because the workflow assumes the agent can query and update knowledge at any time.
+2. **Add knowledge extraction on top of the current store**
+   - because sources/packets/knowledge persistence now exists, but extraction is still manual.
 
-3. **Scaffold node registry + initial scaffold generator + frontier detector**
-   - because we need an explicit object to iterate over.
+3. **Build scaffold-node registry/frontier/readiness layers above Informalize**
+   - because the repo now has persistence and retrieval, but not orchestration over scaffold nodes.
 
-4. **Readiness evaluator + source-gap detector + refinement engine**
-   - because these determine the main branch points of the loop.
+4. **Connect the knowledge store more tightly to formalization execution**
+   - via task building, retrieval packaging, and verification-aware writeback.
 
-5. **Formalization task builder + orchestrator + verification gate**
-   - because this turns the current Informalize/AFTK toolset into an actual end-to-end workflow.
+5. **Add workflow orchestration and failure routing**
+   - because this turns the current tools into a full end-to-end framework.
 
-6. **Failure routing, prioritization, and richer writeback**
+6. **Improve prioritization, acquisition, and richer reporting**
    - because these improve robustness after the basic loop exists.
 
 ---
 
 ## Minimal viable framework shape
 
-The first implementation does **not** need to be a distributed system or a large service stack.
-A good MVP could be file-backed and repository-local:
+The repository now has this MVP shape in place for the knowledge layer:
 
-- source registry as a manifest file,
-- ingested source packets as markdown/JSON artifacts,
-- knowledge store as JSON or SQLite,
-- scaffold registry built around `informal[...]` ids plus metadata,
-- orchestrator as an agent-controlled workflow script,
-- AFTK and Informalize reused as they already exist.
+- file-backed store under `aftk-data/`,
+- registered sources as JSON artifacts,
+- source packets as JSON + markdown sidecars,
+- knowledge entries as JSON + markdown sidecars,
+- provenance-aware validation and query/writeback CLI under `lake exe aftk ...`.
 
-That would already be enough to validate the workflow before investing in more sophisticated infrastructure.
+The remaining MVP work is now primarily *above* that storage layer:
+
+- richer ingestion,
+- extraction,
+- scaffold-node registry/frontier/readiness automation,
+- orchestration,
+- verification-aware reporting.

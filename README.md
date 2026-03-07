@@ -1,19 +1,20 @@
 # AFTK: Agent-Oriented Autoformalization Toolkit for Lean
 
-AFTK provides **two complementary layers** for autoformalization:
+AFTK now provides **three complementary layers** for autoformalization:
 
 1. **Informalize**: build and track an *informal blueprint* of the formalization project.
-2. **AFTK hub tools** (via the shared custom toolset or the pi extension wrapper): query Lean semantic state and explore tactic strategies transiently.
+2. **AFTK knowledge-base CLI**: persist and query a repository-local source/packet/knowledge store.
+3. **AFTK hub tools** (via the shared custom toolset or the pi extension wrapper): query Lean semantic state and explore tactic strategies transiently.
 
 The intended workflow is:
 
-- ingest source material into a faithful, agent-readable representation,
-- build a source-backed knowledge store from that material,
+- register sources and persist faithful source packets,
+- build and update a source-backed knowledge store in-repo,
 - generate an initial scaffold with blueprint placeholders,
 - iterate over leaf scaffold nodes by gathering more sources, refining the scaffold, or formalizing ready leaves,
-- use AFTK for local semantic queries and tactic exploration while formalizing.
+- use AFTK hub tools for local semantic queries and tactic exploration while formalizing.
 
-See `docs/workflow.md` for the precise end-to-end loop and `docs/components.md` for the framework pieces still to implement.
+See `docs/workflow.md` for the precise end-to-end loop and `docs/components.md` for the remaining framework pieces still to implement.
 
 ---
 
@@ -102,7 +103,112 @@ Informalize uses default metadata and the first metadata mutation command materi
 
 ---
 
-## Part 2: AFTK hub tools (semantic query + proof exploration)
+## Part 2: AFTK knowledge-base CLI
+
+AFTK now ships a repository-local, file-backed knowledge-base CLI:
+
+- executable: `lake exe aftk ...`
+- store root: `aftk-data/`
+- record families:
+  - `src.*` — registered sources
+  - `pkt.*` — persisted source packets
+  - `kb.*` — knowledge entries
+
+The store is designed to be:
+
+- repository-local,
+- git-inspectable,
+- incrementally updateable,
+- explicit about provenance,
+- explicit about source-backed vs derived knowledge.
+
+### What the CLI supports today
+
+Store operations:
+
+```bash
+lake exe aftk store init
+lake exe aftk store validate
+lake exe aftk store stats --json
+```
+
+Source operations:
+
+```bash
+lake exe aftk source register --id src.paper.demo --kind paper --title "Demo" --path sources/demo.txt
+lake exe aftk source list
+lake exe aftk source show --id src.paper.demo --json
+```
+
+Source-packet operations:
+
+```bash
+lake exe aftk packet ingest \
+  --id pkt.paper.demo.thm_1 \
+  --source src.paper.demo \
+  --title "Theorem 1 excerpt" \
+  --body-file tmp/thm_1.md
+
+lake exe aftk packet show --id pkt.paper.demo.thm_1
+lake exe aftk packet list --source src.paper.demo
+```
+
+Knowledge-entry operations:
+
+```bash
+lake exe aftk kb create \
+  --id kb.demo.statement \
+  --kind theorem_statement \
+  --basis source_backed \
+  --title "Demo statement" \
+  --body-file tmp/statement.md \
+  --source src.paper.demo \
+  --packet pkt.paper.demo.thm_1 \
+  --location Demo.statement
+
+lake exe aftk kb query --source src.paper.demo --json
+lake exe aftk kb add-tag --id kb.demo.statement --tag demo
+```
+
+### Current storage model
+
+AFTK stores structured metadata in JSON and long-form packet/knowledge bodies in markdown sidecars.
+
+Example layout:
+
+```text
+aftk-data/
+  store.json
+  sources/
+    paper/
+      demo.json
+  packets/
+    paper/
+      demo/
+        thm_1.json
+        thm_1.md
+  knowledge/
+    demo/
+      statement.json
+      statement.md
+```
+
+### Current scope
+
+This implementation gives the workflow a practical, machine-facing in-repo memory layer.
+It does **not** yet solve:
+
+- document/PDF ingestion,
+- automatic knowledge extraction,
+- scaffold generation/orchestration,
+- readiness/frontier automation,
+- remote or service-backed storage.
+
+Those follow-on pieces are tracked in `docs/components.md` and `docs/future/autoformalization-tools.md`.
+
+---
+
+## Part 3: AFTK hub tools (semantic query + proof exploration)
 
 AFTK ships two Lean JSON-RPC executables:
 
@@ -165,7 +271,7 @@ lake build
 Build only core targets (this is what CI uses before tests):
 
 ```bash
-lake build AFTK Informalize aftk_file_worker aftk_server informalize
+lake build AFTK Informalize aftk aftk_file_worker aftk_server informalize
 ```
 
 ## Test
@@ -176,8 +282,8 @@ Run the full test suite:
 lake exe tests
 ```
 
-Informalize CLI integration checks are executed at test-runtime via `lake exe tests`
-(instead of compile-time `run_cmd`) to keep CI build memory usage stable.
+Informalize CLI and AFTK knowledge-base CLI integration checks are executed at test-runtime via
+`lake exe tests` (instead of compile-time `run_cmd`) to keep CI build memory usage stable.
 
 ---
 
@@ -260,17 +366,18 @@ Common hub errors:
 
 ## Recommended agent workflow
 
-1. **Ingest seed source material** into a faithful, agent-readable representation.
-2. **Build/update the knowledge store** from those sources, preserving provenance.
-3. **Create or refine scaffold nodes** with `informal[...]` placeholders and markdown notes.
-4. **Query scaffold state** via `informalize` CLI (`status`, `deps`, `decls`, `locations`, `meta show`, ...).
-5. **Select a leaf node** and classify it as ready, needing sources, or needing refinement.
-6. **Gather more sources or refine the scaffold** until the selected node is small, precise, and supported.
-7. **Use AFTK for the local Lean-facing formalization step** (`get_hover`, goals, tactic exploration).
+1. **Initialize a repository-local store** with `lake exe aftk store init`.
+2. **Register sources and persist packets** with `lake exe aftk source ...` and `lake exe aftk packet ...`.
+3. **Build/update the knowledge store** with `lake exe aftk kb ...`, preserving provenance and scaffold links.
+4. **Create or refine scaffold nodes** with `informal[...]` placeholders and markdown notes.
+5. **Query scaffold state** via `informalize` CLI (`status`, `deps`, `decls`, `locations`, `meta show`, ...).
+6. **Select a leaf node** and classify it as ready, needing sources, or needing refinement.
+7. **Gather more sources or refine the scaffold** until the selected node is small, precise, and supported.
+8. **Use AFTK hub tools for the local Lean-facing formalization step** (`get_hover`, goals, tactic exploration).
    - At informal terms, hover can include blueprint markdown content plus effective metadata.
-8. **Commit only final proof text** to Lean source once a strategy is validated, then update the scaffold/knowledge state and repeat.
+9. **Commit only final proof text** to Lean source once a strategy is validated, then update the scaffold/knowledge state and repeat.
 
-For the detailed workflow, see `docs/workflow.md`. For the implementation pieces still needed around Informalize and AFTK, see `docs/components.md`.
+For the detailed workflow, see `docs/workflow.md`. For the remaining implementation pieces around Informalize and AFTK, see `docs/components.md`.
 
 ---
 

@@ -4,8 +4,9 @@ This page shows the Lean-facing inner loop inside the broader workflow defined i
 
 It focuses on the stage where a scaffold node has already been selected and the agent is doing local proof work:
 
+- use **AFTK knowledge-base CLI** to keep source/packet/knowledge context available in-repo,
 - use **Informalize** to create blueprint placeholders + natural-language notes,
-- use **AFTK** to query those notes (via hover) and explore tactic branches,
+- use **AFTK hub tools** to query those notes (via hover) and explore tactic branches,
 - then write a finalized tactic proof in Lean.
 
 For source ingestion, knowledge-store construction, frontier selection, and scaffold refinement, see:
@@ -17,12 +18,13 @@ For source ingestion, knowledge-store construction, frontier selection, and scaf
 
 ## 0) Setup
 
-Build, run tests, install git safety hooks, and install the AFTK pi extension into your project:
+Build, run tests, install git safety hooks, initialize a repository-local store, and install the AFTK pi extension into your project:
 
 ```bash
 lake build
 lake exe tests
 ./scripts/setup-git-hooks.sh
+lake exe aftk store init
 lake run setup_pi_extension
 ```
 
@@ -39,6 +41,42 @@ sensitive files such as `.envrc`.
 
 If you are embedding the AFTK tools into a custom TypeScript/pi-SDK session instead of upstream `pi`,
 mount the shared toolset from `lambda/src/aftk-tools.ts` via `createAFTKTools(...)`.
+
+---
+
+## 0.5) Persist source and knowledge context before local proof work
+
+Before diving into Lean, store the supporting source material and derived knowledge in `aftk-data/`.
+For example:
+
+```bash
+lake exe aftk source register \
+  --id src.notes.playbook \
+  --kind notes \
+  --title "Playbook notes" \
+  --path notes/playbook.md
+
+lake exe aftk packet ingest \
+  --id pkt.notes.playbook.imp_id \
+  --source src.notes.playbook \
+  --title "imp_id discussion" \
+  --body-file tmp/imp_id-source.md
+
+lake exe aftk kb create \
+  --id kb.playbook.imp_id.strategy \
+  --kind plan_note \
+  --basis derived \
+  --title "imp_id strategy" \
+  --body-file tmp/imp_id-strategy.md \
+  --packet pkt.notes.playbook.imp_id \
+  --location Playbook.imp_id.strategy
+```
+
+This gives the agent a stable in-repo place to store:
+
+- source-backed statements,
+- derived strategy notes,
+- links from knowledge entries to Informalize scaffold ids.
 
 ---
 
@@ -84,6 +122,7 @@ Notes:
 - The informal term is a regular term placeholder (similar workflow role to `sorry`).
 - If the JSON sidecar is absent, Informalize uses default metadata.
 - Agents should manage JSON sidecars through the CLI rather than editing them directly.
+- If this node is backed by a knowledge-store entry, store its `kb.*` id in Informalize metadata (`knowledgeRefs`) and inspect the actual entry with `lake exe aftk kb show --id <kb.*>` or `kb query --location <Location>`.
 
 ---
 
@@ -248,6 +287,7 @@ At this point, the placeholder used for proof search is gone from the theorem bo
 
 ## Quick checklist
 
+- [ ] Supporting source/knowledge context persisted in `aftk-data/` when available.
 - [ ] `informal[...]` placeholder present and mapped to markdown.
 - [ ] Informalize CLI confirms declaration/location tracking.
 - [ ] Informalize CLI shows/updates effective metadata for the scaffold node.
