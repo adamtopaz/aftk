@@ -30,6 +30,9 @@ The storage system should:
 - support future indexing and search without changing canonical storage
 - align with the node and metadata designs already captured in the component plans
 
+Lean module and namespace naming for this layer should use `KnowledgeBase` rather than the abbreviation `KB`.
+The intended CLI command should likewise use `knowledgebase` rather than `kb`.
+
 ## Storage principles
 
 ### 1. Canonical data stays simple
@@ -55,13 +58,13 @@ The initial design should assume that the knowledge base lives inside the projec
 The initial canonical storage root should be:
 
 ```text
-<repo-root>/kb/
+<repo-root>/knowledgebase/
 ```
 
 Inside that root, the storage layout should be:
 
 ```text
-kb/
+knowledgebase/
   manifest.json
   nodes/
     topology/
@@ -79,20 +82,20 @@ kb/
 
 ### Top-level meaning
 
-- `kb/manifest.json` — root manifest describing the storage layout
-- `kb/nodes/` — canonical node storage
-- `kb/.aftk/` — derived/internal state, not canonical
+- `knowledgebase/manifest.json` — root manifest describing the storage layout
+- `knowledgebase/nodes/` — canonical node storage
+- `knowledgebase/.aftk/` — derived/internal state, not canonical
 
 This design gives the knowledge base a small, explicit root while reserving a place for noncanonical operational files.
 
-## Why use `kb/` as the root
+## Why use `knowledgebase/` as the root
 
-The initial design chooses `kb/` because it is:
+The initial design chooses `knowledgebase/` because it is:
 
-- short and convenient
+- explicit and self-explanatory
 - easy to recognize in the repository
-- consistent with the CLI naming (`aftk kb ...`)
-- less cumbersome than a longer directory name while still being clear in context
+- consistent with the CLI naming (`aftk knowledgebase ...`)
+- consistent with the intended Lean naming (`AFTK.KnowledgeBase`)
 
 This is only the initial design choice, but it is a good default unless later experience reveals a stronger need for a different name.
 
@@ -100,8 +103,8 @@ This is only the initial design choice, but it is a good default unless later ex
 
 The canonical storage for the knowledge base consists of:
 
-- `kb/manifest.json`
-- all node `.md` and `.json` files under `kb/nodes/`
+- `knowledgebase/manifest.json`
+- all node `.md` and `.json` files under `knowledgebase/nodes/`
 
 These are the files that should be treated as the source of truth.
 
@@ -115,20 +118,20 @@ The node design defines a mapping from `NodeId` to a relative path stem such as:
 The storage system fixes where that relative stem lives.
 The full canonical paths become:
 
-- `kb/nodes/<stem>.md`
-- `kb/nodes/<stem>.json`
+- `knowledgebase/nodes/<stem>.md`
+- `knowledgebase/nodes/<stem>.json`
 
 So, for example, the node `topology.open_cover` is stored canonically as:
 
-- `kb/nodes/topology/open_cover.md`
-- `kb/nodes/topology/open_cover.json`
+- `knowledgebase/nodes/topology/open_cover.md`
+- `knowledgebase/nodes/topology/open_cover.json`
 
 ## Root manifest
 
 The storage root should contain a small manifest file:
 
 ```text
-kb/manifest.json
+knowledgebase/manifest.json
 ```
 
 The purpose of the manifest is to:
@@ -152,7 +155,7 @@ The purpose of the manifest is to:
 ### Proposed Lean-level type
 
 ```lean
-namespace AFTK.KB
+namespace AFTK.KnowledgeBase
 
 structure StorageManifest where
   schemaVersion : Nat := 1
@@ -160,53 +163,53 @@ structure StorageManifest where
   nodesDir : String := "nodes"
   internalDir : String := ".aftk"
 
-structure KBStoragePaths where
+structure KnowledgeBaseStoragePaths where
   rootDir : System.FilePath
   manifestPath : System.FilePath
   nodesDir : System.FilePath
   internalDir : System.FilePath
 
-end AFTK.KB
+end AFTK.KnowledgeBase
 ```
 
 The manifest should stay small.
 It is not meant to become a dump of global state.
 Its job is to describe the storage root and make future schema/version transitions manageable.
 
-## Canonical node area: `kb/nodes/`
+## Canonical node area: `knowledgebase/nodes/`
 
 All canonical node content should live under:
 
 ```text
-kb/nodes/
+knowledgebase/nodes/
 ```
 
 This directory should contain only canonical node files arranged according to the node ID mapping.
 
-### Rules for `kb/nodes/`
+### Rules for `knowledgebase/nodes/`
 
-- files under `kb/nodes/` are canonical data
+- files under `knowledgebase/nodes/` are canonical data
 - node files must follow the `.md`/`.json` sibling pairing rule from `plans/knowledgebase/node.md`
 - subdirectories exist only to realize the path mapping from node IDs
 - the knowledge base should not require additional per-node sidecar directories in v1
 
-## Internal derived area: `kb/.aftk/`
+## Internal derived area: `knowledgebase/.aftk/`
 
 All generated, rebuildable, or operational files should live under:
 
 ```text
-kb/.aftk/
+knowledgebase/.aftk/
 ```
 
 The initial design reserves subdirectories such as:
 
-- `kb/.aftk/index/` — search/index data
-- `kb/.aftk/cache/` — caches
-- `kb/.aftk/tmp/` — temporary files
+- `knowledgebase/.aftk/index/` — search/index data
+- `knowledgebase/.aftk/cache/` — caches
+- `knowledgebase/.aftk/tmp/` — temporary files
 
-### Rules for `kb/.aftk/`
+### Rules for `knowledgebase/.aftk/`
 
-- files under `kb/.aftk/` are not canonical
+- files under `knowledgebase/.aftk/` are not canonical
 - they may be deleted and rebuilt from canonical storage
 - higher layers should not treat them as the source of truth
 - their exact internal formats may evolve more freely than canonical storage
@@ -217,7 +220,7 @@ This keeps advanced tooling possible without compromising the simplicity of the 
 
 The storage design should allow a small number of additional human-oriented files at the root, such as:
 
-- `kb/README.md`
+- `knowledgebase/README.md`
 
 However, canonical semantics in v1 should depend only on:
 
@@ -231,14 +234,14 @@ Everything else should be optional unless explicitly added by a future storage-s
 The canonical default location for the knowledge base should be:
 
 ```text
-./kb
+./knowledgebase
 ```
 
 relative to the project root.
 
-A later CLI design may allow explicit overrides, but the storage design should treat `./kb` as the default repository-local root.
+A later CLI design may allow explicit overrides, but the storage design should treat `./knowledgebase` as the default repository-local root.
 
-The presence of `kb/manifest.json` should be the primary signal that a directory is an initialized knowledge-base root.
+The presence of `knowledgebase/manifest.json` should be the primary signal that a directory is an initialized knowledge-base root.
 
 ## Validation expectations
 
@@ -259,13 +262,13 @@ The intended version-control policy for the storage design is:
 
 ### Track in git
 
-- `kb/manifest.json`
-- `kb/nodes/**`
-- optional human documentation files such as `kb/README.md`
+- `knowledgebase/manifest.json`
+- `knowledgebase/nodes/**`
+- optional human documentation files such as `knowledgebase/README.md`
 
 ### Usually ignore in git
 
-- `kb/.aftk/**`
+- `knowledgebase/.aftk/**`
 
 This keeps the canonical knowledge base reviewable while preventing generated state from polluting commits.
 
@@ -275,28 +278,28 @@ This keeps the canonical knowledge base reviewable while preventing generated st
 
 Initializing a new knowledge base should create at least:
 
-- `kb/`
-- `kb/manifest.json`
-- `kb/nodes/`
-- `kb/.aftk/`
+- `knowledgebase/`
+- `knowledgebase/manifest.json`
+- `knowledgebase/nodes/`
+- `knowledgebase/.aftk/`
 
 Subdirectories like `index/`, `cache/`, and `tmp/` may be created eagerly or lazily.
 
 ### Create or update a node
 
-Node creation and update operations should modify files under `kb/nodes/` only for canonical content.
-Derived data under `kb/.aftk/` may then be refreshed or invalidated as needed.
+Node creation and update operations should modify files under `knowledgebase/nodes/` only for canonical content.
+Derived data under `knowledgebase/.aftk/` may then be refreshed or invalidated as needed.
 
 ### Rebuild indexes
 
 Search and indexing state should be rebuildable entirely from:
 
-- `kb/manifest.json`
-- `kb/nodes/**`
+- `knowledgebase/manifest.json`
+- `knowledgebase/nodes/**`
 
 ### Delete or rename nodes
 
-Delete and rename operations should update canonical node files under `kb/nodes/` and then refresh derived state if necessary.
+Delete and rename operations should update canonical node files under `knowledgebase/nodes/` and then refresh derived state if necessary.
 
 ## Atomicity expectations
 
@@ -326,21 +329,21 @@ Those may be explored later, but the first storage system should stay simple, lo
 - Should the manifest eventually include more global settings?
 - Should node assets be added later, and if so, where should they live?
 - Should there be a formal repair mode for orphaned or malformed node files?
-- Should derived indexes eventually live outside `kb/` in some environments?
+- Should derived indexes eventually live outside `knowledgebase/` in some environments?
 - How much configurability should the CLI expose for nondefault storage roots?
 
 ## Summary
 
-The initial knowledge-base storage system should use a repository-local root at `kb/`.
+The initial knowledge-base storage system should use a repository-local root at `knowledgebase/`.
 Canonical data lives in:
 
-- `kb/manifest.json`
-- `kb/nodes/**`
+- `knowledgebase/manifest.json`
+- `knowledgebase/nodes/**`
 
 Derived and rebuildable operational state lives in:
 
-- `kb/.aftk/**`
+- `knowledgebase/.aftk/**`
 
-Within `kb/nodes/`, each node is stored as a paired Markdown and JSON file according to the node-ID-to-path mapping defined in `plans/knowledgebase/node.md`.
+Within `knowledgebase/nodes/`, each node is stored as a paired Markdown and JSON file according to the node-ID-to-path mapping defined in `plans/knowledgebase/node.md`.
 
 This gives the rewrite a storage model that is simple, explicit, git-friendly, and ready for later Lean implementation.

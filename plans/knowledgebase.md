@@ -18,7 +18,7 @@ It should be updated whenever the implementation meaningfully changes.
 A practical definition of fully implemented for this plan is:
 
 - the knowledge base layer exists in code
-- the initial `lake exe aftk kb ...` CLI surface exists
+- the initial `lake exe aftk knowledgebase ...` CLI surface exists
 - core node and metadata operations are implemented
 - relationship-aware metadata is supported
 - basic validation and discovery functionality is implemented
@@ -96,10 +96,12 @@ However, the metadata model should be designed so that the knowledge base can na
 The primary interface to the knowledge base should be a Lean-based CLI:
 
 ```text
-lake exe aftk kb ...
+lake exe aftk knowledgebase ...
 ```
 
 This keeps the core of the system Lean-native and ensures that the knowledge base integrates cleanly with the rest of the lower-level architecture.
+
+Lean module and namespace naming for this layer should likewise use `KnowledgeBase` rather than the abbreviation `KB`.
 
 ### 6. File-backed and inspectable storage
 
@@ -250,7 +252,7 @@ This overview leaves several important questions open for later design documents
 The first implementation work for this layer should likely focus on:
 
 1. implementing the initial node, metadata, and storage types plus their JSON/path mappings
-2. creating the initial `lake exe aftk kb ...` command surface
+2. creating the initial `lake exe aftk knowledgebase ...` command surface
 3. supporting basic create/read/update/list operations
 4. adding simple validation and search
 5. implementing root initialization and node-resolution logic
@@ -275,7 +277,7 @@ It should be updated as design decisions are made and code lands.
 
 ### Lean CLI surface
 
-- [ ] Add the top-level `lake exe aftk kb ...` command entry point
+- [ ] Add the top-level `lake exe aftk knowledgebase ...` command entry point
 - [ ] Define the initial subcommand structure
 - [ ] Implement `create`
 - [ ] Implement `read`/`show`

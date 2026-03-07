@@ -31,10 +31,13 @@ The initial metadata type should:
 - avoid duplicating the Markdown body inside metadata
 - leave room for later schema evolution
 
+Lean module and namespace naming for this layer should use `KnowledgeBase` rather than the abbreviation `KB`.
+For example, the intended namespace is `AFTK.KnowledgeBase`.
+
 ## Proposed Lean-level types
 
 ```lean
-namespace AFTK.KB
+namespace AFTK.KnowledgeBase
 
 /-- Canonical knowledge-base node identifier, encoded in JSON as a string. -/
 structure NodeId where
@@ -94,7 +97,7 @@ structure NodeMetadata where
   relationships : Array Relationship := #[]
   leanRefs : Array LeanDeclRef := #[]
 
-end AFTK.KB
+end AFTK.KnowledgeBase
 ```
 
 The exact deriving clauses and JSON instances can be decided during implementation.

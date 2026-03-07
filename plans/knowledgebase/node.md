@@ -32,6 +32,9 @@ The node design should:
 - make validation rules straightforward to express and enforce
 - support future CLI operations such as create, read, update, rename, and delete
 
+Lean module and namespace naming for this layer should use `KnowledgeBase` rather than the abbreviation `KB`.
+For example, the intended namespace is `AFTK.KnowledgeBase`.
+
 ## What a node is
 
 A knowledge-base node is one unit of natural-language knowledge.
@@ -67,7 +70,7 @@ The canonical identity is the node ID, not whichever path happened to be used wh
 ## Proposed Lean-level types
 
 ```lean
-namespace AFTK.KB
+namespace AFTK.KnowledgeBase
 
 abbrev Markdown := String
 
@@ -83,7 +86,7 @@ structure StoredNode where
   node : Node
   paths : NodePaths
 
-end AFTK.KB
+end AFTK.KnowledgeBase
 ```
 
 This design intentionally keeps the core node representation small:
