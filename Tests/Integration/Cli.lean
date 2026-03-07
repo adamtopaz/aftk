@@ -320,30 +320,36 @@ private def runMetaMutationCase : IO Unit := do
     assertExitCode "meta clear-parent" clearParent 0
     assertContains "meta clear-parent" clearParent.stdout "parent: (none)"
 
+private def runStep (label : String) (action : IO Unit) : IO Unit := do
+  IO.println s!"[cli-tests] start {label}"
+  action
+  IO.println s!"[cli-tests] ok {label}"
+
+
 def run : IO Unit := do
-  runHelpCase
-  runMissingModuleCase
-  runUnknownCommandCase
-  runStatusCase
-  runTopDepsCase
-  runTopLocationDepsCase
-  runDepsCase
-  runDeclsCase
-  runDeclsBareOnlyCase
-  runDeclsWithLocationsCase
-  runDeclsConflictingFiltersCase
-  runDeclCase
-  runDeclMissingOptionCase
-  runDeclUnknownCase
-  runLocationsCase
-  runLocationFooBarCase
-  runLocationMissingCase
-  runStatusBadFlagCase
-  runMetaShowDefaultCase
-  runMetaShowFileBackedCase
-  runMetaShowJsonCase
-  runMetaValidateBadCase
-  runMetaInitCase
-  runMetaMutationCase
+  runStep "help" runHelpCase
+  runStep "missing-module" runMissingModuleCase
+  runStep "unknown-command" runUnknownCommandCase
+  runStep "status" runStatusCase
+  runStep "top-deps" runTopDepsCase
+  runStep "top-location-deps" runTopLocationDepsCase
+  runStep "deps" runDepsCase
+  runStep "decls" runDeclsCase
+  runStep "decls-bare-only" runDeclsBareOnlyCase
+  runStep "decls-with-locations" runDeclsWithLocationsCase
+  runStep "decls-conflicting-filters" runDeclsConflictingFiltersCase
+  runStep "decl" runDeclCase
+  runStep "decl-missing-option" runDeclMissingOptionCase
+  runStep "decl-unknown" runDeclUnknownCase
+  runStep "locations" runLocationsCase
+  runStep "location-foo-bar" runLocationFooBarCase
+  runStep "location-missing" runLocationMissingCase
+  runStep "status-bad-flag" runStatusBadFlagCase
+  runStep "meta-show-default" runMetaShowDefaultCase
+  runStep "meta-show-file-backed" runMetaShowFileBackedCase
+  runStep "meta-show-json" runMetaShowJsonCase
+  runStep "meta-validate-bad" runMetaValidateBadCase
+  runStep "meta-init" runMetaInitCase
+  runStep "meta-mutation" runMetaMutationCase
 
 end Tests.Integration.Cli
