@@ -10,7 +10,7 @@ Detailed subdesigns should live in component plan files under `plans/knowledgeba
 
 - Overall status: Not implemented
 - Fully implemented: No
-- Last updated basis: overall plan plus metadata, node, storage, CLI, validation, search, and serialization component designs
+- Last updated basis: overall plan plus metadata, node, storage, CLI, validation, search, serialization, and repair component designs
 
 This section is the single place for tracking whether the knowledge base layer plan has been fully implemented.
 It should be updated whenever the implementation meaningfully changes.
@@ -149,10 +149,10 @@ The following component plans refine parts of the knowledge base layer design:
 - `plans/knowledgebase/validation.md` — validation scopes, issue model, and CLI-facing validation behavior
 - `plans/knowledgebase/search.md` — search semantics, result model, and index strategy
 - `plans/knowledgebase/serialization.md` — canonical JSON/Markdown serialization rules and CLI JSON output design
+- `plans/knowledgebase/repair.md` — validation-driven repair strategy, quarantine behavior, and repair CLI design
 
 Likely future component plans include:
 
-- repair behavior
 - indexing behavior beyond the initial search design
 
 ## Primary operations
@@ -247,7 +247,6 @@ This overview leaves several important questions open for later design documents
 - How should links and references between nodes be represented at the filesystem and CLI levels beyond the basic node model?
 - What operations should be atomic from the CLI’s point of view?
 - What parts of the implementation should be pure Lean, and what parts may rely on supporting libraries or tools?
-- How should repair workflows be designed if validation finds problems?
 - How should indexing evolve beyond the initial search design?
 
 ## Remaining design work before implementation
@@ -259,7 +258,6 @@ However, a small amount of remaining design work should still be tracked explici
 
 These are likely useful follow-up documents, but they are not all blockers for the first implementation slice:
 
-- [ ] `plans/knowledgebase/repair.md` — repair workflows for malformed storage, orphaned files, and other validation failures
 - [ ] `plans/knowledgebase/indexing.md` — derived indexing and reindexing design beyond the initial direct-scan search model
 
 ### Design clarifications to resolve before first implementation
@@ -306,6 +304,7 @@ It should be updated as design decisions are made and code lands.
 - [x] Add a follow-up component plan for validation design (`plans/knowledgebase/validation.md`)
 - [x] Add a follow-up component plan for search design (`plans/knowledgebase/search.md`)
 - [x] Add a follow-up component plan for serialization design (`plans/knowledgebase/serialization.md`)
+- [x] Add a follow-up component plan for repair design (`plans/knowledgebase/repair.md`)
 
 ### Lean CLI surface
 
@@ -334,7 +333,7 @@ It should be updated as design decisions are made and code lands.
 
 ### Notes
 
-- Current state: planning plus metadata, node, storage, CLI, validation, search, and serialization design only
+- Current state: planning plus metadata, node, storage, CLI, validation, search, serialization, and repair design only
 - No knowledge base implementation has been landed yet
 - The initial metadata type design is now captured in `plans/knowledgebase/metadata.md`
 - The initial node design is now captured in `plans/knowledgebase/node.md`
@@ -343,6 +342,7 @@ It should be updated as design decisions are made and code lands.
 - The initial validation design is now captured in `plans/knowledgebase/validation.md`
 - The initial search design is now captured in `plans/knowledgebase/search.md`
 - The initial serialization design is now captured in `plans/knowledgebase/serialization.md`
+- The initial repair design is now captured in `plans/knowledgebase/repair.md`
 - This checklist is intentionally high-level and can be refined into smaller tasks later
 
 ## Summary

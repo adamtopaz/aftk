@@ -3,7 +3,7 @@
 ## Status
 
 Design-only component plan for the knowledge base CLI.
-This document refines the overall knowledge base plan in `plans/knowledgebase.md` and works together with `plans/knowledgebase/storage.md`, `plans/knowledgebase/node.md`, `plans/knowledgebase/metadata.md`, `plans/knowledgebase/validation.md`, and `plans/knowledgebase/search.md`.
+This document refines the overall knowledge base plan in `plans/knowledgebase.md` and works together with `plans/knowledgebase/storage.md`, `plans/knowledgebase/node.md`, `plans/knowledgebase/metadata.md`, `plans/knowledgebase/validation.md`, `plans/knowledgebase/search.md`, `plans/knowledgebase/serialization.md`, and `plans/knowledgebase/repair.md`.
 
 ## Component implementation status
 
@@ -364,6 +364,7 @@ The CLI design leaves room for later commands such as:
 - graph/path traversal commands beyond simple incoming/outgoing listing
 
 These are plausible later extensions, but they should not block the initial implementation.
+The dedicated repair behavior for that deferred command family is refined in `plans/knowledgebase/repair.md`.
 
 ## Recommended first implementation slice
 

@@ -328,7 +328,7 @@ Those may be explored later, but the first storage system should stay simple, lo
 
 - Should the manifest eventually include more global settings?
 - Should node assets be added later, and if so, where should they live?
-- Should there be a formal repair mode for orphaned or malformed node files?
+- How should storage-level repair remain coordinated with the broader repair design in `plans/knowledgebase/repair.md`?
 - Should derived indexes eventually live outside `knowledgebase/` in some environments?
 - How much configurability should the CLI expose for nondefault storage roots?
 

@@ -3,7 +3,7 @@
 ## Status
 
 Design-only component plan for knowledge-base validation.
-This document refines the overall knowledge base plan in `plans/knowledgebase.md` and works together with `plans/knowledgebase/storage.md`, `plans/knowledgebase/node.md`, `plans/knowledgebase/metadata.md`, and `plans/knowledgebase/cli.md`.
+This document refines the overall knowledge base plan in `plans/knowledgebase.md` and works together with `plans/knowledgebase/storage.md`, `plans/knowledgebase/node.md`, `plans/knowledgebase/metadata.md`, `plans/knowledgebase/cli.md`, and `plans/knowledgebase/repair.md`.
 
 ## Component implementation status
 
@@ -383,7 +383,7 @@ Those may come later, but v1 should focus on reliable structural and referential
 
 - Which issues should be warnings rather than errors?
 - How much duplicate-edge detection should be done in v1?
-- Should there eventually be a separate `repair` command family?
+- How much structured repair guidance should validation output include directly, given the separate repair design in `plans/knowledgebase/repair.md`?
 - Should validation output include suggestions/fixes in structured form?
 - How strict should timestamp validation be initially?
 
