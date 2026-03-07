@@ -34,31 +34,55 @@ If a file changes on disk, hub methods return `-32011` and the file must be reop
 
 ### Recommended: `lambda`
 
-AFTK now ships a custom SDK-based agent named `lambda`:
+AFTK now ships a minimal SDK-based runner named `lambda`:
 
-- same interactive TUI runtime as pi (`InteractiveMode` from SDK),
-- AFTK tools wired directly as SDK-native tools via `createAFTKTools`,
-- no dynamic extension install required for AFTK hub tools.
+- it loads `lambda.json` from the workspace root (or nearest ancestor),
+- uses that file exclusively for session configuration,
+- creates an agent session with AFTK tools wired in via `createAFTKTools`,
+- and runs the separately provided prompt in print mode.
+
+The simplified flow is intentionally small:
+
+- no interactive lambda-specific CLI surface,
+- no model-selection flag parsing,
+- no session persistence flags.
+
+Configuration now lives in `lambda.json`, for example:
+
+```json
+{
+  "thinkingLevel": "off",
+  "builtInTools": ["read", "bash", "edit", "write"],
+  "model": {
+    "provider": "anthropic",
+    "id": "claude-sonnet-4-20250514"
+  }
+}
+```
+
+Supported fields right now:
+
+- `cwd`
+- `agentDir`
+- `model.provider`
+- `model.id`
+- `thinkingLevel`
+- `builtInTools` (array, or `false`)
 
 From repository root:
 
 ```bash
 bun install
-bun run lambda
+bun run lambda "Summarize the current Lean goals"
 ```
 
-From a downstream Lake project that depends on AFTK:
+From a downstream Lake project that depends on AFTK, create `lambda.json` in that workspace root and run:
 
 ```bash
-lake run lambda
+lake run lambda -- "Summarize the current Lean goals"
 # or, when package prefix is required:
-lake run aftk/lambda
+lake run aftk/lambda -- "Summarize the current Lean goals"
 ```
-
-Model-selection parsing follows upstream `pi` behavior:
-
-- `--model <provider/model-id>` infers provider from the prefix, and
-- `--provider <name> --model <model-id>` also supports model ids that contain `/`.
 
 ### Compatibility: upstream `pi` extension
 

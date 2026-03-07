@@ -141,15 +141,15 @@ private def findLambdaCliPath (aftkPkg : Lake.Package) : IO (Option FilePath) :=
 
 private def lambdaUsage : String :=
   String.intercalate "\n" [
-    "Run AFTK's lambda agent from the current Lake workspace.",
+    "Run AFTK's lambda print-mode runner from the current Lake workspace.",
     "",
     "Usage:",
-    "  lake run lambda [<lambda-args...>]",
-    "  lake run lambda -- <lambda-args...>",
-    "  lake run aftk/lambda [<lambda-args...>]",
+    "  lake run lambda \"<prompt>\"",
+    "  lake run lambda -- \"<prompt>\"",
+    "  lake run aftk/lambda \"<prompt>\"",
     "",
     "The script finds the AFTK dependency, ensures its Bun dependencies are installed,",
-    "and runs lambda with the current Lake workspace as --cwd.",
+    "and runs lambda in the current Lake workspace, which should contain `lambda.json`.",
     "",
     "Requires `bun` to be installed and available on PATH."
   ]
@@ -214,14 +214,12 @@ script lambda (args) := do
       toString err
     ]
 
-  IO.println s!"Launching lambda from:\n- {cliPath}\nWorking directory:\n- {ws.dir}"
-
   let forwardedArgs : Array String :=
     match args with
     | "--" :: rest => rest.toArray
     | _ => args.toArray
 
-  let lambdaBaseArgs : Array String := #["run", cliPath.toString, "--cwd", ws.dir.toString]
+  let lambdaBaseArgs : Array String := #["run", cliPath.toString]
   let lambdaArgs : Array String := lambdaBaseArgs ++ forwardedArgs
 
   let child ← IO.Process.spawn {

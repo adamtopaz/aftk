@@ -10,17 +10,32 @@ This page shows the intended combined workflow:
 
 ## 0) Setup
 
-Build, run tests, install git safety hooks, and install Bun deps for `lambda`:
+Build, run tests, install git safety hooks, install Bun deps for `lambda`, and ensure your workspace root has a `lambda.json`:
 
 ```bash
 lake build
 lake exe tests
 ./scripts/setup-git-hooks.sh
 bun install
-# run agent (inside this repository)
-bun run lambda
+```
+
+Minimal `lambda.json`:
+
+```json
+{
+  "thinkingLevel": "off",
+  "builtInTools": ["read", "bash", "edit", "write"]
+}
+```
+
+Run the agent in print mode:
+
+```bash
+# inside this repository
+bun run lambda "Summarize the current Lean goals"
+
 # downstream Lake workspace using AFTK dependency
-# lake run lambda
+# lake run lambda -- "Summarize the current Lean goals"
 ```
 
 The hook setup blocks both staged-sensitive commits and pushes that include

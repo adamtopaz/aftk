@@ -67,6 +67,7 @@ When hovering at an `informal[...]` occurrence, AFTK hover queries can surface t
 associated markdown/natural-language content for that id.
 
 In practice, agents usually do this via `aftk_get_hover` in `lambda`.
+(`lambda` is the minimal print-mode runner configured by `lambda.json`, with the prompt provided separately.)
 
 This is useful for agent workflows that alternate between:
 

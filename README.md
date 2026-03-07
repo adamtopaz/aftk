@@ -98,8 +98,8 @@ AFTK ships two Lean JSON-RPC executables:
 
 Agent interaction surfaces:
 
-- **`lambda`** (custom agent using `@mariozechner/pi-coding-agent` SDK + same TUI as pi),
-  with AFTK tools built in via `createAFTKTools`.
+- **`lambda`** (minimal `@mariozechner/pi-coding-agent` SDK runner),
+  which loads `lambda.json`, creates an agent session, and runs a separately provided prompt in print mode with AFTK tools built in via `createAFTKTools`.
 - **pi extension compatibility** via `extensions/aftk-hub.ts` for existing downstream workflows.
 
 ### What agents use this for
@@ -190,46 +190,66 @@ Customize blocked globs in `.githooks/sensitive-paths.txt`.
 
 ## Run `lambda` (recommended)
 
-`lambda` is the new AFTK agent surface:
+`lambda` is now a minimal AFTK print-mode runner built on the pi SDK.
 
-- built on `@mariozechner/pi-coding-agent` SDK,
-- uses the same interactive TUI runtime as pi,
-- ships AFTK hub tools as built-ins via `createAFTKTools`.
+It does exactly two things:
+
+1. load `lambda.json` from the project root (or nearest ancestor) to configure the session,
+2. create an agent session and run the separately provided prompt with `runPrintMode`.
+
+AFTK hub tools are always included via `createAFTKTools`.
+Sessions are in-memory only in this simplified flow.
+
+The repository root now includes a minimal `lambda.json`:
+
+```json
+{
+  "thinkingLevel": "off",
+  "builtInTools": ["read", "bash", "edit", "write"]
+}
+```
+
+You can optionally pin a model in the same file:
+
+```json
+{
+  "thinkingLevel": "off",
+  "builtInTools": ["read", "bash", "edit", "write"],
+  "model": {
+    "provider": "anthropic",
+    "id": "claude-sonnet-4-20250514"
+  }
+}
+```
+
+Supported `lambda.json` fields right now:
+
+- `cwd` — working directory for the pi SDK session (defaults to the directory containing `lambda.json`)
+- `agentDir` — alternate pi agent directory
+- `model.provider` / `model.id` — exact model selection
+- `thinkingLevel` — `off|minimal|low|medium|high|xhigh`
+- `builtInTools` — array of built-in pi tool names, or `false` to disable them
 
 From this repository root:
 
 ```bash
 bun install
-bun run lambda
+bun run lambda "Summarize the current Lean goals"
 ```
 
-From a downstream Lake project that depends on AFTK:
+From a downstream Lake project that depends on AFTK, create a `lambda.json` in that workspace root and run:
 
 ```bash
-lake run lambda
+lake run lambda -- "Summarize the current Lean goals"
 # or, when package prefix is required:
-lake run aftk/lambda
+lake run aftk/lambda -- "Summarize the current Lean goals"
 ```
 
-This script forwards args to lambda and runs it with the downstream workspace as `--cwd`.
+If you want to call the same flow programmatically, `lambda/src/index.ts` exports helpers for:
 
-Common variants:
-
-```bash
-bun run lambda -- --help
-bun run lambda -- -p "Summarize current goals"
-bun run lambda -- --mode rpc
-
-# model selection (same parsing behavior as upstream pi)
-# provider inferred from --model prefix
-bun run lambda -- --model groq/openai/gpt-oss-120b
-# explicit provider + slash-containing model id
-bun run lambda -- --provider groq --model meta-llama/llama-4-maverick-17b-128e-instruct
-
-# downstream equivalents
-lake run lambda --help
-lake run lambda -p "Summarize current goals"
-```
+- locating and loading `lambda.json`,
+- creating a session from a config object,
+- running one prompt in print mode using `lambda.json` discovery.
 
 ## pi extension compatibility (existing downstream workflows)
 
