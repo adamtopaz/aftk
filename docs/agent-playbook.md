@@ -1,36 +1,44 @@
-# End-to-End Agent Playbook (Informalize + AFTK)
+# Lean-Facing Agent Playbook (Informalize + AFTK)
 
-This page shows the intended combined workflow:
+This page shows the Lean-facing inner loop inside the broader workflow defined in `docs/workflow.md`.
+
+It focuses on the stage where a scaffold node has already been selected and the agent is doing local proof work:
 
 - use **Informalize** to create blueprint placeholders + natural-language notes,
 - use **AFTK** to query those notes (via hover) and explore tactic branches,
 - then write a finalized tactic proof in Lean.
 
+For source ingestion, knowledge-store construction, frontier selection, and scaffold refinement, see:
+
+- `docs/workflow.md`
+- `docs/components.md`
+
 ---
 
 ## 0) Setup
 
-Build, run tests, install git safety hooks, and install Bun deps for `lambda`:
+Build, run tests, install git safety hooks, and install the AFTK pi extension into your project:
 
 ```bash
 lake build
 lake exe tests
 ./scripts/setup-git-hooks.sh
-bun install
-# run agent (inside this repository)
-bun run lambda
-# downstream Lake workspace using AFTK dependency
-# lake run lambda
+lake run setup_pi_extension
+```
+
+If your Lake workspace needs an explicit package prefix, use:
+
+```bash
+lake run aftk/setup_pi_extension
 ```
 
 The hook setup blocks both staged-sensitive commits and pushes that include
 sensitive files such as `.envrc`.
 
-If you are using upstream `pi` instead of `lambda`, install compatibility tools with:
+`setup_pi_extension` also prepares the AFTK TypeScript dependencies automatically when needed.
 
-```bash
-lake run setup_pi_extension
-```
+If you are embedding the AFTK tools into a custom TypeScript/pi-SDK session instead of upstream `pi`,
+mount the shared toolset from `lambda/src/aftk-tools.ts` via `createAFTKTools(...)`.
 
 ---
 
@@ -63,10 +71,19 @@ Candidate branches to try:
 - `simpa`
 ```
 
+Create metadata with the CLI when you want to attach structured workflow state:
+
+```bash
+lake exe informalize meta init --location Playbook.imp_id.strategy
+lake exe informalize meta set-status --location Playbook.imp_id.strategy --status ready
+```
+
 Notes:
 
-- `informal[Playbook.imp_id.strategy]` maps to `informal/Playbook/imp_id/strategy.md`.
+- `informal[Playbook.imp_id.strategy]` maps to `informal/Playbook/imp_id/strategy.md` plus optional `informal/Playbook/imp_id/strategy.json`.
 - The informal term is a regular term placeholder (similar workflow role to `sorry`).
+- If the JSON sidecar is absent, Informalize uses default metadata.
+- Agents should manage JSON sidecars through the CLI rather than editing them directly.
 
 ---
 
@@ -76,19 +93,21 @@ Notes:
 lake exe informalize status --module PlaybookDemo
 lake exe informalize decl --module PlaybookDemo --decl PlaybookDemo.imp_id
 lake exe informalize location --module PlaybookDemo --location Playbook.imp_id.strategy
+lake exe informalize meta show --location Playbook.imp_id.strategy
 ```
 
 This confirms that:
 
 - the declaration is tracked,
 - the location id is tracked,
-- the reverse index location -> declaration is available.
+- the reverse index location -> declaration is available,
+- the effective metadata for the scaffold node is visible.
 
 ---
 
 ## 3) Pull natural-language notes through AFTK hover
 
-Use the AFTK tool calls (from `lambda`, or pi compatibility mode):
+Use the AFTK tool calls from the pi extension wrapper, or from any custom session that mounts `createAFTKTools(...)`.
 
 ### Open file
 
@@ -114,7 +133,7 @@ Tool: `aftk_get_hover`
 }
 ```
 
-Expected: hover includes natural-language markdown content for `Playbook.imp_id.strategy`.
+Expected: hover includes the natural-language markdown content and effective metadata summary for `Playbook.imp_id.strategy`.
 
 ---
 
@@ -181,7 +200,14 @@ Important: these branch states are **transient**. Use them for search, not as fi
 
 ## 6) Update markdown notes during exploration
 
-As you explore, edit `informal/Playbook/imp_id/strategy.md` with what worked/failed, e.g.:
+As you explore, edit `informal/Playbook/imp_id/strategy.md` with what worked/failed, and update structured metadata with CLI commands such as:
+
+```bash
+lake exe informalize meta add-tag --location Playbook.imp_id.strategy --tag explored
+lake exe informalize meta add-issue --location Playbook.imp_id.strategy --id branch-b --kind verification --note "`simpa` branch was not reliable."
+```
+
+For the prose notes themselves, update `informal/Playbook/imp_id/strategy.md`, e.g.:
 
 ````md
 ## Exploration log
@@ -224,7 +250,8 @@ At this point, the placeholder used for proof search is gone from the theorem bo
 
 - [ ] `informal[...]` placeholder present and mapped to markdown.
 - [ ] Informalize CLI confirms declaration/location tracking.
-- [ ] AFTK hover recovers natural-language note context.
+- [ ] Informalize CLI shows/updates effective metadata for the scaffold node.
+- [ ] AFTK hover recovers natural-language note context plus metadata.
 - [ ] Multiple tactic branches explored from one starting node.
 - [ ] Notes updated with branch outcomes.
 - [ ] Final tactic proof written explicitly in Lean.

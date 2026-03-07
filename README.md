@@ -3,14 +3,17 @@
 AFTK provides **two complementary layers** for autoformalization:
 
 1. **Informalize**: build and track an *informal blueprint* of the formalization project.
-2. **AFTK hub tools** (via `lambda`, or via pi-extension compatibility): query Lean semantic state and explore tactic strategies transiently.
+2. **AFTK hub tools** (via the shared custom toolset or the pi extension wrapper): query Lean semantic state and explore tactic strategies transiently.
 
 The intended workflow is:
 
-- start with high-level mathematical structure,
-- encode that structure as blueprint placeholders,
-- track dependencies and natural-language context,
-- gradually refine toward direct Lean formalization.
+- ingest source material into a faithful, agent-readable representation,
+- build a source-backed knowledge store from that material,
+- generate an initial scaffold with blueprint placeholders,
+- iterate over leaf scaffold nodes by gathering more sources, refining the scaffold, or formalizing ready leaves,
+- use AFTK for local semantic queries and tactic exploration while formalizing.
+
+See `docs/workflow.md` for the precise end-to-end loop and `docs/components.md` for the framework pieces still to implement.
 
 ---
 
@@ -33,7 +36,8 @@ Informalize introduces:
 
 - a term elaborator `informal[...]` / `informal ...`,
 - an environment extension that tracks which declarations use `informal`,
-- a CLI for querying blueprint status/dependencies/locations.
+- optional JSON metadata sidecars for blueprint nodes,
+- a CLI for querying blueprint state and managing metadata.
 
 ### Core syntax
 
@@ -44,12 +48,14 @@ informal[Foo.bar.baz] x y
 informal x y
 ```
 
-With a location id, Informalize resolves markdown paths under `informal/`:
+With a location id, Informalize resolves sidecar paths under `informal/`:
 
-- `Foo.bar` -> `informal/Foo/bar.md`
-- `Foo.bar.baz` -> `informal/Foo/bar/baz.md`
+- `Foo.bar` -> `informal/Foo/bar.md` and optional `informal/Foo/bar.json`
+- `Foo.bar.baz` -> `informal/Foo/bar/baz.md` and optional `informal/Foo/bar/baz.json`
 
 The markdown file must exist when elaborating `informal[...]`.
+If the JSON metadata sidecar is missing, Informalize uses default metadata.
+If the JSON sidecar exists but is invalid, elaboration fails.
 
 ### What gets tracked
 
@@ -62,7 +68,8 @@ This gives a project-level map between:
 
 - Lean declarations,
 - natural-language blueprint fragments,
-- declaration-level dependency structure (via CLI `deps`).
+- optional machine-readable node metadata,
+- declaration-level and location-level dependency structure (via CLI `deps`).
 
 ### Informal terms as placeholders (similar to `sorry`)
 
@@ -71,21 +78,27 @@ inside declaration values and proofs while a target is still being refined.
 
 This is intentionally similar in spirit to `sorry`-driven workflows, except that:
 
-- placeholders can be linked to structured blueprint ids (`informal[...]`), and
-- each id can carry markdown notes that are queryable later.
+- placeholders can be linked to structured blueprint ids (`informal[...]`),
+- each id can carry markdown notes plus optional structured metadata, and
+- metadata is intended to be managed through the CLI rather than by editing JSON manually.
 
 ### CLI (for AI agent planning)
 
 ```bash
 lake exe informalize status --module <Module.Name>
 lake exe informalize deps --module <Module.Name>
+lake exe informalize deps --module <Module.Name> --by location
 lake exe informalize decls --module <Module.Name>
 lake exe informalize decl --module <Module.Name> --decl <Decl.Name>
 lake exe informalize locations --module <Module.Name>
 lake exe informalize location --module <Module.Name> --location <Location.Name>
+lake exe informalize meta show --location <Location.Name>
+lake exe informalize meta set-status --location <Location.Name> --status ready
 ```
 
-These commands are intended to support agent planning/triage over the blueprint.
+Use the `meta ...` commands to create/update JSON sidecars. If no sidecar exists yet,
+Informalize uses default metadata and the first metadata mutation command materializes the file.
+`--json` output is available for agent-facing machine consumption.
 
 ---
 
@@ -98,9 +111,8 @@ AFTK ships two Lean JSON-RPC executables:
 
 Agent interaction surfaces:
 
-- **`lambda`** (custom agent using `@mariozechner/pi-coding-agent` SDK + same TUI as pi),
-  with AFTK tools built in via `createAFTKTools`.
-- **pi extension compatibility** via `extensions/aftk-hub.ts` for existing downstream workflows.
+- **shared custom toolset** via `lambda/src/aftk-tools.ts`, which exports `createAFTKTools(...)` for custom `@mariozechner/pi-coding-agent` SDK sessions.
+- **pi extension wrapper** via `lambda/src/aftk-extension.ts`, which registers the same AFTK tools inside upstream `pi`.
 
 ### What agents use this for
 
@@ -120,8 +132,8 @@ A key pattern:
 4. Recover natural-language notes directly in-agent while exploring tactics.
 5. Convert successful exploration into final tactic proof text.
 
-Because Informalize attaches markdown content to informal terms and AFTK exposes hover,
-this creates a direct bridge from natural-language planning notes to proof search.
+Because Informalize attaches markdown content and effective metadata to informal terms and AFTK exposes hover,
+this creates a direct bridge from natural-language planning notes and scaffold status to proof search.
 
 ### Transient proof exploration model
 
@@ -188,52 +200,23 @@ Customize blocked globs in `.githooks/sensitive-paths.txt`.
 
 ---
 
-## Run `lambda` (recommended)
+## Use the shared custom toolset
 
-`lambda` is the new AFTK agent surface:
+`lambda/src/aftk-tools.ts` is the canonical TypeScript implementation of the AFTK hub tools.
+It exports `createAFTKTools(...)`, which returns:
 
-- built on `@mariozechner/pi-coding-agent` SDK,
-- uses the same interactive TUI runtime as pi,
-- ships AFTK hub tools as built-ins via `createAFTKTools`.
+- `tools` — the custom tool definitions to mount into a pi SDK session,
+- `shutdown(graceful?)` — cleanup for the managed `aftk_server` process.
 
-From this repository root:
+This is the intended integration point for custom TypeScript/SDK-based agent sessions.
+The repository no longer ships a separate AFTK-specific CLI runner.
 
-```bash
-bun install
-bun run lambda
-```
+## pi extension wrapper
 
-From a downstream Lake project that depends on AFTK:
+If you are using upstream `pi` directly, AFTK ships a thin extension wrapper at `lambda/src/aftk-extension.ts`.
+It registers the same tool definitions exposed by `createAFTKTools(...)`.
 
-```bash
-lake run lambda
-# or, when package prefix is required:
-lake run aftk/lambda
-```
-
-This script forwards args to lambda and runs it with the downstream workspace as `--cwd`.
-
-Common variants:
-
-```bash
-bun run lambda -- --help
-bun run lambda -- -p "Summarize current goals"
-bun run lambda -- --mode rpc
-
-# model selection (same parsing behavior as upstream pi)
-# provider inferred from --model prefix
-bun run lambda -- --model groq/openai/gpt-oss-120b
-# explicit provider + slash-containing model id
-bun run lambda -- --provider groq --model meta-llama/llama-4-maverick-17b-128e-instruct
-
-# downstream equivalents
-lake run lambda --help
-lake run lambda -p "Summarize current goals"
-```
-
-## pi extension compatibility (existing downstream workflows)
-
-If you are using upstream `pi` directly, AFTK still provides extension compatibility:
+Install it into the current project with:
 
 ```bash
 lake run setup_pi_extension
@@ -241,7 +224,7 @@ lake run setup_pi_extension
 lake run aftk/setup_pi_extension
 ```
 
-This resolves the AFTK package path and runs `pi install -l <path-to-aftk-extension>`.
+This resolves the AFTK package path, ensures its TypeScript dependencies are installed, and runs `pi install -l <path-to-aftk-package>`.
 
 ---
 
@@ -277,15 +260,17 @@ Common hub errors:
 
 ## Recommended agent workflow
 
-1. **Model high-level plan** with `informal[...]` placeholders and markdown blueprint notes.
-2. **Query blueprint state** via `informalize` CLI (`status`, `deps`, `decls`, `locations`, ...).
-3. **Select a local formalization target** based on dependency/frontier information.
-4. **Query semantic + note context together** with AFTK (`get_hover`, goals, term-goals).
-   - At informal terms, hover can include blueprint markdown content.
-5. **Explore tactics transiently** with `run_tactic` / `run_tactic_steps`.
-6. **Write/update natural-language strategy notes** in the linked markdown file as you explore.
-7. **Commit only final proof text** to Lean source once a strategy is validated.
-8. Repeat until blueprint placeholders are replaced by direct formalization.
+1. **Ingest seed source material** into a faithful, agent-readable representation.
+2. **Build/update the knowledge store** from those sources, preserving provenance.
+3. **Create or refine scaffold nodes** with `informal[...]` placeholders and markdown notes.
+4. **Query scaffold state** via `informalize` CLI (`status`, `deps`, `decls`, `locations`, `meta show`, ...).
+5. **Select a leaf node** and classify it as ready, needing sources, or needing refinement.
+6. **Gather more sources or refine the scaffold** until the selected node is small, precise, and supported.
+7. **Use AFTK for the local Lean-facing formalization step** (`get_hover`, goals, tactic exploration).
+   - At informal terms, hover can include blueprint markdown content plus effective metadata.
+8. **Commit only final proof text** to Lean source once a strategy is validated, then update the scaffold/knowledge state and repeat.
+
+For the detailed workflow, see `docs/workflow.md`. For the implementation pieces still needed around Informalize and AFTK, see `docs/components.md`.
 
 ---
 
@@ -304,8 +289,10 @@ not a substitute for completed formal proofs.
 
 ## Documentation map
 
+- End-to-end workflow definition: `docs/workflow.md`
+- Framework components to build next: `docs/components.md`
 - Informalize overview: `docs/informalize/README.md`
 - Informal id rules: `docs/informalize/IdReference.md`
-- AFTK hub tool surfaces (`lambda` + pi compatibility): `docs/aftk/README.md`
-- End-to-end agent workflow playbook: `docs/agent-playbook.md`
+- AFTK hub tool surfaces (shared custom toolset + pi extension wrapper): `docs/aftk/README.md`
+- Lean-facing agent workflow playbook: `docs/agent-playbook.md`
 - Roadmap ideas: `docs/future/autoformalization-tools.md`

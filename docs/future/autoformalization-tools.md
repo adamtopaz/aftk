@@ -4,7 +4,7 @@ This roadmap extends the current AFTK design:
 
 - **Informalize** organizes the blueprint layer,
 - **AFTK hub** supports semantic query + transient proof exploration,
-- **`lambda`** (SDK-based agent) is the primary tool surface for AFTK hub methods.
+- **the shared custom toolset** (`createAFTKTools`) and **the pi extension wrapper** are the current tool surfaces for AFTK hub methods.
 
 The goal is to improve agent reliability in the loop:
 
@@ -24,9 +24,26 @@ Already available:
 - Lifecycle: `open`, `close`, `shutdown`
 - Infoview-like queries: `load_node`, `get_hover`, `get_plain_goal`, `get_plain_term_goal`, `get_infoview`
 - Tactic exploration: `get_goals`, `run_tactic`, `run_tactic_steps`
-- Blueprint queries (CLI): `status`, `deps`, `decls`, `decl`, `locations`, `location`
+- Blueprint queries/management (CLI): `status`, `deps`, `deps --by location`, `decls`, `decl`, `locations`, `location`, `meta ...`
+- Optional metadata sidecars with CLI-managed persistence and default fallback when no JSON file exists
 
 ---
+
+## Next framework layer above the current baseline
+
+The next development target is the broader workflow defined in `docs/workflow.md`.
+The main framework pieces still missing around the current Informalize+AFTK base are listed in `docs/components.md`.
+
+In particular, the roadmap now includes:
+
+- faithful source ingestion and source-packet storage,
+- a knowledge store with query and writeback APIs,
+- explicit scaffold-node management beyond current declaration tracking,
+- frontier detection and readiness classification for leaf nodes,
+- source-gap detection and source acquisition support,
+- scaffold refinement and workflow orchestration.
+
+These additions sit *above* the current AFTK hub and Informalize layers and are what turn the repository from a set of local tools into a full autoformalization framework.
 
 ## Highest-priority additions
 

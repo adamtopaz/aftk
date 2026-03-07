@@ -1,6 +1,6 @@
 # Informalize ID Reference
 
-This document defines how `informal[<id>]` location ids map to markdown files.
+This document defines how `informal[<id>]` location ids map to markdown files and optional metadata sidecars.
 
 ---
 
@@ -25,13 +25,14 @@ inside terms/proofs during gradual refinement.
 `<id>` is dotted (`A.B.C...`) and maps as:
 
 - all but the final component become directories,
-- final component becomes `<name>.md`.
+- final component becomes `<name>.md` for markdown,
+- the same stem may optionally have `<name>.json` for metadata.
 
 Examples:
 
-- `Foo.bar` -> `informal/Foo/bar.md`
-- `Foo.bar.baz` -> `informal/Foo/bar/baz.md`
-- `Alpha.root.child.grandchild` -> `informal/Alpha/root/child/grandchild.md`
+- `Foo.bar` -> `informal/Foo/bar.md` and optional `informal/Foo/bar.json`
+- `Foo.bar.baz` -> `informal/Foo/bar/baz.md` and optional `informal/Foo/bar/baz.json`
+- `Alpha.root.child.grandchild` -> `informal/Alpha/root/child/grandchild.md` and optional `informal/Alpha/root/child/grandchild.json`
 
 Validation happens during elaboration.
 
@@ -43,12 +44,14 @@ For `informal[<id>]`:
 
 1. at least two components are required (`Directory.File`),
 2. numeric name components are rejected,
-3. resolved markdown file must exist and be readable.
+3. resolved markdown file must exist and be readable,
+4. if a metadata sidecar exists, it must be readable and valid.
 
 Typical failures:
 
 - too short: `informal[Foo]`
-- missing file: `informal[Missing.bar]`
+- missing markdown file: `informal[Missing.bar]`
+- invalid metadata file: a present but malformed/invalid `informal/.../*.json`
 
 ---
 
@@ -64,9 +67,9 @@ For each tracked declaration, Informalize stores a deduplicated set of location 
 ### Hover integration with AFTK
 
 When hovering at an `informal[...]` occurrence, AFTK hover queries can surface the
-associated markdown/natural-language content for that id.
+associated markdown/natural-language content together with the effective metadata summary for that id.
 
-In practice, agents usually do this via `aftk_get_hover` in `lambda`.
+In practice, agents usually do this via `aftk_get_hover` exposed by the AFTK pi extension wrapper or by the shared custom toolset.
 
 This is useful for agent workflows that alternate between:
 
@@ -82,13 +85,18 @@ Use the CLI:
 ```bash
 lake exe informalize status --module <Module.Name>
 lake exe informalize deps --module <Module.Name>
+lake exe informalize deps --module <Module.Name> --by location
 lake exe informalize decls --module <Module.Name>
 lake exe informalize decl --module <Module.Name> --decl <Decl.Name>
 lake exe informalize locations --module <Module.Name>
 lake exe informalize location --module <Module.Name> --location <Location.Name>
+lake exe informalize meta show --location <Location.Name>
+lake exe informalize meta set-status --location <Location.Name> --status ready
 ```
 
-`deps` computes transitive dependency reachability and reports relations among tracked declarations only.
+`deps --by decl` reports relations among tracked declarations.
+`deps --by location` reports derived location/node dependencies.
+Metadata sidecars should be managed through `meta ...` commands rather than hand-edited.
 
 ---
 

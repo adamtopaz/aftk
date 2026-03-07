@@ -1,4 +1,4 @@
-# AFTK Hub Tools (`lambda` + pi compatibility)
+# AFTK Hub Tools (shared custom toolset + pi extension wrapper)
 
 This document describes the **agent-facing Lean interaction layer** of AFTK.
 
@@ -7,6 +7,8 @@ AFTK hub is designed to let AI agents:
 - query semantic information from Lean files (infoview-like data),
 - inspect goals at tactic points,
 - explore tactic strategies transiently before writing final proofs.
+
+Within the broader workflow in `docs/workflow.md`, AFTK is the Lean-facing execution layer used after a scaffold node has been selected for local formalization.
 
 ---
 
@@ -32,46 +34,42 @@ If a file changes on disk, hub methods return `-32011` and the file must be reop
 
 ## Agent surfaces
 
-### Recommended: `lambda`
+### Shared custom toolset
 
-AFTK now ships a custom SDK-based agent named `lambda`:
+AFTK's canonical TypeScript implementation lives at:
 
-- same interactive TUI runtime as pi (`InteractiveMode` from SDK),
-- AFTK tools wired directly as SDK-native tools via `createAFTKTools`,
-- no dynamic extension install required for AFTK hub tools.
+- `lambda/src/aftk-tools.ts`
 
-From repository root:
+It exports `createAFTKTools(...)`, which returns:
 
-```bash
-bun install
-bun run lambda
-```
+- `tools` — custom pi tool definitions exposing the AFTK hub methods,
+- `shutdown(graceful?)` — cleanup for the managed `aftk_server` process.
 
-From a downstream Lake project that depends on AFTK:
+Use this when embedding AFTK tools into your own `@mariozechner/pi-coding-agent` SDK session or other TypeScript integration.
 
-```bash
-lake run lambda
-# or, when package prefix is required:
-lake run aftk/lambda
-```
+### Upstream `pi` extension wrapper
 
-Model-selection parsing follows upstream `pi` behavior:
+AFTK also ships a thin pi extension wrapper at:
 
-- `--model <provider/model-id>` infers provider from the prefix, and
-- `--provider <name> --model <model-id>` also supports model ids that contain `/`.
+- `lambda/src/aftk-extension.ts`
 
-### Compatibility: upstream `pi` extension
+This wrapper reuses the same tool implementation from `createAFTKTools(...)` and additionally registers:
 
-AFTK still ships a pi extension at:
+- session shutdown cleanup, and
+- the `aftk-extension-stop` command.
 
-- `extensions/aftk-hub.ts`
-
-For downstream projects that still use upstream `pi`:
+Install it into a downstream project with:
 
 ```bash
 lake run setup_pi_extension
 # or
 lake run aftk/setup_pi_extension
+```
+
+The Lake script resolves the AFTK package path, ensures its TypeScript dependencies are installed, and runs:
+
+```bash
+pi install -l <path-to-aftk-package>
 ```
 
 If you are developing inside this AFTK repository clone, also run:
@@ -89,7 +87,7 @@ Example sensitive paths include `.envrc`.
 
 ### Exposed tool names
 
-Both `lambda` and the compatibility extension expose the same hub tool names:
+Both the shared toolset and the pi extension wrapper expose the same hub tool names:
 
 - `aftk_open`
 - `aftk_close`
@@ -124,14 +122,13 @@ These are intended as machine-queryable analogues of editor infoview inspection.
 
 ### Informalize synergy via hover
 
-When a declaration uses `informal[Some.Id]`, the markdown content attached to that
+When a declaration uses `informal[Some.Id]`, the markdown content and effective metadata attached to that
 Informalize id can be surfaced as hover information. Agents can query it with:
 
-- `aftk_get_hover` (lambda tool, or pi compatibility tool), or
+- `aftk_get_hover` (from the shared toolset or the pi extension wrapper), or
 - `get_hover` (hub RPC).
 
-This lets an agent recover natural-language blueprint context directly from code locations
-while doing formal proof work.
+This lets an agent recover natural-language blueprint context, scaffold status, and other persisted workflow metadata directly from code locations while doing formal proof work.
 
 ---
 
@@ -176,10 +173,10 @@ Do not rely on long-lived persistence of exploratory node ids.
 ### Example combined loop (Informalize + AFTK)
 
 1. Add a placeholder in Lean: `informal[Domain.Topic.statement]`.
-2. Add/update notes in `informal/Domain/Topic/statement.md`.
-3. Use `aftk_get_hover` at that term to pull those notes into agent context.
+2. Add/update notes in `informal/Domain/Topic/statement.md` and manage structured metadata with `lake exe informalize meta ...`.
+3. Use `aftk_get_hover` at that term to pull those notes and metadata into agent context.
 4. Use `aftk_load_node` + `aftk_run_tactic`/`aftk_run_tactic_steps` to explore proof moves.
-5. Keep refining markdown strategy notes as exploration proceeds.
+5. Keep refining markdown strategy notes and CLI-managed metadata as exploration proceeds.
 6. Replace placeholder with finalized tactic proof text.
 
 This pattern keeps planning notes and proof search tightly synchronized.
@@ -216,4 +213,4 @@ Use this together with Informalize CLI and `informal[...]` placeholders:
 - Hover on informal terms can pull in natural-language markdown notes.
 - Informal terms can serve as typed placeholders while proof search is ongoing.
 
-This combined loop is the intended operating model for agentic autoformalization.
+This combined loop is the intended local formalization inner loop within the larger autoformalization workflow.
