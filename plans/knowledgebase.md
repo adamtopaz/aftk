@@ -249,6 +249,34 @@ This overview leaves several important questions open for later design documents
 - How should repair workflows be designed if validation finds problems?
 - How should indexing evolve beyond the initial search design?
 
+## Remaining design work before implementation
+
+The core knowledge-base architecture is now defined well enough that no additional large component plan is strictly required before beginning implementation.
+However, a small amount of remaining design work should still be tracked explicitly so that implementation does not begin with avoidable ambiguity.
+
+### Additional design docs to consider
+
+These are likely useful follow-up documents, but they are not all blockers for the first implementation slice:
+
+- [ ] `plans/knowledgebase/serialization.md` — if the canonical JSON contract and CLI JSON output schema need a dedicated design doc rather than small refinements to existing docs
+- [ ] `plans/knowledgebase/repair.md` — repair workflows for malformed storage, orphaned files, and other validation failures
+- [ ] `plans/knowledgebase/indexing.md` — derived indexing and reindexing design beyond the initial direct-scan search model
+
+### Design clarifications to resolve before first implementation
+
+The following points should be clarified before implementation starts in earnest:
+
+- [ ] Root discovery semantics: how the default `knowledgebase/` root is resolved, how `--root` overrides it, and what commands should do when no root exists yet
+- [ ] Creation and mutation defaults: whether empty Markdown bodies are allowed, which metadata defaults are auto-populated on create, and whether body/metadata updates should auto-update `updatedAt`
+- [ ] Metadata replacement identity rule: whether `metadata replace <id>` must preserve the existing node ID and reject accidental implicit renames
+- [ ] Canonical JSON contract: policy for unknown fields, default-field omission vs explicit emission, and the intended strictness of on-disk metadata parsing
+- [ ] Search v1 semantics: case sensitivity, which textual fields are searched by default, matching behavior, result ordering, and limit behavior
+- [ ] Validation severity policy: which conditions should be errors versus warnings in v1
+- [ ] Mutation command model reconciliation: whether there is a real top-level `update` command or whether the initial mutation model is instead `body set` plus `metadata replace`
+- [ ] Cleanup of now-stale resolved questions in component docs as decisions are incorporated
+
+Once these clarifications are resolved, the knowledge base layer should be ready for implementation without any further major architectural planning.
+
 ## Immediate implementation direction
 
 The first implementation work for this layer should likely focus on:
