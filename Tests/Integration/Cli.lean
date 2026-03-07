@@ -320,10 +320,15 @@ private def runMetaMutationCase : IO Unit := do
     assertExitCode "meta clear-parent" clearParent 0
     assertContains "meta clear-parent" clearParent.stdout "parent: (none)"
 
+private def emitProgress (message : String) : IO Unit := do
+  let stdout ← IO.getStdout
+  stdout.putStrLn message
+  stdout.flush
+
 private def runStep (label : String) (action : IO Unit) : IO Unit := do
-  IO.println s!"[cli-tests] start {label}"
+  emitProgress s!"[cli-tests] start {label}"
   action
-  IO.println s!"[cli-tests] ok {label}"
+  emitProgress s!"[cli-tests] ok {label}"
 
 
 def run : IO Unit := do
