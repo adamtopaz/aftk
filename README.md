@@ -1,5 +1,9 @@
 # AFTK: Agent-Oriented Autoformalization Toolkit for Lean
 
+> [!WARNING]
+> This repository is currently a place for experimentation with ideas about autoformalization.
+> It is **not** production-ready and should not be relied on as a production system.
+
 AFTK now provides **three complementary layers** for autoformalization:
 
 1. **Informalize**: build and track an *informal blueprint* of the formalization project.
