@@ -8,12 +8,12 @@ export default function (pi: ExtensionAPI) {
 		await toolset.shutdown(true);
 	});
 
-	pi.registerCommand("aftk-hub-stop", {
+	pi.registerCommand("aftk-extension-stop", {
 		description: "Stop the local aftk_server process managed by this extension",
 		handler: async (_args, ctx) => {
 			await toolset.shutdown(true);
 			if (ctx.hasUI) {
-				ctx.ui.notify("AFTK hub stopped", "info");
+				ctx.ui.notify("AFTK extension stopped", "info");
 			}
 		},
 	});

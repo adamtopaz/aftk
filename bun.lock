@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "lambda-agent",
+      "name": "aftk-pi-tools",
       "dependencies": {
         "@mariozechner/pi-coding-agent": "0.56.0",
         "@sinclair/typebox": "^0.34.41",

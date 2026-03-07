@@ -13,7 +13,6 @@ lean_lib AFTK
 @[default_target]
 lean_lib Informalize
 
-@[default_target]
 lean_lib Tests
 
 @[default_target]
@@ -31,7 +30,6 @@ lean_exe informalize where
   root := `InformalizeCli
   supportInterpreter := true
 
-@[default_target]
 lean_exe tests where
   root := `Tests
   supportInterpreter := true
@@ -51,36 +49,54 @@ private def findAftkPackage (ws : Lake.Workspace) : Except String Lake.Package :
   | _ =>
     throw <| String.intercalate "\n" [
       "Multiple packages matched `aftk`.",
-      "Please invoke the script with an explicit package prefix, e.g. `lake run aftk/setup_pi_extension` or `lake run aftk/lambda`.",
+      "Please invoke the script with an explicit package prefix, e.g. `lake run aftk/setup_pi_extension`.",
       formatPackageMatches candidates
     ]
 
-private def extensionPathCandidates (aftkPkg : Lake.Package) : Array FilePath := #[
-  aftkPkg.dir / "lambda" / "src" / "aftk-hub.ts"
-]
+private def piPackagePath (aftkPkg : Lake.Package) : FilePath :=
+  aftkPkg.dir
 
-private def findExtensionPath (aftkPkg : Lake.Package) : IO (Option FilePath) := do
-  for candidate in extensionPathCandidates aftkPkg do
-    if (← candidate.pathExists) then
-      return some candidate
-  return none
+private def piExtensionEntryPoint (aftkPkg : Lake.Package) : FilePath :=
+  aftkPkg.dir / "lambda" / "src" / "aftk-extension.ts"
 
 private def setupPiExtensionUsage : String :=
   String.intercalate "\n" [
-    "Install the AFTK pi extension into the current project.",
+    "Install the AFTK pi package into the current project.",
     "",
     "Usage:",
     "  lake run setup_pi_extension",
     "  lake run aftk/setup_pi_extension",
     "",
-    "The script finds the AFTK dependency in the current Lake workspace and runs:",
-    "  pi install -l <path-to-aftk-extension>",
+    "The script finds the AFTK dependency, ensures its TypeScript dependencies are installed,",
+    "and runs:",
+    "  pi install -l <path-to-aftk-package>",
     "",
-    "Requires `pi` to be installed and available on PATH."
+    "Requires `pi` to be installed and available on PATH.",
+    "Requires `bun` too when AFTK's `node_modules/` is missing."
   ]
 
+private def ensurePiPackageDependencies (aftkPkg : Lake.Package) : IO Unit := do
+  let nodeModulesDir := aftkPkg.dir / "node_modules"
+  if (← nodeModulesDir.pathExists) then
+    return
+
+  IO.println s!"Installing AFTK TypeScript dependencies in:\n- {aftkPkg.dir}"
+
+  let child ← IO.Process.spawn {
+    cmd := "bun"
+    args := #["install"]
+    cwd := some aftkPkg.dir
+    stdin := .inherit
+    stdout := .inherit
+    stderr := .inherit
+  }
+
+  let exitCode ← child.wait
+  unless exitCode == 0 do
+    throw <| .userError s!"`bun install` failed with exit code {exitCode}"
+
 /--
-Install AFTK's pi extension in the current project via `pi install -l`.
+Install AFTK's pi package in the current project via `pi install -l`.
 
 This works both from the AFTK repo itself and from downstream Lake workspaces
 that include AFTK as a dependency (including aliased dependencies).
@@ -104,17 +120,34 @@ script setup_pi_extension (args) := do
     | .error message =>
       throw <| .userError message
 
-  let extCandidates := extensionPathCandidates aftkPkg
-  let some extPath ← findExtensionPath aftkPkg
-    | throw <| .userError <| String.intercalate "\n" <|
-      ["Could not locate AFTK pi extension. Looked for:"] ++
-      (extCandidates.toList.map (fun p => s!"- {p}"))
+  let packagePath := piPackagePath aftkPkg
+  let packageJson := packagePath / "package.json"
+  unless (← packageJson.pathExists) do
+    throw <| .userError <| String.intercalate "\n" [
+      "Could not locate AFTK pi package manifest.",
+      s!"Expected: {packageJson}"
+    ]
 
-  IO.println s!"Installing AFTK pi extension from:\n- {extPath}"
+  let extPath := piExtensionEntryPoint aftkPkg
+  unless (← extPath.pathExists) do
+    throw <| .userError <| String.intercalate "\n" [
+      "Could not locate AFTK pi extension entrypoint.",
+      s!"Expected: {extPath}"
+    ]
+
+  try
+    ensurePiPackageDependencies aftkPkg
+  catch err =>
+    throw <| .userError <| String.intercalate "\n\n" [
+      "Failed to prepare AFTK TypeScript dependencies. Ensure `bun` is installed and on PATH.",
+      toString err
+    ]
+
+  IO.println s!"Installing AFTK pi package from:\n- {packagePath}"
 
   let child ← IO.Process.spawn {
     cmd := "pi"
-    args := #["install", "-l", extPath.toString]
+    args := #["install", "-l", packagePath.toString]
     cwd := some ws.dir
     stdin := .null
     stdout := .inherit
@@ -128,106 +161,3 @@ script setup_pi_extension (args) := do
   IO.println "Done. Restart pi or run /reload in the target project."
   return 0
 
-private def lambdaCliPathCandidates (aftkPkg : Lake.Package) : Array FilePath := #[
-  aftkPkg.dir / "lambda" / "src" / "cli.ts"
-]
-
-private def findLambdaCliPath (aftkPkg : Lake.Package) : IO (Option FilePath) := do
-  for candidate in lambdaCliPathCandidates aftkPkg do
-    if (← candidate.pathExists) then
-      return some candidate
-  return none
-
-private def lambdaUsage : String :=
-  String.intercalate "\n" [
-    "Run AFTK's lambda print-mode runner from the current Lake workspace.",
-    "",
-    "Usage:",
-    "  lake run lambda \"<prompt>\"",
-    "  lake run lambda -- \"<prompt>\"",
-    "  lake run aftk/lambda \"<prompt>\"",
-    "",
-    "The script finds the AFTK dependency, ensures its Bun dependencies are installed,",
-    "and runs lambda in the current Lake workspace, which should contain `lambda.json`.",
-    "",
-    "Requires `bun` to be installed and available on PATH."
-  ]
-
-private def ensureLambdaDependencies (aftkPkg : Lake.Package) : IO Unit := do
-  let nodeModulesDir := aftkPkg.dir / "node_modules"
-  if (← nodeModulesDir.pathExists) then
-    return
-
-  IO.println s!"Installing lambda dependencies in:\n- {aftkPkg.dir}"
-
-  let child ← IO.Process.spawn {
-    cmd := "bun"
-    args := #["install"]
-    cwd := some aftkPkg.dir
-    stdin := .inherit
-    stdout := .inherit
-    stderr := .inherit
-  }
-
-  let exitCode ← child.wait
-  unless exitCode == 0 do
-    throw <| .userError s!"`bun install` failed with exit code {exitCode}"
-
-/--
-Run AFTK's `lambda` agent in the current Lake workspace.
-
-This works both from the AFTK repo itself and from downstream Lake workspaces
-that include AFTK as a dependency (including aliased dependencies).
--/
-script lambda (args) := do
-  if args.contains "--script-help" then
-    IO.println lambdaUsage
-    return 0
-
-  let ws ← getWorkspace
-  let aftkPkg ←
-    match findAftkPackage ws with
-    | .ok pkg =>
-      pure pkg
-    | .error message =>
-      throw <| .userError message
-
-  let cliCandidates := lambdaCliPathCandidates aftkPkg
-  let some cliPath ← findLambdaCliPath aftkPkg
-    | throw <| .userError <| String.intercalate "\n" <|
-      ["Could not locate lambda CLI entrypoint. Looked for:"] ++
-      (cliCandidates.toList.map (fun p => s!"- {p}"))
-
-  let packageJson := aftkPkg.dir / "package.json"
-  unless (← packageJson.pathExists) do
-    throw <| .userError <| String.intercalate "\n" [
-      "Could not locate lambda package manifest.",
-      s!"Expected: {packageJson}"
-    ]
-
-  try
-    ensureLambdaDependencies aftkPkg
-  catch err =>
-    throw <| .userError <| String.intercalate "\n\n" [
-      "Failed to prepare lambda dependencies. Ensure `bun` is installed and on PATH.",
-      toString err
-    ]
-
-  let forwardedArgs : Array String :=
-    match args with
-    | "--" :: rest => rest.toArray
-    | _ => args.toArray
-
-  let lambdaBaseArgs : Array String := #["run", cliPath.toString]
-  let lambdaArgs : Array String := lambdaBaseArgs ++ forwardedArgs
-
-  let child ← IO.Process.spawn {
-    cmd := "bun"
-    args := lambdaArgs
-    cwd := some ws.dir
-    stdin := .inherit
-    stdout := .inherit
-    stderr := .inherit
-  }
-
-  return (← child.wait)

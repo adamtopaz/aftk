@@ -1,4 +1,4 @@
-# AFTK Hub Tools (`lambda` + pi compatibility)
+# AFTK Hub Tools (shared custom toolset + pi extension wrapper)
 
 This document describes the **agent-facing Lean interaction layer** of AFTK.
 
@@ -32,72 +32,42 @@ If a file changes on disk, hub methods return `-32011` and the file must be reop
 
 ## Agent surfaces
 
-### Recommended: `lambda`
+### Shared custom toolset
 
-AFTK now ships a minimal SDK-based runner named `lambda`:
+AFTK's canonical TypeScript implementation lives at:
 
-- it loads `lambda.json` from the workspace root (or nearest ancestor),
-- uses that file exclusively for session configuration,
-- creates an agent session with AFTK tools wired in via `createAFTKTools`,
-- and runs the separately provided prompt in print mode.
+- `lambda/src/aftk-tools.ts`
 
-The simplified flow is intentionally small:
+It exports `createAFTKTools(...)`, which returns:
 
-- no interactive lambda-specific CLI surface,
-- no model-selection flag parsing,
-- no session persistence flags.
+- `tools` — custom pi tool definitions exposing the AFTK hub methods,
+- `shutdown(graceful?)` — cleanup for the managed `aftk_server` process.
 
-Configuration now lives in `lambda.json`, for example:
+Use this when embedding AFTK tools into your own `@mariozechner/pi-coding-agent` SDK session or other TypeScript integration.
 
-```json
-{
-  "thinkingLevel": "off",
-  "builtInTools": ["read", "bash", "edit", "write"],
-  "model": {
-    "provider": "anthropic",
-    "id": "claude-sonnet-4-20250514"
-  }
-}
-```
+### Upstream `pi` extension wrapper
 
-Supported fields right now:
+AFTK also ships a thin pi extension wrapper at:
 
-- `cwd`
-- `agentDir`
-- `model.provider`
-- `model.id`
-- `thinkingLevel`
-- `builtInTools` (array, or `false`)
+- `lambda/src/aftk-extension.ts`
 
-From repository root:
+This wrapper reuses the same tool implementation from `createAFTKTools(...)` and additionally registers:
 
-```bash
-bun install
-bun run lambda "Summarize the current Lean goals"
-```
+- session shutdown cleanup, and
+- the `aftk-extension-stop` command.
 
-From a downstream Lake project that depends on AFTK, create `lambda.json` in that workspace root and run:
-
-```bash
-lake run lambda -- "Summarize the current Lean goals"
-# or, when package prefix is required:
-lake run aftk/lambda -- "Summarize the current Lean goals"
-```
-
-### Compatibility: upstream `pi` extension
-
-AFTK still ships a pi extension at:
-
-- `lambda/src/aftk-hub.ts`
-
-This compatibility entrypoint reuses the same AFTK tool implementation as `lambda`.
-
-For downstream projects that still use upstream `pi`:
+Install it into a downstream project with:
 
 ```bash
 lake run setup_pi_extension
 # or
 lake run aftk/setup_pi_extension
+```
+
+The Lake script resolves the AFTK package path, ensures its TypeScript dependencies are installed, and runs:
+
+```bash
+pi install -l <path-to-aftk-package>
 ```
 
 If you are developing inside this AFTK repository clone, also run:
@@ -115,7 +85,7 @@ Example sensitive paths include `.envrc`.
 
 ### Exposed tool names
 
-Both `lambda` and the compatibility extension expose the same hub tool names:
+Both the shared toolset and the pi extension wrapper expose the same hub tool names:
 
 - `aftk_open`
 - `aftk_close`
@@ -153,7 +123,7 @@ These are intended as machine-queryable analogues of editor infoview inspection.
 When a declaration uses `informal[Some.Id]`, the markdown content attached to that
 Informalize id can be surfaced as hover information. Agents can query it with:
 
-- `aftk_get_hover` (lambda tool, or pi compatibility tool), or
+- `aftk_get_hover` (from the shared toolset or the pi extension wrapper), or
 - `get_hover` (hub RPC).
 
 This lets an agent recover natural-language blueprint context directly from code locations

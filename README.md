@@ -3,7 +3,7 @@
 AFTK provides **two complementary layers** for autoformalization:
 
 1. **Informalize**: build and track an *informal blueprint* of the formalization project.
-2. **AFTK hub tools** (via `lambda`, or via pi-extension compatibility): query Lean semantic state and explore tactic strategies transiently.
+2. **AFTK hub tools** (via the shared custom toolset or the pi extension wrapper): query Lean semantic state and explore tactic strategies transiently.
 
 The intended workflow is:
 
@@ -98,9 +98,8 @@ AFTK ships two Lean JSON-RPC executables:
 
 Agent interaction surfaces:
 
-- **`lambda`** (minimal `@mariozechner/pi-coding-agent` SDK runner),
-  which loads `lambda.json`, creates an agent session, and runs a separately provided prompt in print mode with AFTK tools built in via `createAFTKTools`.
-- **pi extension compatibility** via `lambda/src/aftk-hub.ts` for existing downstream workflows, reusing the same AFTK tool implementation as `lambda`.
+- **shared custom toolset** via `lambda/src/aftk-tools.ts`, which exports `createAFTKTools(...)` for custom `@mariozechner/pi-coding-agent` SDK sessions.
+- **pi extension wrapper** via `lambda/src/aftk-extension.ts`, which registers the same AFTK tools inside upstream `pi`.
 
 ### What agents use this for
 
@@ -188,73 +187,23 @@ Customize blocked globs in `.githooks/sensitive-paths.txt`.
 
 ---
 
-## Run `lambda` (recommended)
+## Use the shared custom toolset
 
-`lambda` is now a minimal AFTK print-mode runner built on the pi SDK.
+`lambda/src/aftk-tools.ts` is the canonical TypeScript implementation of the AFTK hub tools.
+It exports `createAFTKTools(...)`, which returns:
 
-It does exactly two things:
+- `tools` — the custom tool definitions to mount into a pi SDK session,
+- `shutdown(graceful?)` — cleanup for the managed `aftk_server` process.
 
-1. load `lambda.json` from the project root (or nearest ancestor) to configure the session,
-2. create an agent session and run the separately provided prompt with `runPrintMode`.
+This is the intended integration point for custom TypeScript/SDK-based agent sessions.
+The repository no longer ships a separate AFTK-specific CLI runner.
 
-AFTK hub tools are always included via `createAFTKTools`.
-Sessions are in-memory only in this simplified flow.
+## pi extension wrapper
 
-The repository root now includes a minimal `lambda.json`:
+If you are using upstream `pi` directly, AFTK ships a thin extension wrapper at `lambda/src/aftk-extension.ts`.
+It registers the same tool definitions exposed by `createAFTKTools(...)`.
 
-```json
-{
-  "thinkingLevel": "off",
-  "builtInTools": ["read", "bash", "edit", "write"]
-}
-```
-
-You can optionally pin a model in the same file:
-
-```json
-{
-  "thinkingLevel": "off",
-  "builtInTools": ["read", "bash", "edit", "write"],
-  "model": {
-    "provider": "anthropic",
-    "id": "claude-sonnet-4-20250514"
-  }
-}
-```
-
-Supported `lambda.json` fields right now:
-
-- `cwd` — working directory for the pi SDK session (defaults to the directory containing `lambda.json`)
-- `agentDir` — alternate pi agent directory
-- `model.provider` / `model.id` — exact model selection
-- `thinkingLevel` — `off|minimal|low|medium|high|xhigh`
-- `builtInTools` — array of built-in pi tool names, or `false` to disable them
-
-From this repository root:
-
-```bash
-bun install
-bun run lambda "Summarize the current Lean goals"
-```
-
-From a downstream Lake project that depends on AFTK, create a `lambda.json` in that workspace root and run:
-
-```bash
-lake run lambda -- "Summarize the current Lean goals"
-# or, when package prefix is required:
-lake run aftk/lambda -- "Summarize the current Lean goals"
-```
-
-If you want to call the same flow programmatically, `lambda/src/index.ts` exports helpers for:
-
-- locating and loading `lambda.json`,
-- creating a session from a config object,
-- running one prompt in print mode using `lambda.json` discovery.
-
-## pi extension compatibility (existing downstream workflows)
-
-If you are using upstream `pi` directly, AFTK still provides extension compatibility.
-The extension entrypoint lives at `lambda/src/aftk-hub.ts` and reuses the same AFTK tool implementation as `lambda`:
+Install it into the current project with:
 
 ```bash
 lake run setup_pi_extension
@@ -262,7 +211,7 @@ lake run setup_pi_extension
 lake run aftk/setup_pi_extension
 ```
 
-This resolves the AFTK package path and runs `pi install -l <path-to-aftk-extension>`.
+This resolves the AFTK package path, ensures its TypeScript dependencies are installed, and runs `pi install -l <path-to-aftk-package>`.
 
 ---
 
@@ -327,6 +276,6 @@ not a substitute for completed formal proofs.
 
 - Informalize overview: `docs/informalize/README.md`
 - Informal id rules: `docs/informalize/IdReference.md`
-- AFTK hub tool surfaces (`lambda` + pi compatibility): `docs/aftk/README.md`
+- AFTK hub tool surfaces (shared custom toolset + pi extension wrapper): `docs/aftk/README.md`
 - End-to-end agent workflow playbook: `docs/agent-playbook.md`
 - Roadmap ideas: `docs/future/autoformalization-tools.md`

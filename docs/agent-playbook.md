@@ -10,42 +10,28 @@ This page shows the intended combined workflow:
 
 ## 0) Setup
 
-Build, run tests, install git safety hooks, install Bun deps for `lambda`, and ensure your workspace root has a `lambda.json`:
+Build, run tests, install git safety hooks, and install the AFTK pi extension into your project:
 
 ```bash
 lake build
 lake exe tests
 ./scripts/setup-git-hooks.sh
-bun install
+lake run setup_pi_extension
 ```
 
-Minimal `lambda.json`:
-
-```json
-{
-  "thinkingLevel": "off",
-  "builtInTools": ["read", "bash", "edit", "write"]
-}
-```
-
-Run the agent in print mode:
+If your Lake workspace needs an explicit package prefix, use:
 
 ```bash
-# inside this repository
-bun run lambda "Summarize the current Lean goals"
-
-# downstream Lake workspace using AFTK dependency
-# lake run lambda -- "Summarize the current Lean goals"
+lake run aftk/setup_pi_extension
 ```
 
 The hook setup blocks both staged-sensitive commits and pushes that include
 sensitive files such as `.envrc`.
 
-If you are using upstream `pi` instead of `lambda`, install compatibility tools with:
+`setup_pi_extension` also prepares the AFTK TypeScript dependencies automatically when needed.
 
-```bash
-lake run setup_pi_extension
-```
+If you are embedding the AFTK tools into a custom TypeScript/pi-SDK session instead of upstream `pi`,
+mount the shared toolset from `lambda/src/aftk-tools.ts` via `createAFTKTools(...)`.
 
 ---
 
@@ -103,7 +89,7 @@ This confirms that:
 
 ## 3) Pull natural-language notes through AFTK hover
 
-Use the AFTK tool calls (from `lambda`, or pi compatibility mode):
+Use the AFTK tool calls from the pi extension wrapper, or from any custom session that mounts `createAFTKTools(...)`.
 
 ### Open file
 

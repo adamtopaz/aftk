@@ -1,10 +1,12 @@
 {
-  "name": "lambda-agent",
+  "name": "aftk-pi-tools",
   "private": true,
   "type": "module",
+  "keywords": ["pi-package"],
+  "pi": {
+    "extensions": ["./lambda/src/aftk-extension.ts"]
+  },
   "scripts": {
-    "lambda": "bun run lambda/src/cli.ts",
-    "start": "bun run lambda/src/cli.ts",
     "check": "bunx tsc --noEmit"
   },
   "dependencies": {
