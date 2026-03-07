@@ -10,7 +10,7 @@ Detailed subdesigns should live in component plan files under `plans/knowledgeba
 
 - Overall status: Not implemented
 - Fully implemented: No
-- Last updated basis: overall plan plus metadata and node component designs
+- Last updated basis: overall plan plus metadata, node, and storage component designs
 
 This section is the single place for tracking whether the knowledge base layer plan has been fully implemented.
 It should be updated whenever the implementation meaningfully changes.
@@ -134,7 +134,7 @@ The conceptual split is already clear:
 - **JSON** holds structured metadata about that content
 
 The node-level pairing and naming design is captured in `plans/knowledgebase/node.md`.
-The broader knowledge-base root directory and repository layout remain to be refined.
+The broader storage layout is captured in `plans/knowledgebase/storage.md`.
 
 ## Component plans
 
@@ -142,10 +142,10 @@ The following component plans refine parts of the knowledge base layer design:
 
 - `plans/knowledgebase/metadata.md` — initial Lean metadata type design and JSON representation
 - `plans/knowledgebase/node.md` — node identity, Markdown/JSON pairing, and node-level invariants
+- `plans/knowledgebase/storage.md` — repository-level storage layout, manifest, and canonical-vs-derived storage rules
 
 Likely future component plans include:
 
-- knowledge-base directory and file layout
 - CLI command structure
 - validation behavior
 - search behavior
@@ -238,7 +238,6 @@ As more detailed designs are written, the knowledge base layer should preserve t
 
 This overview leaves several important questions open for later design documents:
 
-- What is the exact knowledge-base root directory and broader file layout?
 - What metadata fields are required, optional, or derived beyond the initial metadata type?
 - What validation rules should the CLI enforce?
 - How should search behave initially, and how might it evolve later?
@@ -250,11 +249,11 @@ This overview leaves several important questions open for later design documents
 
 The first implementation work for this layer should likely focus on:
 
-1. choosing the knowledge-base root directory and minimal storage layout
-2. implementing the initial node and metadata types plus their JSON/path mappings
-3. creating the initial `lake exe aftk kb ...` command surface
-4. supporting basic create/read/update/list operations
-5. adding simple validation and search
+1. implementing the initial node, metadata, and storage types plus their JSON/path mappings
+2. creating the initial `lake exe aftk kb ...` command surface
+3. supporting basic create/read/update/list operations
+4. adding simple validation and search
+5. implementing root initialization and node-resolution logic
 6. refining the design where implementation pressure reveals missing details
 
 That would establish a usable base layer without prematurely fixing every advanced feature.
@@ -267,12 +266,12 @@ It should be updated as design decisions are made and code lands.
 ### Planning and design
 
 - [x] Create the overall knowledge base layer plan
-- [ ] Define the knowledge-base directory and file layout
+- [x] Define the knowledge-base directory and file layout (`plans/knowledgebase/storage.md`)
 - [x] Define node identity and naming conventions (`plans/knowledgebase/node.md`)
 - [x] Define the initial Markdown + JSON pairing model (`plans/knowledgebase/node.md`)
 - [x] Define the initial metadata schema (`plans/knowledgebase/metadata.md`)
 - [x] Define how node-to-node relationships are represented in metadata (`plans/knowledgebase/metadata.md`)
-- [ ] Add follow-up component plans for layout and CLI design
+- [ ] Add follow-up component plans for CLI, validation, and search design
 
 ### Lean CLI surface
 
@@ -301,10 +300,11 @@ It should be updated as design decisions are made and code lands.
 
 ### Notes
 
-- Current state: planning, metadata design, and node design only
+- Current state: planning plus metadata, node, and storage design only
 - No knowledge base implementation has been landed yet
 - The initial metadata type design is now captured in `plans/knowledgebase/metadata.md`
 - The initial node design is now captured in `plans/knowledgebase/node.md`
+- The initial storage design is now captured in `plans/knowledgebase/storage.md`
 - This checklist is intentionally high-level and can be refined into smaller tasks later
 
 ## Summary

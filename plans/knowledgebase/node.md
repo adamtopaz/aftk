@@ -167,7 +167,7 @@ This means the canonical stored files for `topology.open_cover` are:
 - `topology/open_cover.json`
 
 This design fixes the node-level pairing and naming convention.
-It does **not** yet fix the overall knowledge-base root directory or wider repository layout.
+The overall knowledge-base root directory and broader storage layout are defined in `plans/knowledgebase/storage.md`.
 
 ## Core invariants
 
