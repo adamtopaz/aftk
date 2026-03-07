@@ -3,7 +3,7 @@
 ## Status
 
 Design-only component plan for the knowledge base CLI.
-This document refines the overall knowledge base plan in `plans/knowledgebase.md` and works together with `plans/knowledgebase/storage.md`, `plans/knowledgebase/node.md`, and `plans/knowledgebase/metadata.md`.
+This document refines the overall knowledge base plan in `plans/knowledgebase.md` and works together with `plans/knowledgebase/storage.md`, `plans/knowledgebase/node.md`, `plans/knowledgebase/metadata.md`, `plans/knowledgebase/validation.md`, and `plans/knowledgebase/search.md`.
 
 ## Component implementation status
 

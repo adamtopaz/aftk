@@ -10,7 +10,7 @@ Detailed subdesigns should live in component plan files under `plans/knowledgeba
 
 - Overall status: Not implemented
 - Fully implemented: No
-- Last updated basis: overall plan plus metadata, node, storage, and CLI component designs
+- Last updated basis: overall plan plus metadata, node, storage, CLI, validation, and search component designs
 
 This section is the single place for tracking whether the knowledge base layer plan has been fully implemented.
 It should be updated whenever the implementation meaningfully changes.
@@ -146,11 +146,13 @@ The following component plans refine parts of the knowledge base layer design:
 - `plans/knowledgebase/node.md` — node identity, Markdown/JSON pairing, and node-level invariants
 - `plans/knowledgebase/storage.md` — repository-level storage layout, manifest, and canonical-vs-derived storage rules
 - `plans/knowledgebase/cli.md` — CLI command structure, command families, output model, and error behavior
+- `plans/knowledgebase/validation.md` — validation scopes, issue model, and CLI-facing validation behavior
+- `plans/knowledgebase/search.md` — search semantics, result model, and index strategy
 
 Likely future component plans include:
 
-- validation behavior
-- search behavior
+- repair behavior
+- indexing behavior beyond the initial search design
 
 ## Primary operations
 
@@ -241,11 +243,11 @@ As more detailed designs are written, the knowledge base layer should preserve t
 This overview leaves several important questions open for later design documents:
 
 - What metadata fields are required, optional, or derived beyond the initial metadata type?
-- What validation rules should the CLI enforce?
-- How should search behave initially, and how might it evolve later?
 - How should links and references between nodes be represented at the filesystem and CLI levels beyond the basic node model?
 - What operations should be atomic from the CLI’s point of view?
 - What parts of the implementation should be pure Lean, and what parts may rely on supporting libraries or tools?
+- How should repair workflows be designed if validation finds problems?
+- How should indexing evolve beyond the initial search design?
 
 ## Immediate implementation direction
 
@@ -274,7 +276,8 @@ It should be updated as design decisions are made and code lands.
 - [x] Define the initial metadata schema (`plans/knowledgebase/metadata.md`)
 - [x] Define how node-to-node relationships are represented in metadata (`plans/knowledgebase/metadata.md`)
 - [x] Add a follow-up component plan for CLI design (`plans/knowledgebase/cli.md`)
-- [ ] Add follow-up component plans for validation and search design
+- [x] Add a follow-up component plan for validation design (`plans/knowledgebase/validation.md`)
+- [x] Add a follow-up component plan for search design (`plans/knowledgebase/search.md`)
 
 ### Lean CLI surface
 
@@ -303,12 +306,14 @@ It should be updated as design decisions are made and code lands.
 
 ### Notes
 
-- Current state: planning plus metadata, node, storage, and CLI design only
+- Current state: planning plus metadata, node, storage, CLI, validation, and search design only
 - No knowledge base implementation has been landed yet
 - The initial metadata type design is now captured in `plans/knowledgebase/metadata.md`
 - The initial node design is now captured in `plans/knowledgebase/node.md`
 - The initial storage design is now captured in `plans/knowledgebase/storage.md`
 - The initial CLI design is now captured in `plans/knowledgebase/cli.md`
+- The initial validation design is now captured in `plans/knowledgebase/validation.md`
+- The initial search design is now captured in `plans/knowledgebase/search.md`
 - This checklist is intentionally high-level and can be refined into smaller tasks later
 
 ## Summary
