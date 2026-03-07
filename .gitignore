@@ -1,6 +1,0 @@
-/.lake
-/node_modules
-.envrc
-.env
-.env.local
-.env.*.local
