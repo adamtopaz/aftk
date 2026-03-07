@@ -56,8 +56,7 @@ private def findAftkPackage (ws : Lake.Workspace) : Except String Lake.Package :
     ]
 
 private def extensionPathCandidates (aftkPkg : Lake.Package) : Array FilePath := #[
-  aftkPkg.dir / "extensions" / "aftk-hub.ts",
-  aftkPkg.dir / ".pi" / "extensions" / "aftk-hub.ts"
+  aftkPkg.dir / "lambda" / "src" / "aftk-hub.ts"
 ]
 
 private def findExtensionPath (aftkPkg : Lake.Package) : IO (Option FilePath) := do

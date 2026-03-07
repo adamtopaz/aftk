@@ -100,7 +100,7 @@ Agent interaction surfaces:
 
 - **`lambda`** (minimal `@mariozechner/pi-coding-agent` SDK runner),
   which loads `lambda.json`, creates an agent session, and runs a separately provided prompt in print mode with AFTK tools built in via `createAFTKTools`.
-- **pi extension compatibility** via `extensions/aftk-hub.ts` for existing downstream workflows.
+- **pi extension compatibility** via `lambda/src/aftk-hub.ts` for existing downstream workflows, reusing the same AFTK tool implementation as `lambda`.
 
 ### What agents use this for
 
@@ -253,7 +253,8 @@ If you want to call the same flow programmatically, `lambda/src/index.ts` export
 
 ## pi extension compatibility (existing downstream workflows)
 
-If you are using upstream `pi` directly, AFTK still provides extension compatibility:
+If you are using upstream `pi` directly, AFTK still provides extension compatibility.
+The extension entrypoint lives at `lambda/src/aftk-hub.ts` and reuses the same AFTK tool implementation as `lambda`:
 
 ```bash
 lake run setup_pi_extension

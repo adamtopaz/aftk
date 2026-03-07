@@ -88,7 +88,9 @@ lake run aftk/lambda -- "Summarize the current Lean goals"
 
 AFTK still ships a pi extension at:
 
-- `extensions/aftk-hub.ts`
+- `lambda/src/aftk-hub.ts`
+
+This compatibility entrypoint reuses the same AFTK tool implementation as `lambda`.
 
 For downstream projects that still use upstream `pi`:
 
