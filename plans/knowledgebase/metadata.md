@@ -101,6 +101,7 @@ end AFTK.KnowledgeBase
 ```
 
 The exact deriving clauses and JSON instances can be decided during implementation.
+The broader canonical JSON contract is refined in `plans/knowledgebase/serialization.md`.
 However, the intended behavior is:
 
 - `NodeId` is stored in JSON as a string

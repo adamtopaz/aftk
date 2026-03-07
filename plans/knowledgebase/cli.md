@@ -408,7 +408,8 @@ A command result should generally include information such as:
 - the primary result payload
 - warnings, if any
 
-The exact JSON schema can be refined during implementation, but the principle should be to provide stable machine-readable output rather than dumping ad hoc text.
+The dedicated serialization design in `plans/knowledgebase/serialization.md` refines the intended CLI JSON envelope.
+The principle should still be to provide stable machine-readable output rather than dumping ad hoc text.
 
 ## Error handling and exit behavior
 

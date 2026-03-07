@@ -10,7 +10,7 @@ Detailed subdesigns should live in component plan files under `plans/knowledgeba
 
 - Overall status: Not implemented
 - Fully implemented: No
-- Last updated basis: overall plan plus metadata, node, storage, CLI, validation, and search component designs
+- Last updated basis: overall plan plus metadata, node, storage, CLI, validation, search, and serialization component designs
 
 This section is the single place for tracking whether the knowledge base layer plan has been fully implemented.
 It should be updated whenever the implementation meaningfully changes.
@@ -148,6 +148,7 @@ The following component plans refine parts of the knowledge base layer design:
 - `plans/knowledgebase/cli.md` — CLI command structure, command families, output model, and error behavior
 - `plans/knowledgebase/validation.md` — validation scopes, issue model, and CLI-facing validation behavior
 - `plans/knowledgebase/search.md` — search semantics, result model, and index strategy
+- `plans/knowledgebase/serialization.md` — canonical JSON/Markdown serialization rules and CLI JSON output design
 
 Likely future component plans include:
 
@@ -258,7 +259,6 @@ However, a small amount of remaining design work should still be tracked explici
 
 These are likely useful follow-up documents, but they are not all blockers for the first implementation slice:
 
-- [ ] `plans/knowledgebase/serialization.md` — if the canonical JSON contract and CLI JSON output schema need a dedicated design doc rather than small refinements to existing docs
 - [ ] `plans/knowledgebase/repair.md` — repair workflows for malformed storage, orphaned files, and other validation failures
 - [ ] `plans/knowledgebase/indexing.md` — derived indexing and reindexing design beyond the initial direct-scan search model
 
@@ -269,7 +269,6 @@ The following points should be clarified before implementation starts in earnest
 - [ ] Root discovery semantics: how the default `knowledgebase/` root is resolved, how `--root` overrides it, and what commands should do when no root exists yet
 - [ ] Creation and mutation defaults: whether empty Markdown bodies are allowed, which metadata defaults are auto-populated on create, and whether body/metadata updates should auto-update `updatedAt`
 - [ ] Metadata replacement identity rule: whether `metadata replace <id>` must preserve the existing node ID and reject accidental implicit renames
-- [ ] Canonical JSON contract: policy for unknown fields, default-field omission vs explicit emission, and the intended strictness of on-disk metadata parsing
 - [ ] Search v1 semantics: case sensitivity, which textual fields are searched by default, matching behavior, result ordering, and limit behavior
 - [ ] Validation severity policy: which conditions should be errors versus warnings in v1
 - [ ] Mutation command model reconciliation: whether there is a real top-level `update` command or whether the initial mutation model is instead `body set` plus `metadata replace`
@@ -306,6 +305,7 @@ It should be updated as design decisions are made and code lands.
 - [x] Add a follow-up component plan for CLI design (`plans/knowledgebase/cli.md`)
 - [x] Add a follow-up component plan for validation design (`plans/knowledgebase/validation.md`)
 - [x] Add a follow-up component plan for search design (`plans/knowledgebase/search.md`)
+- [x] Add a follow-up component plan for serialization design (`plans/knowledgebase/serialization.md`)
 
 ### Lean CLI surface
 
@@ -334,7 +334,7 @@ It should be updated as design decisions are made and code lands.
 
 ### Notes
 
-- Current state: planning plus metadata, node, storage, CLI, validation, and search design only
+- Current state: planning plus metadata, node, storage, CLI, validation, search, and serialization design only
 - No knowledge base implementation has been landed yet
 - The initial metadata type design is now captured in `plans/knowledgebase/metadata.md`
 - The initial node design is now captured in `plans/knowledgebase/node.md`
@@ -342,6 +342,7 @@ It should be updated as design decisions are made and code lands.
 - The initial CLI design is now captured in `plans/knowledgebase/cli.md`
 - The initial validation design is now captured in `plans/knowledgebase/validation.md`
 - The initial search design is now captured in `plans/knowledgebase/search.md`
+- The initial serialization design is now captured in `plans/knowledgebase/serialization.md`
 - This checklist is intentionally high-level and can be refined into smaller tasks later
 
 ## Summary
