@@ -3,7 +3,11 @@ module
 public import Lean
 public import Informalize.Axiom
 public import Informalize.Extension
+public import Informalize.Location
+public import Informalize.Metadata
 public meta import Informalize.Extension
+public meta import Informalize.Location
+public meta import Informalize.Metadata
 public meta import Init.Data.String.Legacy
 
 public section
@@ -15,79 +19,50 @@ namespace Informalize
 syntax (name := informalTermWithLoc) "informal[" ident "]" (ppSpace term:max)* : term
 syntax (name := informalTermNoLoc) "informal" (ppSpace term:max)* : term
 
-private meta def renderId (components : Array String) : String :=
-  ".".intercalate components.toList
-
-private meta def mkNameFromComponents (components : Array String) : Name :=
-  components.foldl (init := .anonymous) fun acc component =>
-    .str acc component
-
-private meta def nameComponents (name : Name) : Except String (Array String) := do
-  let rec go : Name -> Except String (List String)
-    | .anonymous =>
-      pure []
-    | .str parent component => do
-      let parts ← go parent
-      pure (parts ++ [component])
-    | .num _ _ =>
-      throw "numeric components are not supported in informal ids"
-  return (← go name).toArray
-
-private meta def parseIdComponents
-    (idStx : TSyntax `ident) : TermElabM (String × String × Name) := do
-  let components ←
-    match nameComponents idStx.getId with
-    | .ok components =>
-      pure components
-    | .error err =>
-      throwErrorAt idStx err
-  if components.size < 2 then
-    throwErrorAt idStx s!"informal id `{renderId components}` must have at least two components (`Directory.File`)"
-  let pathComponents := Id.run do
-    let mut path : Array String := #[]
-    for idx in [0:components.size] do
-      match components[idx]? with
-      | some component =>
-        if idx + 1 == components.size then
-          path := path.push s!"{component}.md"
-        else
-          path := path.push component
-      | none =>
-        pure ()
-    return path
-  let filePath := s!"informal/{"/".intercalate pathComponents.toList}"
-  return (filePath, renderId components, mkNameFromComponents components)
-
 private structure ResolvedInformalId where
-  locationName : Name
+  location : LocationId
   markdown : String
+  loadedMetadata : LoadedMetadata
+
+private meta def parseLocationId (idStx : TSyntax `ident) : TermElabM LocationId := do
+  match LocationId.ofName idStx.getId with
+  | .ok location =>
+    pure location
+  | .error err =>
+    throwErrorAt idStx err
 
 private meta def resolveInformalId (idStx : TSyntax `ident) : TermElabM ResolvedInformalId := do
-  let (filePath, renderedId, locationName) ← parseIdComponents idStx
-  let pathExists ← (System.FilePath.pathExists filePath : IO Bool)
-  if !pathExists then
-    throwErrorAt idStx s!"informal id `{renderedId}` points to missing file `{filePath}`"
+  let location ← parseLocationId idStx
   let markdown ←
-    try
-      (IO.FS.readFile filePath : IO String)
-    catch _ =>
-      throwErrorAt idStx s!"unable to read `{filePath}` for informal id `{renderedId}`"
+    match ← location.readMarkdown with
+    | .ok markdown =>
+      pure markdown
+    | .error err =>
+      throwErrorAt idStx err
+  let loadedMetadata ←
+    match ← loadEffectiveMetadata location with
+    | .ok loadedMetadata =>
+      pure loadedMetadata
+    | .error err =>
+      throwErrorAt idStx err
   return {
-    locationName
-    markdown
+    location,
+    markdown,
+    loadedMetadata
   }
 
 private meta def addLocationHoverInfo
     (idStx : TSyntax `ident)
-    (locationName : Name)
-    (markdown : String) : TermElabM Unit := do
+    (location : LocationId)
+    (markdown : String)
+    (loadedMetadata : LoadedMetadata) : TermElabM Unit := do
   let info : DelabTermInfo := {
     elaborator := `Informalize.resolveInformalId
     stx := idStx
     lctx := (← getLCtx)
     expectedType? := some (mkConst ``Name)
-    expr := toExpr locationName
-    docString? := some markdown
+    expr := toExpr location.name
+    docString? := some (LoadedMetadata.renderHoverText location loadedMetadata markdown)
   }
   Elab.pushInfoLeaf <| .ofDelabTermInfo info
 
@@ -149,8 +124,8 @@ private meta def runInformalElab
     match location? with
     | some location =>
       let resolved ← resolveInformalId location
-      addLocationHoverInfo location resolved.locationName resolved.markdown
-      pure (some resolved.locationName)
+      addLocationHoverInfo location resolved.location resolved.markdown resolved.loadedMetadata
+      pure (some resolved.location.name)
     | none =>
       pure none
   let argExprs ← args.mapM fun arg =>

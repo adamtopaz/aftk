@@ -122,14 +122,13 @@ These are intended as machine-queryable analogues of editor infoview inspection.
 
 ### Informalize synergy via hover
 
-When a declaration uses `informal[Some.Id]`, the markdown content attached to that
+When a declaration uses `informal[Some.Id]`, the markdown content and effective metadata attached to that
 Informalize id can be surfaced as hover information. Agents can query it with:
 
 - `aftk_get_hover` (from the shared toolset or the pi extension wrapper), or
 - `get_hover` (hub RPC).
 
-This lets an agent recover natural-language blueprint context directly from code locations
-while doing formal proof work.
+This lets an agent recover natural-language blueprint context, scaffold status, and other persisted workflow metadata directly from code locations while doing formal proof work.
 
 ---
 
@@ -174,10 +173,10 @@ Do not rely on long-lived persistence of exploratory node ids.
 ### Example combined loop (Informalize + AFTK)
 
 1. Add a placeholder in Lean: `informal[Domain.Topic.statement]`.
-2. Add/update notes in `informal/Domain/Topic/statement.md`.
-3. Use `aftk_get_hover` at that term to pull those notes into agent context.
+2. Add/update notes in `informal/Domain/Topic/statement.md` and manage structured metadata with `lake exe informalize meta ...`.
+3. Use `aftk_get_hover` at that term to pull those notes and metadata into agent context.
 4. Use `aftk_load_node` + `aftk_run_tactic`/`aftk_run_tactic_steps` to explore proof moves.
-5. Keep refining markdown strategy notes as exploration proceeds.
+5. Keep refining markdown strategy notes and CLI-managed metadata as exploration proceeds.
 6. Replace placeholder with finalized tactic proof text.
 
 This pattern keeps planning notes and proof search tightly synchronized.

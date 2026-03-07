@@ -24,7 +24,8 @@ Already available:
 - Lifecycle: `open`, `close`, `shutdown`
 - Infoview-like queries: `load_node`, `get_hover`, `get_plain_goal`, `get_plain_term_goal`, `get_infoview`
 - Tactic exploration: `get_goals`, `run_tactic`, `run_tactic_steps`
-- Blueprint queries (CLI): `status`, `deps`, `decls`, `decl`, `locations`, `location`
+- Blueprint queries/management (CLI): `status`, `deps`, `deps --by location`, `decls`, `decl`, `locations`, `location`, `meta ...`
+- Optional metadata sidecars with CLI-managed persistence and default fallback when no JSON file exists
 
 ---
 

@@ -36,7 +36,8 @@ Informalize introduces:
 
 - a term elaborator `informal[...]` / `informal ...`,
 - an environment extension that tracks which declarations use `informal`,
-- a CLI for querying blueprint status/dependencies/locations.
+- optional JSON metadata sidecars for blueprint nodes,
+- a CLI for querying blueprint state and managing metadata.
 
 ### Core syntax
 
@@ -47,12 +48,14 @@ informal[Foo.bar.baz] x y
 informal x y
 ```
 
-With a location id, Informalize resolves markdown paths under `informal/`:
+With a location id, Informalize resolves sidecar paths under `informal/`:
 
-- `Foo.bar` -> `informal/Foo/bar.md`
-- `Foo.bar.baz` -> `informal/Foo/bar/baz.md`
+- `Foo.bar` -> `informal/Foo/bar.md` and optional `informal/Foo/bar.json`
+- `Foo.bar.baz` -> `informal/Foo/bar/baz.md` and optional `informal/Foo/bar/baz.json`
 
 The markdown file must exist when elaborating `informal[...]`.
+If the JSON metadata sidecar is missing, Informalize uses default metadata.
+If the JSON sidecar exists but is invalid, elaboration fails.
 
 ### What gets tracked
 
@@ -65,7 +68,8 @@ This gives a project-level map between:
 
 - Lean declarations,
 - natural-language blueprint fragments,
-- declaration-level dependency structure (via CLI `deps`).
+- optional machine-readable node metadata,
+- declaration-level and location-level dependency structure (via CLI `deps`).
 
 ### Informal terms as placeholders (similar to `sorry`)
 
@@ -74,21 +78,27 @@ inside declaration values and proofs while a target is still being refined.
 
 This is intentionally similar in spirit to `sorry`-driven workflows, except that:
 
-- placeholders can be linked to structured blueprint ids (`informal[...]`), and
-- each id can carry markdown notes that are queryable later.
+- placeholders can be linked to structured blueprint ids (`informal[...]`),
+- each id can carry markdown notes plus optional structured metadata, and
+- metadata is intended to be managed through the CLI rather than by editing JSON manually.
 
 ### CLI (for AI agent planning)
 
 ```bash
 lake exe informalize status --module <Module.Name>
 lake exe informalize deps --module <Module.Name>
+lake exe informalize deps --module <Module.Name> --by location
 lake exe informalize decls --module <Module.Name>
 lake exe informalize decl --module <Module.Name> --decl <Decl.Name>
 lake exe informalize locations --module <Module.Name>
 lake exe informalize location --module <Module.Name> --location <Location.Name>
+lake exe informalize meta show --location <Location.Name>
+lake exe informalize meta set-status --location <Location.Name> --status ready
 ```
 
-These commands are intended to support agent planning/triage over the blueprint.
+Use the `meta ...` commands to create/update JSON sidecars. If no sidecar exists yet,
+Informalize uses default metadata and the first metadata mutation command materializes the file.
+`--json` output is available for agent-facing machine consumption.
 
 ---
 
@@ -122,8 +132,8 @@ A key pattern:
 4. Recover natural-language notes directly in-agent while exploring tactics.
 5. Convert successful exploration into final tactic proof text.
 
-Because Informalize attaches markdown content to informal terms and AFTK exposes hover,
-this creates a direct bridge from natural-language planning notes to proof search.
+Because Informalize attaches markdown content and effective metadata to informal terms and AFTK exposes hover,
+this creates a direct bridge from natural-language planning notes and scaffold status to proof search.
 
 ### Transient proof exploration model
 
@@ -253,11 +263,11 @@ Common hub errors:
 1. **Ingest seed source material** into a faithful, agent-readable representation.
 2. **Build/update the knowledge store** from those sources, preserving provenance.
 3. **Create or refine scaffold nodes** with `informal[...]` placeholders and markdown notes.
-4. **Query scaffold state** via `informalize` CLI (`status`, `deps`, `decls`, `locations`, ...).
+4. **Query scaffold state** via `informalize` CLI (`status`, `deps`, `decls`, `locations`, `meta show`, ...).
 5. **Select a leaf node** and classify it as ready, needing sources, or needing refinement.
 6. **Gather more sources or refine the scaffold** until the selected node is small, precise, and supported.
 7. **Use AFTK for the local Lean-facing formalization step** (`get_hover`, goals, tactic exploration).
-   - At informal terms, hover can include blueprint markdown content.
+   - At informal terms, hover can include blueprint markdown content plus effective metadata.
 8. **Commit only final proof text** to Lean source once a strategy is validated, then update the scaffold/knowledge state and repeat.
 
 For the detailed workflow, see `docs/workflow.md`. For the implementation pieces still needed around Informalize and AFTK, see `docs/components.md`.

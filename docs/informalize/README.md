@@ -37,7 +37,7 @@ informal x y
 
 Semantics:
 
-- `informal[... ]` attaches to a markdown location id.
+- `informal[... ]` attaches to a markdown-backed location id.
 - `informal ...` (without brackets) is still tracked, but has no location id.
 
 `informal` is a regular Lean term, so it can be used as a typed placeholder inside
@@ -45,32 +45,40 @@ proofs and definitions while refinement is in progress (similar in workflow spir
 
 `informal[Foo.bar]` resolves to:
 
-- `informal/Foo/bar.md`
+- required markdown: `informal/Foo/bar.md`
+- optional metadata sidecar: `informal/Foo/bar.json`
 
 `informal[Foo.bar.baz]` resolves to:
 
-- `informal/Foo/bar/baz.md`
+- required markdown: `informal/Foo/bar/baz.md`
+- optional metadata sidecar: `informal/Foo/bar/baz.json`
 
-If the resolved file is missing/unreadable, elaboration fails.
+If the markdown file is missing/unreadable, elaboration fails.
+If the JSON sidecar is missing, Informalize uses default metadata.
+If the JSON sidecar exists but is invalid/unreadable, elaboration fails.
 
 ---
 
 ## Natural-language attachment
 
 The markdown file content is treated as the natural-language component of that blueprint location.
+Optional JSON sidecars provide structured workflow metadata such as status, parent links,
+source refs, issues, and tags.
 
 This enables a declaration to carry:
 
 - Lean-level placeholder position,
 - location id for tracking,
-- associated human-readable math description.
+- associated human-readable math description,
+- effective machine-readable scaffold metadata.
 
 ### AFTK integration (important)
 
 Informalize is intended to be used together with AFTK hub tools.
 
 In particular, agents can query hover at an `informal[...]` term and recover the
-attached natural-language markdown context through AFTK (`get_hover` / `aftk_get_hover`).
+attached natural-language markdown context together with the effective metadata summary
+through AFTK (`get_hover` / `aftk_get_hover`).
 
 `aftk_get_hover` is exposed by both AFTK TypeScript surfaces:
 
@@ -89,6 +97,11 @@ Informalize stores extension data keyed by declaration name:
 - deduplicated set of referenced location ids.
 
 If a declaration uses only bare `informal`, it is tracked with an empty location set.
+The structured metadata sidecar is separate from this extension state:
+
+- declaration/location usage is tracked automatically by the extension,
+- workflow metadata is stored in optional `informal/.../*.json` sidecars,
+- dependency relations are derived automatically rather than persisted in metadata.
 
 This provides the foundation for project-wide blueprint queries.
 
@@ -103,29 +116,42 @@ lake exe informalize <command> --module <Module.Name> [options]
 Commands:
 
 - `status` — summary counts of tracked declarations/locations
-- `deps` — transitive dependency graph among tracked declarations + leaves
+- `deps` — transitive dependency graph among tracked declarations, or derived location dependencies with `--by location`
 - `decls` — list tracked declarations (supports filters)
 - `decl` — show one declaration’s location set
 - `locations` — reverse index location -> declarations
 - `location` — declarations referencing one location
+- `meta show` — show effective metadata for one location
+- `meta validate` — validate effective metadata for one location
+- `meta init` — materialize default metadata JSON for one location
+- `meta set-status`, `meta set-parent`, `meta clear-parent`, `meta set-kind`, `meta clear-kind`
+- `meta add/remove-tag`, `meta add/remove-knowledge-ref`, `meta add/remove-source`, `meta add/remove-issue`
 
 Useful options:
 
-- `-m, --module <Module.Name>` (required, repeatable)
+- `-m, --module <Module.Name>` (required, repeatable, for non-`meta` commands)
 - `--decl <Decl.Name>` (required for `decl`)
-- `--location <Location.Name>` (required for `location`)
+- `--location <Location.Name>` (required for `location` and `meta` commands)
+- `--by decl|location` (for `deps`)
 - `--bare-only` / `--with-locations` (for `decls`)
+- `--json` (machine-readable output)
 
 Examples:
 
 ```bash
 lake exe informalize status --module Tests.Integration.Imports.Top
 lake exe informalize deps --module Tests.Integration.Deps
+lake exe informalize deps --module Tests.Integration.Imports.Top --by location
 lake exe informalize decls --module Tests.Integration.Imports.Top --with-locations
 lake exe informalize decl --module Tests.Integration.Imports.Top --decl Tests.Integration.Imports.Base.baseLoc
 lake exe informalize locations --module Tests.Integration.Imports.Top
 lake exe informalize location --module Tests.Integration.Imports.Top --location Foo.bar
+lake exe informalize meta show --location Foo.bar
+lake exe informalize meta set-status --location Foo.bar --status ready
 ```
+
+Agents are expected to manage metadata through the CLI rather than by editing JSON sidecars directly.
+If no sidecar exists yet, Informalize uses default metadata and the first metadata mutation command creates the JSON file.
 
 ## Testing note
 
@@ -137,11 +163,18 @@ This keeps CI build memory usage stable while preserving CLI coverage.
 
 ## Dependency interpretation (`deps`)
 
-`deps` computes transitive constant-usage reachability, then projects back onto declarations tracked by Informalize.
+`deps --by decl` computes transitive constant-usage reachability, then projects back onto declarations tracked by Informalize.
 
 This means traversal may pass through intermediate declarations that are not themselves tracked, while output stays focused on tracked declarations.
 
-`Leaves` are tracked declarations with no tracked dependencies in that projected transitive graph.
+`deps --by location` projects those declaration dependencies onto informal locations:
+
+1. find tracked declarations referencing a location,
+2. compute their transitive tracked declaration dependencies,
+3. collect the locations referenced by those dependent declarations,
+4. union them and remove the source location itself.
+
+`Leaves` are nodes with no dependencies in the selected view.
 
 ---
 
@@ -150,13 +183,14 @@ This means traversal may pass through intermediate declarations that are not the
 Within the broader workflow in `docs/workflow.md`, Informalize mainly handles scaffold construction, frontier inspection, and local refinement.
 
 1. Create or refine declarations using `informal[...]` and markdown notes.
-2. Run CLI (`status`, `deps`, `locations`) to inspect blueprint state.
-3. Prioritize frontier items (often leaves or high-impact dependencies).
-4. Decide whether a frontier item needs more sources, more scaffold refinement, or direct formalization.
-5. When the item is ready, use AFTK tools to inspect context and explore tactics transiently.
-6. During exploration, write/update natural-language strategy notes in the linked markdown file.
-7. Convert successful exploration into concrete Lean definitions/proofs.
-8. Repeat until blueprint placeholders disappear.
+2. Inspect/query metadata with CLI (`meta show`, `meta validate`) and update it through CLI mutations rather than manual JSON edits.
+3. Run CLI (`status`, `deps`, `locations`) to inspect blueprint state and derived dependencies.
+4. Prioritize frontier items (often leaves or high-impact dependencies).
+5. Decide whether a frontier item needs more sources, more scaffold refinement, or direct formalization.
+6. When the item is ready, use AFTK tools to inspect context and explore tactics transiently.
+7. During exploration, write/update natural-language strategy notes in the linked markdown file and use CLI metadata commands for structured status/source updates.
+8. Convert successful exploration into concrete Lean definitions/proofs.
+9. Repeat until blueprint placeholders disappear.
 
 This Informalize+AFTK loop is the intended local scaffold/formalization workflow, not the entire source-ingestion pipeline.
 

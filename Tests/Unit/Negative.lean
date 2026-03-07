@@ -29,6 +29,13 @@ example : Nat :=
   informal[Foo.bar.nope]
 
 /--
+error: invalid metadata in `informal/Bad/metadata.json` for location `Bad.metadata`: invalid node status `totally_bogus`
+-/
+#guard_msgs(error, drop warning) in
+example : Nat :=
+  informal[Bad.metadata]
+
+/--
 error: `informal` may only be used inside declaration values or proofs
 -/
 #guard_msgs(error, drop warning) in

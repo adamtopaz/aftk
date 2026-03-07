@@ -23,6 +23,7 @@ What it already provides:
 
 - `informal[...]` placeholders in Lean,
 - markdown-backed notes under `informal/`,
+- optional JSON metadata sidecars for scaffold nodes,
 - declaration-level tracking of which locations are referenced.
 
 Why it matters:
@@ -33,8 +34,7 @@ Why it matters:
 What it does **not** yet provide:
 
 - a full scaffold graph service,
-- explicit node lifecycle/status tracking,
-- readiness assessment,
+- automated frontier/readiness orchestration,
 - source/knowledge integration.
 
 ### 2. Informalize CLI
@@ -42,7 +42,9 @@ What it does **not** yet provide:
 
 What it already provides:
 
-- `status`, `deps`, `decls`, `decl`, `locations`, `location`.
+- `status`, `deps`, `decls`, `decl`, `locations`, `location`,
+- derived location-dependency queries via `deps --by location`,
+- CLI-managed metadata inspection and mutation via `meta ...`.
 
 Why it matters:
 
@@ -52,7 +54,7 @@ Why it matters:
 What it does **not** yet provide:
 
 - node-level frontier computation for refined sub-scaffolds,
-- readiness classification,
+- readiness classification beyond authored metadata,
 - source-gap detection.
 
 ### 3. AFTK hub + tool surfaces

@@ -256,8 +256,8 @@ Exit condition:
 
 Current-project mapping:
 
-- `informal[...]` and `informal/.../*.md` are the natural first implementation of scaffold nodes.
-- `lake exe informalize ...` provides declaration/location tracking for these placeholders.
+- `informal[...]`, `informal/.../*.md`, and optional `informal/.../*.json` sidecars are the natural first implementation of scaffold nodes.
+- `lake exe informalize ...` provides declaration/location tracking, derived dependency queries, and CLI-managed metadata operations for these placeholders.
 
 ---
 
@@ -532,9 +532,9 @@ while unresolved_nodes_exist():
 
 Today, the repository already supports the inner parts of this workflow:
 
-- **Scaffold anchors**: `informal[...]` terms and markdown files under `informal/`.
-- **Scaffold inspection**: `lake exe informalize status|deps|decls|decl|locations|location`.
-- **Lean-local exploration**: AFTK hover/goal/tactic tools.
+- **Scaffold anchors**: `informal[...]` terms, markdown files under `informal/`, and optional metadata sidecars.
+- **Scaffold inspection/management**: `lake exe informalize status|deps|decls|decl|locations|location|meta ...`.
+- **Lean-local exploration**: AFTK hover/goal/tactic tools, with hover able to surface effective Informalize metadata + notes.
 
 The main missing layers are the ones above those primitives:
 
