@@ -10,7 +10,7 @@ Detailed subdesigns should live in component plan files under `plans/knowledgeba
 
 - Overall status: Not implemented
 - Fully implemented: No
-- Last updated basis: overall plan plus metadata, node, and storage component designs
+- Last updated basis: overall plan plus metadata, node, storage, and CLI component designs
 
 This section is the single place for tracking whether the knowledge base layer plan has been fully implemented.
 It should be updated whenever the implementation meaningfully changes.
@@ -145,10 +145,10 @@ The following component plans refine parts of the knowledge base layer design:
 - `plans/knowledgebase/metadata.md` — initial Lean metadata type design and JSON representation
 - `plans/knowledgebase/node.md` — node identity, Markdown/JSON pairing, and node-level invariants
 - `plans/knowledgebase/storage.md` — repository-level storage layout, manifest, and canonical-vs-derived storage rules
+- `plans/knowledgebase/cli.md` — CLI command structure, command families, output model, and error behavior
 
 Likely future component plans include:
 
-- CLI command structure
 - validation behavior
 - search behavior
 
@@ -273,12 +273,13 @@ It should be updated as design decisions are made and code lands.
 - [x] Define the initial Markdown + JSON pairing model (`plans/knowledgebase/node.md`)
 - [x] Define the initial metadata schema (`plans/knowledgebase/metadata.md`)
 - [x] Define how node-to-node relationships are represented in metadata (`plans/knowledgebase/metadata.md`)
-- [ ] Add follow-up component plans for CLI, validation, and search design
+- [x] Add a follow-up component plan for CLI design (`plans/knowledgebase/cli.md`)
+- [ ] Add follow-up component plans for validation and search design
 
 ### Lean CLI surface
 
 - [ ] Add the top-level `lake exe aftk knowledgebase ...` command entry point
-- [ ] Define the initial subcommand structure
+- [x] Define the initial subcommand structure (`plans/knowledgebase/cli.md`)
 - [ ] Implement `create`
 - [ ] Implement `read`/`show`
 - [ ] Implement `list`
@@ -302,11 +303,12 @@ It should be updated as design decisions are made and code lands.
 
 ### Notes
 
-- Current state: planning plus metadata, node, and storage design only
+- Current state: planning plus metadata, node, storage, and CLI design only
 - No knowledge base implementation has been landed yet
 - The initial metadata type design is now captured in `plans/knowledgebase/metadata.md`
 - The initial node design is now captured in `plans/knowledgebase/node.md`
 - The initial storage design is now captured in `plans/knowledgebase/storage.md`
+- The initial CLI design is now captured in `plans/knowledgebase/cli.md`
 - This checklist is intentionally high-level and can be refined into smaller tasks later
 
 ## Summary
