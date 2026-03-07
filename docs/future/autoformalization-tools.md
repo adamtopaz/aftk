@@ -28,6 +28,22 @@ Already available:
 
 ---
 
+## Next framework layer above the current baseline
+
+The next development target is the broader workflow defined in `docs/workflow.md`.
+The main framework pieces still missing around the current Informalize+AFTK base are listed in `docs/components.md`.
+
+In particular, the roadmap now includes:
+
+- faithful source ingestion and source-packet storage,
+- a knowledge store with query and writeback APIs,
+- explicit scaffold-node management beyond current declaration tracking,
+- frontier detection and readiness classification for leaf nodes,
+- source-gap detection and source acquisition support,
+- scaffold refinement and workflow orchestration.
+
+These additions sit *above* the current AFTK hub and Informalize layers and are what turn the repository from a set of local tools into a full autoformalization framework.
+
 ## Highest-priority additions
 
 ### 1) Structured goals/context

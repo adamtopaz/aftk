@@ -7,10 +7,13 @@ AFTK provides **two complementary layers** for autoformalization:
 
 The intended workflow is:
 
-- start with high-level mathematical structure,
-- encode that structure as blueprint placeholders,
-- track dependencies and natural-language context,
-- gradually refine toward direct Lean formalization.
+- ingest source material into a faithful, agent-readable representation,
+- build a source-backed knowledge store from that material,
+- generate an initial scaffold with blueprint placeholders,
+- iterate over leaf scaffold nodes by gathering more sources, refining the scaffold, or formalizing ready leaves,
+- use AFTK for local semantic queries and tactic exploration while formalizing.
+
+See `docs/workflow.md` for the precise end-to-end loop and `docs/components.md` for the framework pieces still to implement.
 
 ---
 
@@ -247,15 +250,17 @@ Common hub errors:
 
 ## Recommended agent workflow
 
-1. **Model high-level plan** with `informal[...]` placeholders and markdown blueprint notes.
-2. **Query blueprint state** via `informalize` CLI (`status`, `deps`, `decls`, `locations`, ...).
-3. **Select a local formalization target** based on dependency/frontier information.
-4. **Query semantic + note context together** with AFTK (`get_hover`, goals, term-goals).
+1. **Ingest seed source material** into a faithful, agent-readable representation.
+2. **Build/update the knowledge store** from those sources, preserving provenance.
+3. **Create or refine scaffold nodes** with `informal[...]` placeholders and markdown notes.
+4. **Query scaffold state** via `informalize` CLI (`status`, `deps`, `decls`, `locations`, ...).
+5. **Select a leaf node** and classify it as ready, needing sources, or needing refinement.
+6. **Gather more sources or refine the scaffold** until the selected node is small, precise, and supported.
+7. **Use AFTK for the local Lean-facing formalization step** (`get_hover`, goals, tactic exploration).
    - At informal terms, hover can include blueprint markdown content.
-5. **Explore tactics transiently** with `run_tactic` / `run_tactic_steps`.
-6. **Write/update natural-language strategy notes** in the linked markdown file as you explore.
-7. **Commit only final proof text** to Lean source once a strategy is validated.
-8. Repeat until blueprint placeholders are replaced by direct formalization.
+8. **Commit only final proof text** to Lean source once a strategy is validated, then update the scaffold/knowledge state and repeat.
+
+For the detailed workflow, see `docs/workflow.md`. For the implementation pieces still needed around Informalize and AFTK, see `docs/components.md`.
 
 ---
 
@@ -274,8 +279,10 @@ not a substitute for completed formal proofs.
 
 ## Documentation map
 
+- End-to-end workflow definition: `docs/workflow.md`
+- Framework components to build next: `docs/components.md`
 - Informalize overview: `docs/informalize/README.md`
 - Informal id rules: `docs/informalize/IdReference.md`
 - AFTK hub tool surfaces (shared custom toolset + pi extension wrapper): `docs/aftk/README.md`
-- End-to-end agent workflow playbook: `docs/agent-playbook.md`
+- Lean-facing agent workflow playbook: `docs/agent-playbook.md`
 - Roadmap ideas: `docs/future/autoformalization-tools.md`

@@ -8,6 +8,8 @@ AFTK hub is designed to let AI agents:
 - inspect goals at tactic points,
 - explore tactic strategies transiently before writing final proofs.
 
+Within the broader workflow in `docs/workflow.md`, AFTK is the Lean-facing execution layer used after a scaffold node has been selected for local formalization.
+
 ---
 
 ## Architecture
@@ -212,4 +214,4 @@ Use this together with Informalize CLI and `informal[...]` placeholders:
 - Hover on informal terms can pull in natural-language markdown notes.
 - Informal terms can serve as typed placeholders while proof search is ongoing.
 
-This combined loop is the intended operating model for agentic autoformalization.
+This combined loop is the intended local formalization inner loop within the larger autoformalization workflow.

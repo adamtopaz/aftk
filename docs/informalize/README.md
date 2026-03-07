@@ -9,6 +9,8 @@ The blueprint is an **intermediate organizational step**:
 - track dependencies while formal content is still incomplete,
 - progressively refine toward direct Lean formalization.
 
+Within the broader workflow in `docs/workflow.md`, Informalize is the scaffold-management layer that sits between source/knowledge preparation and Lean-level formalization.
+
 ---
 
 ## Why use a blueprint first?
@@ -145,15 +147,18 @@ This means traversal may pass through intermediate declarations that are not the
 
 ## Suggested gradual-refinement loop
 
-1. Create high-level declarations using `informal[...]` and markdown notes.
+Within the broader workflow in `docs/workflow.md`, Informalize mainly handles scaffold construction, frontier inspection, and local refinement.
+
+1. Create or refine declarations using `informal[...]` and markdown notes.
 2. Run CLI (`status`, `deps`, `locations`) to inspect blueprint state.
 3. Prioritize frontier items (often leaves or high-impact dependencies).
-4. Use AFTK tools to inspect context and explore tactics transiently.
-5. During exploration, write/update natural-language strategy notes in the linked markdown file.
-6. Convert successful exploration into concrete Lean definitions/proofs.
-7. Repeat until blueprint placeholders disappear.
+4. Decide whether a frontier item needs more sources, more scaffold refinement, or direct formalization.
+5. When the item is ready, use AFTK tools to inspect context and explore tactics transiently.
+6. During exploration, write/update natural-language strategy notes in the linked markdown file.
+7. Convert successful exploration into concrete Lean definitions/proofs.
+8. Repeat until blueprint placeholders disappear.
 
-This Informalize+AFTK loop is the intended agent workflow.
+This Informalize+AFTK loop is the intended local scaffold/formalization workflow, not the entire source-ingestion pipeline.
 
 ---
 
@@ -171,6 +176,8 @@ So blueprint declarations are planning artifacts, not finished formal results.
 
 ## See also
 
+- End-to-end workflow: `docs/workflow.md`
+- Framework components: `docs/components.md`
 - Id rules: `docs/informalize/IdReference.md`
 - Project overview: `README.md`
 - AFTK hub docs: `docs/aftk/README.md`

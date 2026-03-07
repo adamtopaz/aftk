@@ -1,10 +1,17 @@
-# End-to-End Agent Playbook (Informalize + AFTK)
+# Lean-Facing Agent Playbook (Informalize + AFTK)
 
-This page shows the intended combined workflow:
+This page shows the Lean-facing inner loop inside the broader workflow defined in `docs/workflow.md`.
+
+It focuses on the stage where a scaffold node has already been selected and the agent is doing local proof work:
 
 - use **Informalize** to create blueprint placeholders + natural-language notes,
 - use **AFTK** to query those notes (via hover) and explore tactic branches,
 - then write a finalized tactic proof in Lean.
+
+For source ingestion, knowledge-store construction, frontier selection, and scaffold refinement, see:
+
+- `docs/workflow.md`
+- `docs/components.md`
 
 ---
 
