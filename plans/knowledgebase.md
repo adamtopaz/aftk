@@ -264,7 +264,6 @@ These are likely useful follow-up documents, but they are not all blockers for t
 
 The following points should be clarified before implementation starts in earnest:
 
-- [ ] Root discovery semantics: how the default `knowledgebase/` root is resolved, how `--root` overrides it, and what commands should do when no root exists yet
 - [ ] Creation and mutation defaults: whether empty Markdown bodies are allowed, which metadata defaults are auto-populated on create, and whether body/metadata updates should auto-update `updatedAt`
 - [ ] Metadata replacement identity rule: whether `metadata replace <id>` must preserve the existing node ID and reject accidental implicit renames
 - [ ] Search v1 semantics: case sensitivity, which textual fields are searched by default, matching behavior, result ordering, and limit behavior
@@ -272,7 +271,9 @@ The following points should be clarified before implementation starts in earnest
 - [ ] Mutation command model reconciliation: whether there is a real top-level `update` command or whether the initial mutation model is instead `body set` plus `metadata replace`
 - [ ] Cleanup of now-stale resolved questions in component docs as decisions are incorporated
 
-Once these clarifications are resolved, the knowledge base layer should be ready for implementation without any further major architectural planning.
+The root-discovery rule has now been fixed: when invoked via `lake exe`, the tool is assumed to be run from the root of a Lake project, so the default knowledge-base root is `knowledgebase/` at that project root unless `--root` is provided.
+
+Once the remaining clarifications are resolved, the knowledge base layer should be ready for implementation without any further major architectural planning.
 
 ## Immediate implementation direction
 

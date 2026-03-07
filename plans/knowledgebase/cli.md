@@ -69,11 +69,15 @@ The initial CLI design should support global options like these:
 
 ### Default root
 
-If `--root` is not provided, the CLI should use the default repository-local root described in `plans/knowledgebase/storage.md`:
+When invoked via `lake exe`, the CLI is assumed to be run from the root of a Lake project.
+If `--root` is not provided, the CLI should therefore use the default knowledge-base root described in `plans/knowledgebase/storage.md`:
 
 ```text
-./knowledgebase
+knowledgebase/
 ```
+
+The v1 CLI should not attempt upward directory discovery in the default case.
+If the caller needs a different root, they should pass `--root` explicitly.
 
 ### Output format
 

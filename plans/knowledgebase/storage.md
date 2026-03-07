@@ -231,17 +231,22 @@ Everything else should be optional unless explicitly added by a future storage-s
 
 ## Storage discovery policy
 
-The canonical default location for the knowledge base should be:
+When the CLI is invoked via `lake exe`, it is assumed to be run from the root of a Lake project.
+Under that assumption, the canonical default location for the knowledge base is:
 
 ```text
-./knowledgebase
+knowledgebase/
 ```
 
-relative to the project root.
+at the root of the current Lake project.
 
-A later CLI design may allow explicit overrides, but the storage design should treat `./knowledgebase` as the default repository-local root.
+The default discovery rule in v1 should therefore be simple:
 
-The presence of `knowledgebase/manifest.json` should be the primary signal that a directory is an initialized knowledge-base root.
+- if `--root <path>` is provided, use that path
+- otherwise, use `knowledgebase/` relative to the current working directory
+- do not perform upward directory search in the default case
+
+The presence of `knowledgebase/manifest.json` should be the primary signal that the default location has been initialized as a knowledge-base root.
 
 ## Validation expectations
 
@@ -335,7 +340,7 @@ Those may be explored later, but the first storage system should stay simple, lo
 
 ## Summary
 
-The initial knowledge-base storage system should use a repository-local root at `knowledgebase/`.
+The initial knowledge-base storage system should use a Lake-project-local root at `knowledgebase/`.
 Canonical data lives in:
 
 - `knowledgebase/manifest.json`
