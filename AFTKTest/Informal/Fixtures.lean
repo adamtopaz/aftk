@@ -1,10 +1,15 @@
-import AFTK.Informal
-import AFTK.KnowledgeBase
-import AFTKTest.Informal.Assert
-import Lean
-import Lean.Elab.Import
-import Lean.Elab.Frontend
-import Lean.Elab.Command
+module
+
+public import AFTK.Informal
+public import AFTK.KnowledgeBase
+public import AFTKTest.Informal.Assert
+public import Lean
+public import Lean.Elab.Import
+public import Lean.Elab.Frontend
+public import Lean.Elab.Command
+
+public section
+
 
 namespace AFTKTest.Informal
 

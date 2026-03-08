@@ -1,5 +1,10 @@
-import AFTKTest.Informal.Assert
-import AFTKTest.Informal.Fixtures
+module
+
+public import AFTKTest.Informal.Assert
+public import AFTKTest.Informal.Fixtures
+
+public section
+
 
 namespace AFTKTest.Informal.Placeholder
 

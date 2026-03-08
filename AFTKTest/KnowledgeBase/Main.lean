@@ -1,11 +1,16 @@
-import AFTKTest.KnowledgeBase.Assert
-import AFTKTest.KnowledgeBase.Types
-import AFTKTest.KnowledgeBase.PathLayout
-import AFTKTest.KnowledgeBase.Serialization
-import AFTKTest.KnowledgeBase.Storage
-import AFTKTest.KnowledgeBase.Validation
-import AFTKTest.KnowledgeBase.Search
-import AFTKTest.KnowledgeBase.Cli
+module
+
+public import AFTKTest.KnowledgeBase.Assert
+public import AFTKTest.KnowledgeBase.Types
+public import AFTKTest.KnowledgeBase.PathLayout
+public import AFTKTest.KnowledgeBase.Serialization
+public import AFTKTest.KnowledgeBase.Storage
+public import AFTKTest.KnowledgeBase.Validation
+public import AFTKTest.KnowledgeBase.Search
+public import AFTKTest.KnowledgeBase.Cli
+
+public section
+
 
 private def allTests : List AFTKTest.KnowledgeBase.TestCase :=
   AFTKTest.KnowledgeBase.Types.tests ++

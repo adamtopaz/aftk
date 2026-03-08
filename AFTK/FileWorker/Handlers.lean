@@ -1,9 +1,14 @@
-import AFTK.Server.Protocol
-import AFTK.Server.Transport
-import AFTK.FileWorker.Context
-import AFTK.FileWorker.Queries
-import AFTK.FileWorker.TacticState
-import LeanWorker
+module
+
+public import AFTK.Server.Protocol
+public import AFTK.Server.Transport
+public import AFTK.FileWorker.Context
+public import AFTK.FileWorker.Queries
+public import AFTK.FileWorker.TacticState
+public import LeanWorker
+
+public section
+
 
 namespace AFTK.FileWorker.Handlers
 

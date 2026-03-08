@@ -1,7 +1,12 @@
-import AFTK.Server.Protocol
-import Lean
-import Lean.Server.InfoUtils
-import LeanWorker
+module
+
+public import AFTK.Server.Protocol
+public import Lean
+public import Lean.Server.InfoUtils
+public import LeanWorker
+
+public section
+
 
 namespace AFTK.FileWorker.TacticState
 

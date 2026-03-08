@@ -1,6 +1,11 @@
-import AFTK.KnowledgeBase.Storage
-import Std.Data.HashMap
-import Std.Data.HashSet
+module
+
+public import AFTK.KnowledgeBase.Storage
+public import Std.Data.HashMap
+public import Std.Data.HashSet
+
+public section
+
 
 namespace AFTK.KnowledgeBase
 

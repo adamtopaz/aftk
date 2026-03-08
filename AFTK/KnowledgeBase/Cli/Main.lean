@@ -1,6 +1,11 @@
-import AFTK.KnowledgeBase.Cli.Parse
-import AFTK.KnowledgeBase.Cli.Render
-import AFTK.KnowledgeBase.Storage
+module
+
+public import AFTK.KnowledgeBase.Cli.Parse
+public import AFTK.KnowledgeBase.Cli.Render
+public import AFTK.KnowledgeBase.Storage
+
+public section
+
 
 namespace AFTK.KnowledgeBase
 namespace Cli

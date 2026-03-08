@@ -1,5 +1,10 @@
-import Lean
-import Lean.Server.InfoUtils
+module
+
+public import Lean
+public import Lean.Server.InfoUtils
+
+public section
+
 
 namespace AFTK.FileWorker.Context
 

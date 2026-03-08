@@ -1,3 +1,7 @@
+module
+
+public section
+
 private def suites : Array String :=
   #["aftk_knowledgebase_test", "aftk_informal_test", "aftk_server_test"]
 

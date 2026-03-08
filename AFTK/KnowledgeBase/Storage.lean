@@ -1,5 +1,10 @@
-import AFTK.KnowledgeBase.Serialization
-import Std.Data.HashMap
+module
+
+public import AFTK.KnowledgeBase.Serialization
+public import Std.Data.HashMap
+
+public section
+
 
 namespace AFTK.KnowledgeBase
 

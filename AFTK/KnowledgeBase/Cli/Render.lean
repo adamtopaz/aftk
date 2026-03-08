@@ -1,5 +1,10 @@
-import AFTK.KnowledgeBase.Cli.Types
-import AFTK.KnowledgeBase.Serialization
+module
+
+public import AFTK.KnowledgeBase.Cli.Types
+public import AFTK.KnowledgeBase.Serialization
+
+public section
+
 
 namespace AFTK.KnowledgeBase
 namespace Cli

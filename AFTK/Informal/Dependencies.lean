@@ -1,5 +1,10 @@
-import AFTK.Informal.Tracking
-import Lean
+module
+
+public import AFTK.Informal.Tracking
+public import Lean
+
+public section
+
 
 namespace AFTK.Informal
 

@@ -1,9 +1,14 @@
-import AFTK.Server.Protocol
-import AFTK.FileWorker.Context
-import AFTK.FileWorker.Informal
-import Lean
-import Lean.Server.InfoUtils
-import LeanWorker
+module
+
+public import AFTK.Server.Protocol
+public import AFTK.FileWorker.Context
+public import AFTK.FileWorker.Informal
+public import Lean
+public import Lean.Server.InfoUtils
+public import LeanWorker
+
+public section
+
 
 namespace AFTK.FileWorker.Queries
 

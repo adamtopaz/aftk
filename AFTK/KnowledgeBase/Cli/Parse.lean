@@ -1,4 +1,9 @@
-import AFTK.KnowledgeBase.Cli.Types
+module
+
+public import AFTK.KnowledgeBase.Cli.Types
+
+public section
+
 
 namespace AFTK.KnowledgeBase
 namespace Cli

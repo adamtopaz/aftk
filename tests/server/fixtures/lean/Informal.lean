@@ -1,4 +1,9 @@
-import AFTK.Informal
+module
+
+public import AFTK.Informal
+
+public section
+
 
 set_option aftk.informal.root "tests/server/fixtures/knowledgebase/basic-valid"
 

@@ -1,4 +1,9 @@
-import AFTK.Informal.Cli.Types
+module
+
+public import AFTK.Informal.Cli.Types
+
+public section
+
 
 namespace AFTK.Informal
 namespace Cli

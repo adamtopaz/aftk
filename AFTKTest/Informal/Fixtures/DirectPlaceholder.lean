@@ -1,4 +1,9 @@
-import AFTK.Informal
+module
+
+public import AFTK.Informal
+
+public section
+
 
 namespace AFTKTest.Informal.Fixtures.DirectPlaceholder
 

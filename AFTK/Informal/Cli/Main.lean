@@ -1,6 +1,11 @@
-import AFTK.Informal.Cli.Parse
-import AFTK.Informal.Cli.Render
-import AFTK.KnowledgeBase.PathLayout
+module
+
+public import AFTK.Informal.Cli.Parse
+public import AFTK.Informal.Cli.Render
+public import AFTK.KnowledgeBase.PathLayout
+
+public section
+
 
 namespace AFTK.Informal
 namespace Cli

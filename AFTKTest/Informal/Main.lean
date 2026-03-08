@@ -1,4 +1,9 @@
-import AFTKTest.Informal
+module
+
+public import AFTKTest.Informal
+
+public section
+
 
 private unsafe def allTests : List AFTKTest.KnowledgeBase.TestCase :=
   AFTKTest.Informal.References.tests ++

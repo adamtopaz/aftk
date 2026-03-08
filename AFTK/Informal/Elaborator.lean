@@ -1,38 +1,46 @@
-import AFTK.Informal.Syntax
-import AFTK.Informal.Placeholder
-import AFTK.Informal.References
-import AFTK.Informal.Tracking
-import AFTK.Informal.Presentation
-import Lean
+module
+
+public import AFTK.Informal.Syntax
+public import AFTK.Informal.Placeholder
+public import AFTK.Informal.References
+public import AFTK.Informal.Tracking
+public import AFTK.Informal.Presentation
+public import AFTK.Informal.Options
+public import Lean
+public meta import AFTK.Informal.Syntax
+public meta import AFTK.Informal.Placeholder
+public meta import AFTK.Informal.References
+public meta import AFTK.Informal.Tracking
+public meta import AFTK.Informal.Presentation
+public meta import AFTK.Informal.Options
+public meta import Lean
+
+public section
+
 
 namespace AFTK.Informal
 
 open Lean Elab Term Meta
 open AFTK.KnowledgeBase
 
-register_option aftk.informal.root : String := {
-  defValue := ""
-  descr := "Override the knowledge-base root used by AFTK informal elaboration"
-}
-
-private def configuredKnowledgeBaseRoot? : CoreM (Option System.FilePath) := do
+private meta def configuredKnowledgeBaseRoot? : CoreM (Option System.FilePath) := do
   let raw := aftk.informal.root.get (← getOptions)
   let trimmed := raw.trimAscii.toString
   pure <| if trimmed.isEmpty then none else some trimmed
 
-private def nameContainsComponent (name : Name) (target : String) : Bool :=
+private meta def nameContainsComponent (name : Name) (target : String) : Bool :=
   match name with
   | .anonymous => false
   | .str parent component => component == target || nameContainsComponent parent target
   | .num parent _ => nameContainsComponent parent target
 
-private def isCommandPseudoDeclName (declName : Name) : Bool :=
+private meta def isCommandPseudoDeclName (declName : Name) : Bool :=
   declName == `_check ||
     declName == `_reduce ||
     declName == `_synth_cmd ||
     nameContainsComponent declName "_eval"
 
-private def mkUniqueTag : TermElabM Name := do
+private meta def mkUniqueTag : TermElabM Name := do
   let ref ← getRef
   if let (some startSPos, some endSPos) := (ref.getPos?, ref.getTailPos?) then
     let fileMap ← getFileMap
@@ -50,7 +58,7 @@ private def mkUniqueTag : TermElabM Name := do
   else
     SorryLabelView.encode {}
 
-private def resolveReferenceAt
+private meta def resolveReferenceAt
     (refStx : Syntax)
     (ref : InformalReference) : TermElabM ResolvedInformalReference := do
   let root? ← configuredKnowledgeBaseRoot?
@@ -61,7 +69,7 @@ private def resolveReferenceAt
   | .error err =>
       throwErrorAt refStx s!"{err.message}"
 
-private def mkInformalExpr (expectedType : Expr) (argExprs : Array Expr) : TermElabM Expr := do
+private meta def mkInformalExpr (expectedType : Expr) (argExprs : Array Expr) : TermElabM Expr := do
   let expectedType ← instantiateMVars expectedType
   let argExprs ← argExprs.mapM instantiateMVars
   let argTypes ← argExprs.mapM fun argExpr => do
@@ -73,7 +81,7 @@ private def mkInformalExpr (expectedType : Expr) (argExprs : Array Expr) : TermE
   let informalConst := Lean.mkConst ``AFTK.Informal.Informal [level]
   pure <| mkAppN (mkApp2 informalConst (toExpr tag) α) argExprs
 
-private def addReferenceHoverInfo
+private meta def addReferenceHoverInfo
     (stx : Syntax)
     (summary : InformalPresentationSummary)
     (expr : Expr)
@@ -88,7 +96,7 @@ private def addReferenceHoverInfo
   }
   Elab.pushInfoLeaf <| .ofDelabTermInfo info
 
-private def elabInformalTerm
+private meta def elabInformalTerm
     (stx : Syntax)
     (refStx : Syntax)
     (args : Array (TSyntax `term))
@@ -119,7 +127,7 @@ private def elabInformalTerm
   addInformalOccurrence declName ref
   pure expr
 
-@[term_elab informalTermWithRef] def elabInformalTermWithRef : TermElab := fun stx expectedType? => do
+@[term_elab informalTermWithRef] meta def elabInformalTermWithRef : TermElab := fun stx expectedType? => do
   match stx with
   | `(informal[$ref:informalNodeId] $[$args:term]*) =>
       elabInformalTerm stx ref.raw args expectedType?

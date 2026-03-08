@@ -1,4 +1,9 @@
-import AFTK.KnowledgeBase.Types
+module
+
+public import AFTK.KnowledgeBase.Types
+
+public section
+
 
 namespace AFTK.KnowledgeBase
 

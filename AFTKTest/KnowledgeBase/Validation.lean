@@ -1,4 +1,9 @@
-import AFTKTest.KnowledgeBase.Assert
+module
+
+public import AFTKTest.KnowledgeBase.Assert
+
+public section
+
 
 namespace AFTKTest.KnowledgeBase.Validation
 

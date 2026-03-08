@@ -1,5 +1,10 @@
-import AFTK.KnowledgeBase.PathLayout
-import Lean.Data.Json.Parser
+module
+
+public import AFTK.KnowledgeBase.PathLayout
+public import Lean.Data.Json.Parser
+
+public section
+
 
 namespace AFTK.KnowledgeBase
 

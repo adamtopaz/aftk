@@ -1,5 +1,10 @@
-import Lean.Data.Json.FromToJson
-import Std.Time.DateTime
+module
+
+public import Lean.Data.Json.FromToJson
+public import Std.Time.DateTime
+
+public section
+
 
 namespace AFTK.KnowledgeBase
 

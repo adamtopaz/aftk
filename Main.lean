@@ -1,5 +1,10 @@
-import AFTK.KnowledgeBase.Cli.Main
-import AFTK.Informal.Cli.Main
+module
+
+public import AFTK.KnowledgeBase.Cli.Main
+public import AFTK.Informal.Cli.Main
+
+public section
+
 
 private def topLevelUsage : String :=
   "Usage: lake exe aftk <command> ..."

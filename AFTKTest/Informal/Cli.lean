@@ -1,6 +1,11 @@
-import AFTKTest.Informal.Assert
-import AFTKTest.Informal.Fixtures
-import Lean.Data.Json.Parser
+module
+
+public import AFTKTest.Informal.Assert
+public import AFTKTest.Informal.Fixtures
+public import Lean.Data.Json.Parser
+
+public section
+
 
 namespace AFTKTest.Informal.Cli
 

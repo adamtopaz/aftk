@@ -1,7 +1,13 @@
-import AFTK.Informal.Syntax
-import AFTK.Informal.Placeholder
-import AFTK.Informal.References
-import AFTK.Informal.Tracking
-import AFTK.Informal.Dependencies
-import AFTK.Informal.Presentation
-import AFTK.Informal.Elaborator
+module
+
+public import AFTK.Informal.Syntax
+public import AFTK.Informal.Placeholder
+public import AFTK.Informal.References
+public import AFTK.Informal.Tracking
+public import AFTK.Informal.Dependencies
+public import AFTK.Informal.Presentation
+public import AFTK.Informal.Options
+public import AFTK.Informal.Elaborator
+
+public section
+

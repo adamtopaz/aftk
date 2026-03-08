@@ -1,6 +1,11 @@
-import AFTK.FileWorker
-import AFTK.Server.Transport
-import LeanWorker
+module
+
+public import AFTK.FileWorker
+public import AFTK.Server.Transport
+public import LeanWorker
+
+public section
+
 
 unsafe def main (args : List String) : IO Unit := do
   let [path] := args

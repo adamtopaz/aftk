@@ -1,7 +1,12 @@
-import AFTKTest.KnowledgeBase.Assert
-import AFTK.KnowledgeBase.Cli.Parse
-import AFTK.KnowledgeBase.Cli.Render
-import Lean.Data.Json.Parser
+module
+
+public import AFTKTest.KnowledgeBase.Assert
+public import AFTK.KnowledgeBase.Cli.Parse
+public import AFTK.KnowledgeBase.Cli.Render
+public import Lean.Data.Json.Parser
+
+public section
+
 
 namespace AFTKTest.KnowledgeBase.Cli
 

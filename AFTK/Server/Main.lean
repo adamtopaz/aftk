@@ -1,5 +1,10 @@
-import AFTK.Server
-import LeanWorker
+module
+
+public import AFTK.Server
+public import LeanWorker
+
+public section
+
 
 unsafe def main (args : List String) : IO Unit := do
   let [] := args

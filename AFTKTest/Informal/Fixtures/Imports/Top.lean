@@ -1,4 +1,9 @@
-import AFTKTest.Informal.Fixtures.Imports.Mid
+module
+
+public import AFTKTest.Informal.Fixtures.Imports.Mid
+
+public section
+
 
 namespace AFTKTest.Informal.Fixtures.Imports.Top
 

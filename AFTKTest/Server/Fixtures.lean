@@ -1,6 +1,11 @@
-import AFTK.FileWorker
-import AFTKTest.Server.Assert
-import Lean
+module
+
+public import AFTK.FileWorker
+public import AFTKTest.Server.Assert
+public import Lean
+
+public section
+
 
 namespace AFTKTest.Server.Fixtures
 
@@ -24,15 +29,15 @@ structure RpcProcess where
 @[inline] def knowledgeBaseRoot : TestM System.FilePath := do
   pure <| (← liftIO IO.currentDir) / "tests" / "server" / "fixtures" / "knowledgebase" / "basic-valid"
 
-@[inline] def hoverLine : Nat := 5
+@[inline] def hoverLine : Nat := 10
 @[inline] def hoverCol : Nat := 26
-@[inline] def termGoalLine : Nat := 8
+@[inline] def termGoalLine : Nat := 13
 @[inline] def termGoalCol : Nat := 3
-@[inline] def tacticLine : Nat := 11
+@[inline] def tacticLine : Nat := 16
 @[inline] def tacticCol : Nat := 3
-@[inline] def tacticStepsLine : Nat := 14
+@[inline] def tacticStepsLine : Nat := 19
 @[inline] def tacticStepsCol : Nat := 3
-@[inline] def informalLine : Nat := 7
+@[inline] def informalLine : Nat := 12
 @[inline] def informalCol : Nat := 38
 
 unsafe def buildWorkerContext (path : System.FilePath) : TestM AFTK.FileWorker.Context.WorkerContext :=

@@ -1,6 +1,11 @@
-import AFTK.Server.Protocol
-import AFTKTest.Server.Assert
-import AFTKTest.Server.Fixtures
+module
+
+public import AFTK.Server.Protocol
+public import AFTKTest.Server.Assert
+public import AFTKTest.Server.Fixtures
+
+public section
+
 
 namespace AFTKTest.Server.Process
 

@@ -1,7 +1,12 @@
-import AFTK.Informal
-import AFTK.FileWorker.Context
-import AFTK.Server.Protocol
-import Lean
+module
+
+public import AFTK.Informal
+public import AFTK.FileWorker.Context
+public import AFTK.Server.Protocol
+public import Lean
+
+public section
+
 
 namespace AFTK.FileWorker.Informal
 

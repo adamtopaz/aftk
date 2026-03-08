@@ -1,6 +1,11 @@
-import AFTK.Server.Hub
-import AFTKTest.Server.Assert
-import AFTKTest.Server.Fixtures
+module
+
+public import AFTK.Server.Hub
+public import AFTKTest.Server.Assert
+public import AFTKTest.Server.Fixtures
+
+public section
+
 
 namespace AFTKTest.Server.Hub
 

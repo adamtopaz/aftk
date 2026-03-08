@@ -1,4 +1,9 @@
-import AFTK.Informal.References
+module
+
+public import AFTK.Informal.References
+
+public section
+
 
 namespace AFTK.Informal
 

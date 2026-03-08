@@ -1,5 +1,10 @@
-import AFTK.KnowledgeBase
-import Lean.Data.Json.Parser
+module
+
+public import AFTK.KnowledgeBase
+public import Lean.Data.Json.Parser
+
+public section
+
 
 namespace AFTKTest.KnowledgeBase
 

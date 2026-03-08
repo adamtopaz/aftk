@@ -1,4 +1,9 @@
-import AFTK.KnowledgeBase
-import AFTK.Informal
-import AFTK.Server
-import AFTK.FileWorker
+module
+
+public import AFTK.KnowledgeBase
+public import AFTK.Informal
+public import AFTK.Server
+public import AFTK.FileWorker
+
+public section
+

@@ -1,6 +1,11 @@
-import AFTK.FileWorker
-import AFTKTest.Server.Assert
-import AFTKTest.Server.Fixtures
+module
+
+public import AFTK.FileWorker
+public import AFTKTest.Server.Assert
+public import AFTKTest.Server.Fixtures
+
+public section
+
 
 namespace AFTKTest.Server.Integration
 

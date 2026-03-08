@@ -1,4 +1,9 @@
-import AFTK.KnowledgeBase.Storage
+module
+
+public import AFTK.KnowledgeBase.Storage
+
+public section
+
 
 namespace AFTK.KnowledgeBase
 

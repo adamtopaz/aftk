@@ -1,15 +1,20 @@
-import AFTKTest.Informal.Assert
-import AFTKTest.Informal.Fixtures
-import AFTKTest.Informal.Fixtures.Basic
-import AFTKTest.Informal.Fixtures.Imports.Base
-import AFTKTest.Informal.Fixtures.Imports.Mid
-import AFTKTest.Informal.Fixtures.Imports.Top
-import AFTKTest.Informal.Fixtures.Deps.Cycle
-import AFTKTest.Informal.Fixtures.DirectPlaceholder
-import AFTKTest.Informal.References
-import AFTKTest.Informal.Placeholder
-import AFTKTest.Informal.Tracking
-import AFTKTest.Informal.Dependencies
-import AFTKTest.Informal.Presentation
-import AFTKTest.Informal.Elaboration
-import AFTKTest.Informal.Cli
+module
+
+public import AFTKTest.Informal.Assert
+public import AFTKTest.Informal.Fixtures
+public import AFTKTest.Informal.Fixtures.Basic
+public import AFTKTest.Informal.Fixtures.Imports.Base
+public import AFTKTest.Informal.Fixtures.Imports.Mid
+public import AFTKTest.Informal.Fixtures.Imports.Top
+public import AFTKTest.Informal.Fixtures.Deps.Cycle
+public import AFTKTest.Informal.Fixtures.DirectPlaceholder
+public import AFTKTest.Informal.References
+public import AFTKTest.Informal.Placeholder
+public import AFTKTest.Informal.Tracking
+public import AFTKTest.Informal.Dependencies
+public import AFTKTest.Informal.Presentation
+public import AFTKTest.Informal.Elaboration
+public import AFTKTest.Informal.Cli
+
+public section
+

@@ -1,4 +1,9 @@
-import LeanWorker
+module
+
+public import LeanWorker
+
+public section
+
 
 namespace AFTK.Server.Protocol
 

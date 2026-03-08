@@ -1,5 +1,10 @@
-import AFTK.Server.Protocol
-import AFTKTest.Server.Assert
+module
+
+public import AFTK.Server.Protocol
+public import AFTKTest.Server.Assert
+
+public section
+
 
 namespace AFTKTest.Server.Protocol
 

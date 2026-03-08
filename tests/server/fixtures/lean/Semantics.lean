@@ -1,4 +1,9 @@
-import Lean
+module
+
+public import Lean
+
+public section
+
 
 namespace AFTKTest.Server.Fixtures
 

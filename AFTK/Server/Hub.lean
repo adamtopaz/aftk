@@ -1,6 +1,11 @@
-import AFTK.Server.Protocol
-import AFTK.Server.Transport
-import LeanWorker
+module
+
+public import AFTK.Server.Protocol
+public import AFTK.Server.Transport
+public import LeanWorker
+
+public section
+
 
 namespace AFTK.Server.Hub
 

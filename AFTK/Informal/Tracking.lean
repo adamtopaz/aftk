@@ -1,5 +1,10 @@
-import AFTK.Informal.References
-import Lean
+module
+
+public import AFTK.Informal.References
+public import Lean
+
+public section
+
 
 namespace AFTK.Informal
 

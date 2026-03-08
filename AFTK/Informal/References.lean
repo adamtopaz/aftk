@@ -1,4 +1,9 @@
-import AFTK.KnowledgeBase
+module
+
+public import AFTK.KnowledgeBase
+
+public section
+
 
 namespace AFTK.Informal
 

@@ -1,5 +1,10 @@
-import AFTK.KnowledgeBase.Search
-import AFTK.KnowledgeBase.Validation
+module
+
+public import AFTK.KnowledgeBase.Search
+public import AFTK.KnowledgeBase.Validation
+
+public section
+
 
 namespace AFTK.KnowledgeBase
 namespace Cli
