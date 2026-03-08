@@ -1,27 +1,21 @@
-# Knowledgebase storage
+# Knowledge-base storage
 
-This document describes the current implemented storage format.
+This document describes the canonical on-disk format implemented by `AFTK.KnowledgeBase`.
 
-## Root discovery
+## Root resolution
 
-By default, the CLI resolves the root as:
+`AFTK.KnowledgeBase.PathLayout.resolveRootPath` and the CLI use this policy:
 
-```text
-knowledgebase/
-```
+- if `--root <path>` is provided, use that path
+- otherwise use `knowledgebase/` relative to the current working directory
+- relative paths are resolved against the current working directory
+- no upward search is performed
 
-relative to the current working directory.
-
-You can override it with:
-
-```text
---root <path>
-```
-
-The CLI does not perform upward directory search.
-All commands except `init` require the resolved root to already be initialized.
+So the root is always explicit and local.
 
 ## Root layout
+
+The default manifest and directory structure are:
 
 ```text
 knowledgebase/
@@ -33,7 +27,20 @@ knowledgebase/
     tmp/
 ```
 
-### `manifest.json`
+### Canonical files
+
+Canonical source-of-truth files are:
+
+- `manifest.json`
+- `nodes/**/*.md`
+- `nodes/**/*.json`
+
+### Reserved internal area
+
+The `.aftk/` directory is internal/reserved space.
+It is created by `init` and surfaced by `status`, but indexing and repair logic are not yet implemented.
+
+## Manifest format
 
 The manifest is small and strict:
 
@@ -46,143 +53,208 @@ The manifest is small and strict:
 }
 ```
 
-Unknown fields are rejected.
+Current manifest rules:
 
-## Node ID mapping
+- `schemaVersion` must be `1`
+- `kind` must be `aftk-knowledge-base`
+- unknown fields are rejected
+- the current writer emits deterministic field order
 
-Node IDs use lowercase dotted segments.
+## Node id to path mapping
 
-Examples:
+`AFTK.KnowledgeBase.PathLayout.nodeIdToRelativeStem` implements the canonical mapping.
 
-- `topology.open_cover`
-- `group.basic.definition`
-- `analysis.uniform_continuity`
+For a node id:
 
-Rules:
+```text
+group.basic.definition
+```
 
-- nonempty
-- dot-separated segments
-- no empty segments
-- no whitespace
-- no `/` or `\`
-- each segment starts with a lowercase ASCII letter
-- remaining segment characters are lowercase ASCII letters, digits, or `_`
+split on `.` and use:
 
-Mapping rule:
+- all but the last segment as directories
+- the last segment as the basename
 
-- split on `.`
-- directories are all segments except the last
-- basename is the last segment
+Resulting stem:
 
-So:
+```text
+group/basic/definition
+```
 
-- `group.basic.definition` -> `group/basic/definition`
+The canonical sibling files are then:
 
-## Node file pairing
+```text
+group/basic/definition.md
+group/basic/definition.json
+```
 
-For a node stem `<stem>`, the canonical files are:
+## File pairing rules
 
-- `<stem>.md`
-- `<stem>.json`
+A valid stored node requires both canonical siblings:
 
-Both must exist together for a valid stored node.
+- Markdown body file
+- metadata JSON file
+
+Current storage and validation code explicitly report:
+
+- orphan markdown with no metadata
+- orphan metadata with no markdown
+- metadata id / path-derived id mismatches
 
 ## Markdown behavior
 
-Markdown is stored as plain UTF-8 text.
+Markdown bodies are stored as plain UTF-8 text.
 
-Writers:
+### On write
 
-- normalize line endings to `\n`
-- write a trailing newline
+`AFTK.KnowledgeBase.Serialization.writeMarkdownFile` and atomic write helpers:
 
-Readers:
+- normalize `\r\n` and `\r` to `\n`
+- ensure a trailing newline
 
-- normalize line endings to `\n`
+### On read
+
+`readMarkdownFile` normalizes line endings to `\n`.
+
+The body is otherwise treated as ordinary text.
+There is currently no Markdown parsing or semantic normalization layer.
 
 ## Metadata behavior
 
-Metadata is strict JSON.
+Metadata is strict JSON parsed by `parseNodeMetadataText`.
 
-Implemented properties:
+### Reader behavior
 
-- required fields are enforced
-- unsupported schema versions are rejected
-- unknown fields are rejected
-- deterministic field ordering is used when writing
-- optional/default fields are omitted when absent
+Current reader rules:
 
-### Field order
+- reject unknown fields
+- require mandatory fields
+- reject unsupported schema versions
+- parse `NodeId`, enums, timestamps, relationships, and `leanRefs` structurally
+- default omitted `kind` to `note`
+- default omitted `status` to `draft`
+- default omitted arrays to empty arrays
 
-Current canonical writer order:
+### Writer behavior
+
+`renderNodeMetadata` emits deterministic field order and omits default/empty fields where appropriate.
+
+Current field order:
 
 1. `schemaVersion`
 2. `id`
 3. `title`
-4. `kind`
-5. `status`
-6. `summary`
-7. `tags`
-8. `authors`
-9. `createdAt`
-10. `updatedAt`
-11. `relationships`
-12. `leanRefs`
+4. `kind` if not default
+5. `status` if not default
+6. `summary` if present
+7. `tags` if nonempty
+8. `authors` if nonempty
+9. `createdAt` if present
+10. `updatedAt` if present
+11. `relationships` if nonempty
+12. `leanRefs` if nonempty
 
-## Mutation semantics
+## Atomic write strategy
 
-### Create
+`AFTK.KnowledgeBase.Storage` uses a temp-file-plus-rename strategy for manifest, metadata, and Markdown writes.
 
-`create` writes both files.
+Operationally:
+
+- create parent directories if needed
+- write to a temporary sibling path
+- rename into place
+
+This keeps writes simple while avoiding obvious partial-overwrite behavior.
+
+## Implemented mutation semantics
+
+### `initRoot`
+
+Creates:
+
+- the root directory
+- `manifest.json`
+- `nodes/`
+- `.aftk/index/`
+- `.aftk/cache/`
+- `.aftk/tmp/`
+
+It fails with a conflict error if `manifest.json` already exists.
+
+### `createNode`
+
+Creates both canonical files for a new node.
+
 Defaults:
 
-- empty body allowed
+- body defaults to empty string
 - `kind = note`
 - `status = draft`
-- `createdAt` and `updatedAt` set to the creation timestamp
+- `createdAt` and `updatedAt` are both set to the creation timestamp
 
-### Body replacement
+### `setNodeBody`
 
-`body set` rewrites the Markdown body and refreshes `updatedAt`.
+Rewrites the Markdown body and refreshes `updatedAt` in metadata.
 
-### Metadata replacement
+### `replaceNodeMetadata`
 
-`metadata replace` rewrites the full metadata object and refreshes `updatedAt`.
-It must preserve the target node ID.
+Rewrites the full metadata object and refreshes `updatedAt`.
+The replacement must preserve the target id.
 
-### Rename
+### `renameNode`
 
-`rename` updates:
+A rename is implemented as:
 
-- the metadata ID
-- the canonical Markdown path
-- the canonical metadata path
-- `updatedAt`
+- load existing node
+- rewrite the node at the new canonical paths
+- update metadata `id`
+- refresh `updatedAt`
+- remove the old Markdown and metadata files
 
-### Delete
+Current rename does **not** rewrite other nodes that may reference the old id.
+Callers must treat that as an application-level concern.
 
-`delete` removes both canonical node files.
+### `deleteNode`
+
+Removes both canonical files for the node.
+
+## Scanning and enumeration
+
+Whole-root discovery uses `scanCanonicalNodeFiles`.
+
+It recursively walks `nodes/`, groups discovered `.md` and `.json` files by shared stem, and sorts stems deterministically.
+
+Higher-level loaders then build on that:
+
+- `loadAllStoredNodes`
+- `loadAllMetadata`
+
+These loaders are intentionally strict and surface orphan or invalid canonical files instead of silently skipping them.
 
 ## Validation-relevant invariants
 
-The implementation checks these storage-level invariants:
+Current storage and validation code check at least these invariants:
 
-- manifest exists and parses
-- manifest schema is supported
-- nodes directory exists
-- path-derived node ID matches metadata ID
-- no orphan `.md` file without `.json`
-- no orphan `.json` file without `.md`
-- duplicate node IDs are rejected during whole-root validation
-- missing relationship targets are reported during whole-root validation
+- root exists
+- manifest exists
+- manifest parses
+- `nodes/` exists
+- path-derived node id is valid
+- Markdown/metadata sibling pairing is complete
+- metadata id matches path-derived id
+- duplicate ids are rejected in whole-root validation
+- missing relationship targets are reported in whole-root validation
 
-## Direct editing
+`validate all` also reports missing `.aftk/` as an informational issue.
+That missing internal directory does not by itself make the root invalid.
+
+## Direct editing guidance
 
 The storage format is intentionally human-editable.
-However, if you edit files by hand, you should run:
+If you edit canonical files manually, the safe follow-up command is:
 
 ```text
 lake exe aftk knowledgebase validate all
 ```
 
-afterward.
+That is the current supported way to check whether hand-edited storage still satisfies the library's invariants.

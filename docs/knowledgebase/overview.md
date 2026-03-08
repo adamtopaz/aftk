@@ -1,118 +1,180 @@
-# Knowledgebase layer overview
+# Knowledge-base layer overview
 
-The knowledgebase layer is the implemented first layer of the `aftk` rewrite.
-It is the canonical store for natural-language knowledge.
+The knowledge-base layer is the implemented foundation of the rewrite.
+It is responsible for canonical natural-language storage and for the filesystem-facing operations that higher layers rely on.
 
-## What exists today
+Public entrypoints:
 
-The current implementation provides:
+- library: `import AFTK.KnowledgeBase`
+- CLI: `lake exe aftk knowledgebase ...`
 
-- canonical file-backed storage under `knowledgebase/`
-- Markdown bodies and JSON metadata for each node
-- validated dotted node IDs such as `topology.open_cover`
-- structured relationships between nodes
-- a Lean CLI at `lake exe aftk knowledgebase ...`, including built-in `--help` for the main entrypoint and subcommands
-- direct-scan validation and search
-- a `lake test` driver with unit, storage, validation, search, and CLI coverage
+## What is implemented
 
-The main deferred areas are:
+The current implementation includes:
 
-- derived indexing and reindex workflows
-- repair planning and repair application commands
-- a larger regression-fixture suite for malformed roots
+- strict `NodeId` and `Timestamp` types
+- canonical file-backed storage rooted at `knowledgebase/`
+- Markdown bodies paired with strict JSON metadata
+- storage initialization and node lifecycle operations
+- whole-root scanning directly from canonical files
+- validation at storage, metadata, node, and whole-root scopes
+- direct-scan text search and exact-tag search
+- outgoing, incoming, and combined relationship queries
+- a help-rich CLI with text and JSON output modes
+- a dedicated `lake test` suite
 
-## Quick start
+## What is not implemented yet
 
-Initialize a knowledgebase root:
+These areas remain intentionally deferred:
 
-```text
-lake exe aftk knowledgebase init
-```
+- derived indexing or `reindex` workflows
+- repair planning or repair application commands
+- a larger malformed-root regression-fixture corpus
 
-Create a node:
+That means the current semantics are defined entirely by canonical files, not by caches or indexes.
 
-```text
-lake exe aftk knowledgebase create topology.open_cover --title "Open cover" --kind definition
-```
+## Design commitments reflected in the code
 
-Set its body from stdin:
+### The knowledge base is the prose source of truth
 
-```text
-lake exe aftk knowledgebase body set topology.open_cover --stdin
-```
+Natural-language content lives in one place:
 
-Show it:
+- Markdown body files
+- JSON metadata files
 
-```text
-lake exe aftk knowledgebase show topology.open_cover
-```
+Higher layers may resolve, reference, or present that content, but they should not create competing prose stores.
 
-Validate everything:
+### Storage is transparent
 
-```text
-lake exe aftk knowledgebase validate all
-```
+The current implementation is intentionally easy to inspect in git and in the filesystem.
+It uses ordinary directories and files rather than a hidden database.
 
-Search:
+### Validation is explicit
 
-```text
-lake exe aftk knowledgebase search text "open cover"
-lake exe aftk knowledgebase search tag topology
-```
+The library does not quietly normalize or repair invalid canonical data.
+Instead it exposes explicit validation reports and CLI exit codes.
 
-Run the test suite:
+## Core data model
 
-```text
-lake test
-```
+### Node identity
 
-## Storage summary
+A node is identified by a dotted `NodeId`, for example:
 
-The canonical root is:
+- `group.basic.definition`
+- `algebra.monoid.definition`
+- `analysis.uniform_continuity`
+
+Current `NodeId` rules:
+
+- nonempty
+- dot-separated segments
+- no whitespace
+- no `/` or `\`
+- each segment starts with a lowercase ASCII letter
+- remaining segment characters are lowercase ASCII letters, digits, or `_`
+
+### Node contents
+
+Each logical node consists of:
+
+- `NodeMetadata`
+- a Markdown body string
+
+The main metadata fields currently used are:
+
+- `id`
+- `title`
+- `kind`
+- `status`
+- `summary?`
+- `tags`
+- `authors`
+- `createdAt?`
+- `updatedAt?`
+- `relationships`
+- `leanRefs`
+
+### Node kinds
+
+Implemented `NodeKind` values:
+
+- `note`
+- `definition`
+- `theorem`
+- `proofSketch`
+- `example`
+- `explanation`
+- `concept`
+- `documentation`
+
+### Node statuses
+
+Implemented `NodeStatus` values:
+
+- `draft`
+- `active`
+- `deprecated`
+- `archived`
+
+### Relationship kinds
+
+Implemented `RelationshipKind` values:
+
+- `relatedTo`
+- `dependsOn`
+- `elaborates`
+- `refines`
+- `exampleOf`
+- `hasExample`
+- `seeAlso`
+
+## Storage layout
+
+By default, the CLI resolves the root as:
 
 ```text
 knowledgebase/
 ```
 
-with this layout:
+relative to the current working directory.
+
+Canonical layout:
 
 ```text
 knowledgebase/
   manifest.json
   nodes/
-    topology/
-      open_cover.md
-      open_cover.json
+    ...
   .aftk/
     index/
     cache/
     tmp/
 ```
 
-Canonical data:
+Only these locations are canonical today:
 
 - `knowledgebase/manifest.json`
 - `knowledgebase/nodes/**`
 
-Derived/internal data:
+`.aftk/` exists as reserved internal space.
+Its subdirectories are created by `init`, but the current implementation does not yet populate indexing or repair data there.
 
-- `knowledgebase/.aftk/**`
+For a node id such as `group.basic.definition`, the canonical file pair is:
 
-## Node model
+```text
+knowledgebase/nodes/group/basic/definition.md
+knowledgebase/nodes/group/basic/definition.json
+```
 
-Each node is stored as two sibling files with a shared stem:
+## CLI surface
 
-- `<stem>.md` — Markdown body
-- `<stem>.json` — structured metadata
+The public CLI is:
 
-Examples:
+```text
+lake exe aftk knowledgebase ...
+```
 
-- `topology.open_cover` -> `knowledgebase/nodes/topology/open_cover.md`
-- `topology.open_cover` -> `knowledgebase/nodes/topology/open_cover.json`
-
-## Implemented command families
-
-Top-level:
+Implemented command families:
 
 - `init`
 - `status`
@@ -121,9 +183,6 @@ Top-level:
 - `create`
 - `rename`
 - `delete`
-
-Nested families:
-
 - `body show`
 - `body set`
 - `metadata show`
@@ -138,29 +197,118 @@ Nested families:
 - `relationships incoming`
 - `relationships related`
 
-## Output modes
+Global flags:
 
-All CLI commands support:
+- `--root <path>`
+- `--format text|json`
+- `--help`
 
-- `--format text`
-- `--format json`
+## Typical workflow
 
-JSON output uses a stable top-level envelope with fields like:
+Initialize a root:
+
+```text
+lake exe aftk knowledgebase init
+```
+
+Create a node:
+
+```text
+lake exe aftk knowledgebase create topology.open_cover \
+  --title "Open cover" \
+  --kind definition \
+  --summary "Definition of an open cover."
+```
+
+Set the body from stdin:
+
+```text
+lake exe aftk knowledgebase body set topology.open_cover --stdin
+```
+
+Inspect it:
+
+```text
+lake exe aftk knowledgebase show topology.open_cover
+lake exe aftk knowledgebase show topology.open_cover --metadata
+lake exe aftk knowledgebase show topology.open_cover --paths
+```
+
+Validate the whole root:
+
+```text
+lake exe aftk knowledgebase validate all
+```
+
+Search:
+
+```text
+lake exe aftk knowledgebase search text "open cover"
+lake exe aftk knowledgebase search tag topology
+```
+
+## Important behavioral details
+
+### `status` is probe-like
+
+`status` can describe an uninitialized root.
+It does not require the root to exist already.
+
+### Other commands require initialization
+
+Every command except `init` and probe-like status handling assumes the root has already been initialized and that `manifest.json` is present.
+
+### Whole-root semantics are direct-scan
+
+Search and validation load canonical files directly.
+There is no hidden index that changes result semantics.
+
+### Validation warnings and info do not force failure
+
+The CLI exits with code `4` only when a validation report contains an error-severity issue.
+A report containing only warnings or informational issues still exits successfully.
+
+### Mutation commands update timestamps
+
+`create`, `body set`, `metadata replace`, and `rename` refresh `updatedAt`.
+`create` also initializes `createdAt`.
+
+## Output model
+
+### Text output
+
+Text output is optimized for humans and differs by command.
+Examples:
+
+- `list` prints tab-separated one-line summaries
+- `show` prints metadata, canonical paths, and body
+- validation prints a short summary plus issue lines
+
+### JSON output
+
+Knowledge-base CLI JSON uses a stable top-level envelope:
 
 - `command`
 - `root`
 - `ok`
-- `result`
-- `error`
+- `result` or `error`
 - `warnings`
 
-## Higher-layer assumptions
+This is the more automation-friendly contract.
 
-The current knowledgebase layer is intended to expose these stable assumptions upward:
+## Relationship to higher layers
 
-- node identity is carried by `NodeId`
-- canonical natural-language content lives only in the knowledgebase
-- higher layers should reference nodes by ID rather than inventing alternate prose stores
-- validation and search semantics are defined in terms of canonical files, not caches
+The current higher-layer assumptions are:
 
-For more detail, see the companion documents in this folder.
+- `NodeId` is the stable cross-layer handle for prose knowledge
+- canonical prose lives in the knowledge base only
+- the informal layer resolves `informal[...]` through this layer
+- the server layer should reuse this layer rather than reading ad hoc sidecar formats
+- `leanRefs` is a metadata field the knowledge-base layer preserves structurally, but informal tracking is a separate Lean-environment concern rather than an automatically synchronized metadata view
+
+## Where to read next
+
+- `docs/knowledgebase/storage.md`
+- `docs/knowledgebase/cli.md`
+- `docs/knowledgebase/library.md`
+- `docs/knowledgebase/testing.md`

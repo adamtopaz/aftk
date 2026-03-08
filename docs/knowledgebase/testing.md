@@ -1,45 +1,23 @@
-# Knowledgebase testing
+# Knowledge-base testing
 
-The project now has a Lake test driver, so the full implemented test suite runs with:
+The knowledge-base layer is part of the project-wide Lake test driver.
+Run everything with:
 
 ```text
 lake test
 ```
 
-## Lake configuration
+Or run only the knowledge-base suite with:
 
-The root `lakefile.toml` configures:
-
-- `testDriver = "aftk_test"`
-- a dedicated test library root `AFTKTest`
-- a dedicated executable target rooted at `AFTKTest.KnowledgeBase.Main`
-
-That means `lake test` builds and runs the knowledgebase test executable automatically.
-
-## Current test coverage
-
-The current suite covers:
-
-- `NodeId` validation
-- timestamp validation
-- path-layout round trips
-- canonical path derivation
-- golden manifest rendering
-- golden metadata rendering
-- strict unknown-field rejection for manifest and metadata JSON
-- temporary-directory storage flows for init/create/load/body/rename/delete
-- whole-root validation for missing relationship targets
-- direct-scan search for text and tags
-- CLI smoke coverage for init/create/show with JSON output
-- CLI help coverage for the top-level entrypoint, the knowledgebase entrypoint, and subcommand help topics
-
-The Lean test modules now live under the project-wide `AFTKTest/` tree rather than under the production `AFTK/` library tree.
+```text
+lake exe aftk_knowledgebase_test
+```
 
 ## Test layout
 
+The knowledge-base tests live under `AFTKTest/KnowledgeBase/`:
+
 ```text
-AFTKTest.lean
-AFTKTest/KnowledgeBase.lean
 AFTKTest/KnowledgeBase/Assert.lean
 AFTKTest/KnowledgeBase/Types.lean
 AFTKTest/KnowledgeBase/PathLayout.lean
@@ -49,32 +27,91 @@ AFTKTest/KnowledgeBase/Validation.lean
 AFTKTest/KnowledgeBase/Search.lean
 AFTKTest/KnowledgeBase/Cli.lean
 AFTKTest/KnowledgeBase/Main.lean
-tests/knowledgebase/golden/
 ```
 
-## Golden files
+The aggregate test driver is:
 
-Current golden files live under:
+- `AFTKTest/Main.lean`
+
+## Current coverage
+
+The current suite covers:
+
+### Types and low-level validation
+
+- valid `NodeId` cases
+- invalid `NodeId` cases
+- timestamp validation
+
+### Path layout
+
+- node-id round trips
+- canonical path derivation
+
+### Serialization
+
+- manifest golden rendering
+- metadata golden rendering
+- strict unknown-field rejection for manifest JSON
+- strict unknown-field rejection for metadata JSON
+
+### Storage flows
+
+- temporary-directory init/create/load/rename/delete workflows
+- paired file creation and reload behavior
+
+### Validation
+
+- broken relationship target detection
+- structured validation reporting via library APIs and CLI paths
+
+### Search
+
+- direct-scan text search
+- exact tag search
+
+### CLI
+
+- top-level help and subcommand help
+- `init` / `create` / `show` happy-path flow
+- JSON output smoke coverage
+
+## Fixtures and golden data
+
+Current checked-in test data includes:
 
 ```text
 tests/knowledgebase/golden/
+  manifest.json
+  node-metadata.json
 ```
 
-They are used for exact canonical serialization checks.
+The suite also uses temporary directories for mutation-heavy tests so repository files are never modified during test execution.
 
-## Extending the suite
+## What the tests intentionally enforce
 
-When adding behavior, prefer this order:
+A few behaviors are treated as important compatibility boundaries:
 
-1. add or update low-level library tests
-2. add temporary-directory storage tests if filesystem behavior changes
-3. add CLI tests if the public command contract changes
-4. add new golden files only when exact emitted text is part of the contract
+- `NodeId` acceptance/rejection rules
+- deterministic canonical serialization
+- strict manifest and metadata parsing
+- canonical path mapping
+- validation issue detection for broken relationships
+- help text availability and CLI entrypoint wiring
 
-## Deferred testing work
+## Known testing gaps
 
-The main testing items still deferred are:
+The biggest remaining knowledge-base testing gaps are:
 
-- a larger checked-in malformed-root fixture suite under `tests/knowledgebase/fixtures/`
-- broader CLI JSON coverage across every command family
-- repair and indexing tests once those features are implemented
+- a larger checked-in malformed-root fixture corpus
+- broader JSON-contract coverage across every CLI command family
+- future repair/indexing coverage once those features exist
+
+## Good rule for extending the suite
+
+When you add or change knowledge-base behavior, prefer this order:
+
+1. update the low-level library test closest to the change
+2. add a temporary-directory storage test if filesystem behavior changes
+3. add CLI coverage if the public command contract changes
+4. add or update goldens only when exact canonical output is part of the contract

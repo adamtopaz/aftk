@@ -1,4 +1,4 @@
-# Knowledgebase Lean library
+# Knowledge-base Lean library
 
 Import the public library root with:
 
@@ -6,31 +6,48 @@ Import the public library root with:
 import AFTK.KnowledgeBase
 ```
 
-## Module layout
+This re-exports the currently implemented reusable modules:
 
-Current module structure:
+- `Types`
+- `PathLayout`
+- `Serialization`
+- `Storage`
+- `Validation`
+- `Search`
 
-```text
-AFTK/KnowledgeBase/Types.lean
-AFTK/KnowledgeBase/PathLayout.lean
-AFTK/KnowledgeBase/Serialization.lean
-AFTK/KnowledgeBase/Storage.lean
-AFTK/KnowledgeBase/Validation.lean
-AFTK/KnowledgeBase/Search.lean
-AFTK/KnowledgeBase/Cli/Types.lean
-AFTK/KnowledgeBase/Cli/Parse.lean
-AFTK/KnowledgeBase/Cli/Render.lean
-AFTK/KnowledgeBase/Cli/Main.lean
-```
-
-The reusable library lives outside `Cli/`.
+The CLI modules live separately under `AFTK/KnowledgeBase/Cli/*`.
 
 ## Core types
 
-### Identity and timestamps
+### Errors and effect type
+
+The library uses a small structured error type:
+
+- `KnowledgeBaseError`
+- `KBIO := EIO KnowledgeBaseError`
+
+Important `KnowledgeBaseError` constructors/helpers:
+
+- `KnowledgeBaseError.generic`
+- `KnowledgeBaseError.usage`
+- `KnowledgeBaseError.notFound`
+- `KnowledgeBaseError.validation`
+- `KnowledgeBaseError.conflict`
+
+The error value also carries the CLI-oriented exit code.
+
+### Identity and time
 
 - `NodeId`
 - `Timestamp`
+
+Useful helpers:
+
+- `NodeId.ofString?`
+- `NodeId.segments`
+- `NodeId.startsWithSegmentPrefix`
+- `Timestamp.ofString?`
+- `Timestamp.now`
 
 ### Metadata and graph structure
 
@@ -41,7 +58,14 @@ The reusable library lives outside `Cli/`.
 - `LeanDeclRef`
 - `NodeMetadata`
 
-### Stored nodes and storage layout
+Useful `NodeMetadata` helpers:
+
+- `NodeMetadata.withUpdatedAt`
+- `NodeMetadata.withId`
+- `NodeMetadata.hasTag`
+- `NodeMetadata.titleOrId`
+
+### Node and storage records
 
 - `Node`
 - `NodePaths`
@@ -50,41 +74,73 @@ The reusable library lives outside `Cli/`.
 - `StorageManifest`
 - `KnowledgeBaseStoragePaths`
 
-### Errors and monads
+## Module guide
 
-- `KnowledgeBaseError`
-- `KBIO := EIO KnowledgeBaseError`
+### `AFTK.KnowledgeBase.Types`
 
-## Important namespaces
+This module defines the domain types and JSON instances used throughout the layer.
+
+A few implementation details worth knowing:
+
+- `NodeId` is validated structurally at construction time
+- `Timestamp` uses a strict `YYYY-MM-DDTHH:MM:SSZ` string representation
+- metadata JSON instances omit defaults and empty arrays in canonical output
 
 ### `AFTK.KnowledgeBase.PathLayout`
 
-Key helpers:
+This module owns path computation and path-to-id conversions.
+
+Key functions:
 
 - `resolveRootPath`
+- `defaultManifest`
 - `storagePathsForRoot`
 - `nodeIdToRelativeStem`
 - `nodePaths`
+- `relativeToNodesDir?`
+- `stemFromRelativeNodeFile?`
+- `stemFromAbsoluteNodeFile?`
 - `pathStemToNodeId?`
 - `nodeIdFromNodeFilePath?`
+- `discoveredPathId?`
+
+Use this module whenever you need canonical path behavior.
+Do not rebuild id/path logic ad hoc in higher layers.
 
 ### `AFTK.KnowledgeBase.Serialization`
 
-Key helpers:
+This module owns canonical manifest/metadata rendering and strict parsing.
+
+Key functions:
 
 - `renderStorageManifest`
 - `renderNodeMetadata`
+- `parseStorageManifestJson`
 - `parseStorageManifestText`
+- `parseNodeMetadataJson`
 - `parseNodeMetadataText`
-- `normalizeMarkdownForRead`
+- `normalizeLineEndings`
 - `normalizeMarkdownForWrite`
+- `normalizeMarkdownForRead`
+- `readMarkdownFile`
+- `writeMarkdownFile`
+- `writeManifestFile`
+- `writeMetadataFile`
+
+This is canonical serialization logic, not generic CLI rendering.
 
 ### `AFTK.KnowledgeBase.Storage`
 
-Key operations:
+This module provides the main filesystem operations.
+
+Key functions:
 
 - `initRoot`
+- `loadManifestAt`
 - `resolveInitializedRoot`
+- `ensureInternalDirs`
+- `nodeExists`
+- `loadMetadataAtPath`
 - `loadStoredNode`
 - `createNode`
 - `setNodeBody`
@@ -95,14 +151,11 @@ Key operations:
 - `loadAllStoredNodes`
 - `loadAllMetadata`
 
+Use `resolveInitializedRoot` in callers that need a validated root plus canonical storage paths.
+
 ### `AFTK.KnowledgeBase.Validation`
 
-Key operations:
-
-- `validateStorage`
-- `validateMetadata`
-- `validateNode`
-- `validateAll`
+This module implements explicit reports rather than throwing ad hoc errors for whole-root checks.
 
 Key types:
 
@@ -111,9 +164,29 @@ Key types:
 - `ValidationIssue`
 - `ValidationReport`
 
+Key functions:
+
+- `validateStorage`
+- `validateMetadata`
+- `validateNode`
+- `validateAll`
+
+A `ValidationReport` is considered successful when it contains no error-severity issue.
+Warnings and infos are preserved structurally.
+
 ### `AFTK.KnowledgeBase.Search`
 
-Key operations:
+This module implements the current direct-scan discovery surface.
+
+Key types:
+
+- `SearchScope`
+- `SearchHit`
+- `SearchResult`
+- `IncomingRelationship`
+- `RelatedRelationships`
+
+Key functions:
 
 - `searchText`
 - `searchTag`
@@ -121,7 +194,11 @@ Key operations:
 - `incomingRelationships`
 - `relatedRelationships`
 
-## Example: creating and loading a node
+The current implementation is intentionally simple and index-free.
+
+## Library usage patterns
+
+### Resolve a root and load one node
 
 ```lean
 import AFTK.KnowledgeBase
@@ -131,22 +208,39 @@ open AFTK.KnowledgeBase.PathLayout
 
 #eval do
   let root ← PathLayout.resolveRootPath (some "knowledgebase")
-  let paths ← (Storage.initRoot root).toIO'  -- or handle the `KBIO` result explicitly
-  pure ()
+  let result ← (do
+    let (paths, _) ← Storage.resolveInitializedRoot root
+    let id ←
+      match NodeId.ofString? "topology.open_cover" with
+      | .ok id => pure id
+      | .error err => throw <| KnowledgeBaseError.validation "node.invalidId" err
+    Storage.loadStoredNode paths id).toIO'
+  match result with
+  | .ok stored =>
+      IO.println stored.node.metadata.title
+  | .error err =>
+      IO.eprintln s!"{err.code}: {err.message}"
 ```
 
-In practice, callers will usually handle `KBIO` values by converting them with `toIO'` or adapting the `KnowledgeBaseError` value into a higher-layer error type.
+### Run a direct validation pass
 
-## Assumptions for higher layers
+```lean
+#eval do
+  let root ← AFTK.KnowledgeBase.PathLayout.resolveRootPath (some "knowledgebase")
+  let report ← AFTK.KnowledgeBase.Validation.validateAll root
+  IO.println s!"ok = {report.ok}, issues = {report.issues.size}"
+```
 
-The current implementation is intended to be consumed with these assumptions:
+## Assumptions higher layers should rely on
 
-- `NodeId` is the stable cross-layer reference for prose knowledge
-- Markdown + JSON under canonical storage remain the source of truth
-- higher layers should not bypass validation by inventing parallel storage conventions
-- direct scans are semantically authoritative even if indexing is added later
+The current library is designed to expose these stable assumptions upward:
 
-## Deferred areas
+- `NodeId` is the cross-layer prose identifier
+- canonical prose lives in Markdown + metadata JSON under the knowledge-base root
+- direct scans define semantics even if indexing is added later
+- higher layers should call library APIs instead of reverse-engineering the on-disk layout
 
-Repair and indexing workflows are still deferred.
-No dedicated repair or indexing modules are currently shipped in the implemented library surface.
+## Deferred library areas
+
+The public re-export surface does **not** currently include dedicated repair or indexing modules.
+Those topics still exist only at the design/doc level.

@@ -2,56 +2,186 @@
 
 This repository is the rewrite worktree for `aftk`.
 
-## Current implemented layer
+The Lean portion of the rewrite is now far enough along that the first three planned layers are implemented:
 
-The knowledgebase layer is now implemented in Lean with:
+1. **Knowledge base**
+2. **Informal bridge layer**
+3. **Server / file-worker layer**
 
-- canonical Markdown + JSON storage under `knowledgebase/`
-- a CLI at `lake exe aftk knowledgebase ...`
-- validation, search, and relationship traversal
-- a dedicated `AFTKTest/` test tree and a Lake test driver, so tests run with `lake test`
+The planned TypeScript toolkit layer and AI-agent orchestration layer are **not implemented yet** in this worktree.
 
-## Common commands
+## What exists today
 
-Build:
+### Knowledge base
+
+Implemented in `AFTK.KnowledgeBase`.
+
+Current capabilities:
+
+- canonical Markdown + JSON storage under a knowledge-base root
+- strict node ids, metadata parsing, and canonical path layout
+- node lifecycle operations: init, create, show, body update, metadata replace, rename, delete
+- storage, metadata, node, and whole-root validation
+- direct-scan text search and exact-tag search
+- outgoing/incoming relationship queries
+- CLI at `lake exe aftk knowledgebase ...`
+
+### Informal layer
+
+Implemented in `AFTK.Informal`.
+
+Current capabilities:
+
+- `informal[...]` elaboration backed by knowledge-base node ids
+- explicit placeholder primitive for gradual formalization
+- declaration-level tracking of successful informal references
+- declaration and reference dependency projections
+- compact and rich presentation rendering
+- CLI at `lake exe aftk informal ...`
+
+### Server / file-worker layer
+
+Implemented in `AFTK.Server` and `AFTK.FileWorker`.
+
+Current capabilities:
+
+- standalone `aftk_server` hub and `aftk_file_worker` worker executables
+- one worker per open Lean file
+- JSON-RPC methods for hover, goals, term goals, infoview, tactic-state capture, and tactic execution
+- reopen-on-change invalidation
+- richer hover at `informal[...]` sites via the informal + knowledge-base layers
+
+## Quick start
+
+Build everything:
 
 ```text
 lake build
 ```
 
-Run the knowledgebase CLI:
-
-```text
-lake exe aftk knowledgebase status
-```
-
-Get CLI help:
-
-```text
-lake exe aftk --help
-lake exe aftk knowledgebase --help
-lake exe aftk knowledgebase create --help
-```
-
-Run tests:
+Run the full test suite:
 
 ```text
 lake test
 ```
 
+### Knowledge-base CLI
+
+Show help:
+
+```text
+lake exe aftk knowledgebase --help
+```
+
+Initialize a root:
+
+```text
+lake exe aftk knowledgebase init
+```
+
+Create a node:
+
+```text
+lake exe aftk knowledgebase create topology.open_cover --title "Open cover" --kind definition
+```
+
+Validate the root:
+
+```text
+lake exe aftk knowledgebase validate all
+```
+
+### Informal CLI
+
+Show help:
+
+```text
+lake exe aftk informal --help
+```
+
+Query tracked declarations from a module:
+
+```text
+lake exe aftk informal decls --module AFTKTest.Informal.Fixtures.Basic
+```
+
+Render a knowledge-base node directly:
+
+```text
+lake exe aftk informal present group.basic.definition \
+  --root tests/informal/knowledgebase-fixtures/basic-valid
+```
+
+### Server
+
+Start the JSON-RPC hub:
+
+```text
+lake exe aftk_server
+```
+
+The hub speaks newline-delimited JSON-RPC over stdio and spawns `aftk_file_worker` processes as needed.
+
+## Repository structure
+
+Main implementation roots:
+
+```text
+AFTK/
+  KnowledgeBase/
+  Informal/
+  Server/
+  FileWorker/
+AFTKTest/
+  KnowledgeBase/
+  Informal/
+  Server/
+docs/
+plans/
+tests/
+```
+
 ## Documentation
 
-Implementation docs:
+Implementation-facing docs live under `docs/`.
+Recommended entry points:
 
 - `docs/README.md`
+- `docs/architecture.md`
 - `docs/knowledgebase/overview.md`
-- `docs/knowledgebase/storage.md`
-- `docs/knowledgebase/cli.md`
-- `docs/knowledgebase/library.md`
-- `docs/knowledgebase/testing.md`
+- `docs/informal/overview.md`
+- `docs/server/overview.md`
 
-Architectural and planning docs:
+More detailed references:
+
+- knowledge base:
+  - `docs/knowledgebase/storage.md`
+  - `docs/knowledgebase/cli.md`
+  - `docs/knowledgebase/library.md`
+  - `docs/knowledgebase/testing.md`
+- informal:
+  - `docs/informal/library.md`
+  - `docs/informal/cli.md`
+  - `docs/informal/testing.md`
+- server:
+  - `docs/server/protocol.md`
+  - `docs/server/testing.md`
+
+Architectural and design documents remain under:
 
 - `plan.md`
-- `plans/knowledgebase.md`
-- `plans/knowledgebase/*.md`
+- `plans/knowledgebase*.md`
+- `plans/informal*.md`
+- `plans/server*.md`
+
+## Current implementation boundaries
+
+A few important things are still intentionally deferred:
+
+- knowledge-base indexing
+- knowledge-base repair tooling
+- incremental editable-document server support
+- the TypeScript toolkit layer
+- the AI autoformalization agent layer
+
+So the current rewrite is best understood as a solid Lean-core foundation for the larger architecture, not yet the complete planned stack.
