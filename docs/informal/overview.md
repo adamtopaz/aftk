@@ -8,6 +8,8 @@ Public entrypoints:
 - library: `import AFTK.Informal`
 - CLI: `lake exe aftk informal ...`
 
+For a component-by-component guide with direct code pointers, see `docs/informal/library.md`.
+
 ## What the layer does today
 
 The current implementation provides:

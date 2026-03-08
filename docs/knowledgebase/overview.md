@@ -8,6 +8,8 @@ Public entrypoints:
 - library: `import AFTK.KnowledgeBase`
 - CLI: `lake exe aftk knowledgebase ...`
 
+For a component-by-component guide with direct code pointers, see `docs/knowledgebase/library.md`.
+
 ## What is implemented
 
 The current implementation includes:

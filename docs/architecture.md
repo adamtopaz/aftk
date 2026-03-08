@@ -1,7 +1,7 @@
 # Implemented architecture
 
 This document describes the current implementation state of the rewrite worktree.
-It is intentionally implementation-facing: it focuses on what is in code now, not only on the broader architectural plan.
+It is intentionally implementation-facing: it focuses on what is in code now, which files own which responsibilities, and where the current boundaries are.
 
 ## Current status
 
@@ -18,13 +18,13 @@ The last two layers are still future work.
 
 ## Layer summary
 
-| Layer | Current status | Main entrypoints |
-| --- | --- | --- |
-| Knowledge base | Implemented | `lake exe aftk knowledgebase ...` |
-| Informal | Implemented | `lake exe aftk informal ...`, `import AFTK.Informal` |
-| Server / file worker | Implemented | `lake exe aftk_server`, `lake exe aftk_file_worker <path>` |
-| Toolkit | Not implemented | `index.ts` is only a placeholder |
-| AI agents | Not implemented | no agent layer code yet |
+| Layer | Current status | Main entrypoints | Main code roots |
+| --- | --- | --- | --- |
+| Knowledge base | Implemented | `lake exe aftk knowledgebase ...`, `import AFTK.KnowledgeBase` | `AFTK/KnowledgeBase*.lean`, `AFTK/KnowledgeBase/**` |
+| Informal | Implemented | `lake exe aftk informal ...`, `import AFTK.Informal` | `AFTK/Informal*.lean`, `AFTK/Informal/**` |
+| Server / file worker | Implemented | `lake exe aftk_server`, `lake exe aftk_file_worker <path>`, `import AFTK.Server`, `import AFTK.FileWorker` | `AFTK/Server*.lean`, `AFTK/Server/**`, `AFTK/FileWorker*.lean`, `AFTK/FileWorker/**` |
+| Toolkit | Not implemented | none yet | `index.ts` is only a placeholder; `package.json` is minimal |
+| AI agents | Not implemented | none yet | no agent-layer code yet |
 
 ## High-level dependency shape
 
@@ -43,6 +43,98 @@ More concretely:
 - `AFTK.KnowledgeBase` owns canonical natural-language storage and filesystem semantics.
 - `AFTK.Informal` resolves `informal[...]` references through the knowledge base and tracks which Lean declarations use them.
 - `AFTK.Server` and `AFTK.FileWorker` expose a long-running JSON-RPC service for Lean queries and tactic exploration, and reuse the informal layer for richer hover at `informal[...]` sites.
+
+## Layer-to-component index
+
+This section gives the shortest implementation map from layer to concrete components.
+Use it as the top-level navigation guide into the codebase.
+
+### 1. Knowledge base layer
+
+Main docs:
+
+- `docs/knowledgebase/overview.md`
+- `docs/knowledgebase/library.md`
+- `docs/knowledgebase/storage.md`
+- `docs/knowledgebase/cli.md`
+
+Main code components:
+
+| Component | Code | Role |
+| --- | --- | --- |
+| Public root | `AFTK/KnowledgeBase.lean` | Re-exports reusable knowledge-base modules |
+| Types | `AFTK/KnowledgeBase/Types.lean` | Node ids, metadata, manifest, errors, JSON instances |
+| Path layout | `AFTK/KnowledgeBase/PathLayout.lean` | Canonical root/path mapping |
+| Serialization | `AFTK/KnowledgeBase/Serialization.lean` | Strict parsing and canonical rendering |
+| Storage | `AFTK/KnowledgeBase/Storage.lean` | Real filesystem operations |
+| Validation | `AFTK/KnowledgeBase/Validation.lean` | Structured validation reports |
+| Search | `AFTK/KnowledgeBase/Search.lean` | Direct-scan search and relationship queries |
+| CLI | `AFTK/KnowledgeBase/Cli/*` | Parsing, dispatch, rendering, help |
+
+### 2. Informal layer
+
+Main docs:
+
+- `docs/informal/overview.md`
+- `docs/informal/library.md`
+- `docs/informal/cli.md`
+
+Main code components:
+
+| Component | Code | Role |
+| --- | --- | --- |
+| Public root | `AFTK/Informal.lean` | Re-exports reusable informal modules |
+| Syntax | `AFTK/Informal/Syntax.lean` | `informal[...]` syntax |
+| Placeholder | `AFTK/Informal/Placeholder.lean` | Unsound placeholder primitive |
+| Options | `AFTK/Informal/Options.lean` | `aftk.informal.root` option |
+| References | `AFTK/Informal/References.lean` | Reference validation and KB-backed resolution |
+| Tracking | `AFTK/Informal/Tracking.lean` | Persistent declaration→reference tracking |
+| Dependencies | `AFTK/Informal/Dependencies.lean` | Derived dependency views |
+| Presentation | `AFTK/Informal/Presentation.lean` | Compact/rich rendering |
+| Elaborator | `AFTK/Informal/Elaborator.lean` | Actual term elaboration behavior |
+| CLI | `AFTK/Informal/Cli/*` | Parsing, environment import, rendering |
+
+### 3. Server / file-worker layer
+
+Main docs:
+
+- `docs/server/overview.md`
+- `docs/server/library.md`
+- `docs/server/protocol.md`
+
+Main code components:
+
+| Component | Code | Role |
+| --- | --- | --- |
+| Hub public root | `AFTK/Server.lean` | Re-exports hub-side modules |
+| Worker public root | `AFTK/FileWorker.lean` | Re-exports worker-side modules |
+| Protocol | `AFTK/Server/Protocol.lean` | Shared JSON-RPC types and error helpers |
+| Transport | `AFTK/Server/Transport.lean` | StdIO transport and child-process helpers |
+| Hub | `AFTK/Server/Hub.lean` | Sessions, spawning, forwarding, invalidation |
+| Hub main | `AFTK/Server/Main.lean` | `aftk_server` executable bootstrap |
+| Worker context | `AFTK/FileWorker/Context.lean` | One-shot Lean snapshot |
+| Worker queries | `AFTK/FileWorker/Queries.lean` | Hover/goals/infoview queries |
+| Worker tactic state | `AFTK/FileWorker/TacticState.lean` | Transient goal-state nodes and tactic execution |
+| Worker informal integration | `AFTK/FileWorker/Informal.lean` | Rich `informal[...]` hover |
+| Worker handlers | `AFTK/FileWorker/Handlers.lean` | Worker RPC method table |
+| Worker main | `AFTK/FileWorker/Main.lean` | `aftk_file_worker` executable bootstrap |
+
+### 4. Toolkit layer
+
+Current implementation status:
+
+- not implemented yet
+- `index.ts` currently contains only a placeholder `console.log`
+- `package.json` exists but does not define a real toolkit surface
+
+So there is currently no meaningful implementation doc beyond this status note.
+
+### 5. AI-agent layer
+
+Current implementation status:
+
+- not implemented yet
+- there is no agent runtime, orchestration layer, or model-facing autoformalization code in this worktree today
 
 ## What is canonical, and where
 
@@ -88,6 +180,8 @@ It currently dispatches to:
 - `knowledgebase`
 - `informal`
 
+The dispatch logic lives in `Main.lean`.
+
 ### Standalone server executables
 
 The server layer is exposed separately:
@@ -100,50 +194,18 @@ lake exe aftk_file_worker <path>
 `aftk_server` is the public JSON-RPC hub.
 `aftk_file_worker` is the internal per-file worker executable spawned by the hub.
 
-## Module layout
+## Top-level code roots
 
-### Public library roots
+These are the highest-level code files to read first:
 
-- `AFTK.lean`
-- `AFTK/KnowledgeBase.lean`
-- `AFTK/Informal.lean`
-- `AFTK/Server.lean`
-- `AFTK/FileWorker.lean`
-
-### Knowledge-base modules
-
-- `AFTK/KnowledgeBase/Types.lean`
-- `AFTK/KnowledgeBase/PathLayout.lean`
-- `AFTK/KnowledgeBase/Serialization.lean`
-- `AFTK/KnowledgeBase/Storage.lean`
-- `AFTK/KnowledgeBase/Validation.lean`
-- `AFTK/KnowledgeBase/Search.lean`
-- `AFTK/KnowledgeBase/Cli/*`
-
-### Informal modules
-
-- `AFTK/Informal/Syntax.lean`
-- `AFTK/Informal/Placeholder.lean`
-- `AFTK/Informal/References.lean`
-- `AFTK/Informal/Tracking.lean`
-- `AFTK/Informal/Dependencies.lean`
-- `AFTK/Informal/Presentation.lean`
-- `AFTK/Informal/Options.lean`
-- `AFTK/Informal/Elaborator.lean`
-- `AFTK/Informal/Cli/*`
-
-### Server / file-worker modules
-
-- `AFTK/Server/Protocol.lean`
-- `AFTK/Server/Transport.lean`
-- `AFTK/Server/Hub.lean`
-- `AFTK/Server/Main.lean`
-- `AFTK/FileWorker/Context.lean`
-- `AFTK/FileWorker/Queries.lean`
-- `AFTK/FileWorker/TacticState.lean`
-- `AFTK/FileWorker/Informal.lean`
-- `AFTK/FileWorker/Handlers.lean`
-- `AFTK/FileWorker/Main.lean`
+- `AFTK.lean` — umbrella public import
+- `Main.lean` — top-level CLI dispatch to `knowledgebase` and `informal`
+- `AFTK/KnowledgeBase.lean` — knowledge-base public root
+- `AFTK/Informal.lean` — informal public root
+- `AFTK/Server.lean` — server public root
+- `AFTK/FileWorker.lean` — file-worker public root
+- `AFTK/Server/Main.lean` — hub executable main
+- `AFTK/FileWorker/Main.lean` — worker executable main
 
 ## Testing structure
 
@@ -181,4 +243,4 @@ A good short mental model of the current codebase is:
 - the **informal layer** turns knowledge-base node ids into Lean placeholders plus trackable declaration metadata,
 - and the **server layer** exposes Lean/editor-style queries over real files while enriching `informal[...]` hovers through the lower layers.
 
-If you keep those three boundaries in mind, the current implementation becomes much easier to navigate.
+If you keep those boundaries in mind, the current implementation becomes much easier to navigate.

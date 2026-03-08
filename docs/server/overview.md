@@ -8,6 +8,8 @@ Public entrypoints:
 - library roots: `import AFTK.Server`, `import AFTK.FileWorker`
 - executables: `lake exe aftk_server`, `lake exe aftk_file_worker <path>`
 
+For a component-by-component guide with direct code pointers, see `docs/server/library.md`.
+
 ## Architecture in one sentence
 
 `aftk_server` is a hub that manages one `aftk_file_worker` process per open Lean file.
@@ -205,5 +207,6 @@ These are intentional current boundaries, not accidental omissions in the docs.
 
 ## Where to read next
 
+- `docs/server/library.md`
 - `docs/server/protocol.md`
 - `docs/server/testing.md`

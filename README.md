@@ -164,6 +164,7 @@ More detailed references:
   - `docs/informal/cli.md`
   - `docs/informal/testing.md`
 - server:
+  - `docs/server/library.md`
   - `docs/server/protocol.md`
   - `docs/server/testing.md`
 
