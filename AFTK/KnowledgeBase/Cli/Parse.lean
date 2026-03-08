@@ -40,9 +40,6 @@ private partial def parseGlobalOptionsAux (opts : GlobalOptions) : List String â
       let format â† parseOutputFormat format
       parseGlobalOptionsAux { opts with format := format } rest
   | "--format" :: [] => usageError "Missing value for --format"
-  | "--quiet" :: rest => parseGlobalOptionsAux { opts with quiet := true } rest
-  | "--verbose" :: rest => parseGlobalOptionsAux { opts with verbose := true } rest
-  | "--no-color" :: rest => parseGlobalOptionsAux { opts with noColor := true } rest
   | arg :: rest =>
       if arg.startsWith "--" then
         usageError s!"Unknown global option '{arg}'"

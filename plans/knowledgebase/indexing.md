@@ -7,17 +7,17 @@ This document refines the overall knowledge base plan in `plans/knowledgebase.md
 
 ## Component implementation status
 
-- Overall status: Not implemented beyond placeholder scaffolding
-- Implemented in code: Placeholder types only
-- Last updated basis: current placeholder `IndexStatus` type; no operational indexing workflow yet
+- Overall status: Not implemented
+- Implemented in code: No
+- Last updated basis: indexing remains a design-only deferred area; no dedicated indexing module is currently landed
 
 ## Purpose
 
 This document defines the indexing model for the knowledge base layer.
 It explains what indexes are for, what they may contain, where they live, how they relate to canonical storage, how they are rebuilt, and how they interact with search, validation, and repair.
 
-Minimal scaffolding types now exist in code.
-This file still primarily serves as the design reference for the deferred operational indexing implementation.
+No dedicated indexing code is currently landed.
+This file serves as the design reference for the deferred operational indexing implementation.
 
 ## Design goals
 

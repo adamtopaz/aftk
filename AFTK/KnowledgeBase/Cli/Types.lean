@@ -26,9 +26,6 @@ inductive ShowSelection
 structure GlobalOptions where
   root? : Option System.FilePath := none
   format : OutputFormat := .text
-  quiet : Bool := false
-  verbose : Bool := false
-  noColor : Bool := false
   deriving Repr, DecidableEq, Inhabited
 
 structure ListOptions where

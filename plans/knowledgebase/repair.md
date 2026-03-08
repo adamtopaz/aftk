@@ -7,9 +7,9 @@ This document refines the overall knowledge base plan in `plans/knowledgebase.md
 
 ## Component implementation status
 
-- Overall status: Not implemented beyond placeholder scaffolding
-- Implemented in code: Placeholder types only
-- Last updated basis: current placeholder `RepairAction` and `RepairPlan` types; no operational repair workflow yet
+- Overall status: Not implemented
+- Implemented in code: No
+- Last updated basis: repair remains a design-only deferred area; no dedicated repair module is currently landed
 
 ## Purpose
 
@@ -18,8 +18,8 @@ It describes how the system should respond when validation finds malformed stora
 
 The goal is to make repair behavior explicit before implementation begins, especially where automatic mutation could otherwise become unsafe or ambiguous.
 
-Minimal scaffolding types now exist in code.
-This file still primarily serves as the design reference for the deferred operational repair implementation.
+No dedicated repair code is currently landed.
+This file serves as the design reference for the deferred operational repair implementation.
 
 ## Design goals
 

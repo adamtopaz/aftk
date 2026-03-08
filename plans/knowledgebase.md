@@ -10,7 +10,7 @@ Detailed subdesigns should live in component plan files under `plans/knowledgeba
 
 - Overall status: Partially implemented, with the core v1 knowledgebase layer landed in code
 - Fully implemented: No
-- Last updated basis: implemented types, storage, serialization, CLI, validation, search, relationship traversal, `lake test` driver, and initial implementation docs; repair and indexing remain deferred beyond scaffolding
+- Last updated basis: implemented types, storage, serialization, CLI, validation, search, relationship traversal, `lake test` driver, and initial implementation docs; repair and indexing remain deferred with no dedicated code currently landed
 
 This section is the single place for tracking whether the knowledge base layer plan has been fully implemented.
 It should be updated whenever the implementation meaningfully changes.
@@ -680,7 +680,7 @@ It should be updated as design decisions are made and code lands.
 - The public CLI surface is available at `lake exe aftk knowledgebase ...`
 - Tests now run through `lake test`
 - Implementation-facing docs now live under `docs/knowledgebase/`
-- Repair and indexing remain intentionally deferred beyond placeholder module scaffolding
+- Repair and indexing remain intentionally deferred, with no dedicated code currently landed for them
 - A larger malformed-root regression-fixture suite is still pending
 - This checklist is intentionally high-level and can be refined further as the implementation grows
 

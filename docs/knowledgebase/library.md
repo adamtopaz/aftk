@@ -17,8 +17,6 @@ AFTK/KnowledgeBase/Serialization.lean
 AFTK/KnowledgeBase/Storage.lean
 AFTK/KnowledgeBase/Validation.lean
 AFTK/KnowledgeBase/Search.lean
-AFTK/KnowledgeBase/Repair.lean
-AFTK/KnowledgeBase/Indexing.lean
 AFTK/KnowledgeBase/Cli/Types.lean
 AFTK/KnowledgeBase/Cli/Parse.lean
 AFTK/KnowledgeBase/Cli/Render.lean
@@ -148,7 +146,7 @@ The current implementation is intended to be consumed with these assumptions:
 - higher layers should not bypass validation by inventing parallel storage conventions
 - direct scans are semantically authoritative even if indexing is added later
 
-## Deferred APIs
+## Deferred areas
 
-`Repair` and `Indexing` currently contain scaffolding types only.
-They are present to preserve the planned module shape, but operational repair and indexing workflows are still deferred.
+Repair and indexing workflows are still deferred.
+No dedicated repair or indexing modules are currently shipped in the implemented library surface.

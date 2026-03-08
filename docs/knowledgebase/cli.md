@@ -12,11 +12,6 @@ Supported global options:
 
 - `--root <path>`
 - `--format text|json`
-- `--quiet`
-- `--verbose`
-- `--no-color`
-
-`--quiet`, `--verbose`, and `--no-color` are currently parsed and reserved for CLI behavior, but the text renderer is still intentionally simple.
 
 ## Root commands
 
