@@ -10,7 +10,7 @@ Detailed subdesigns should live in component plan files under `plans/toolkit/`.
 
 - Overall status: Not implemented
 - Fully implemented: No
-- Last updated basis: research against the main-worktree toolkit implementation in `/home/dev/aftk/lambda/src/aftk-tools.ts` and `/home/dev/aftk/lambda/src/aftk-extension.ts`, the main-worktree docs in `/home/dev/aftk/docs/aftk/README.md`, `/home/dev/aftk/README.md`, and `/home/dev/aftk/docs/future/autoformalization-tools.md`, plus the current rewrite worktree’s implemented lower layers and planning/docs suite
+- Last updated basis: research against the main-worktree toolkit implementation in `/home/dev/aftk/lambda/src/aftk-tools.ts` and `/home/dev/aftk/lambda/src/aftk-extension.ts`, the main-worktree docs in `/home/dev/aftk/docs/aftk/README.md`, `/home/dev/aftk/README.md`, `/home/dev/aftk/docs/agent-playbook.md`, and `/home/dev/aftk/docs/future/autoformalization-tools.md`, the rewrite overview in `plan.md`, the toolkit component plans under `plans/toolkit/*.md`, and the current rewrite implementation in `AFTK/Server/*`, `AFTK/KnowledgeBase/*`, `AFTK/Informal/*`, `lakefile.toml`, `package.json`, and `tsconfig.json`
 
 This section is the single place for tracking whether the toolkit-layer plan has been fully implemented.
 It should be updated whenever the implementation meaningfully changes.
@@ -365,37 +365,32 @@ The toolkit layer’s main technical job is to unify three heterogeneous lower-l
 
 The point of the toolkit is not to erase those differences entirely, but to make them manageable and explicit for higher-level code.
 
-## Design docs still needed under `plans/toolkit/`
+## Toolkit design-doc suite under `plans/toolkit/`
 
-This layer does not yet have its component design-doc suite.
-Before implementation proceeds far, we should write the following design docs under `plans/toolkit/`.
-This is the dedicated checklist of the toolkit-specific design documents that are still needed, together with the purpose of each one.
+The toolkit component-plan suite now exists.
+This overview file should therefore focus on cross-component priorities, sequencing, and phase gating, while the detailed behavior of each subsystem is governed by the component plans below.
 
-| Design doc | Purpose |
-| --- | --- |
-| `plans/toolkit/layout.md` | Define the TypeScript package/module layout, public exports, dependency boundaries, likely `src/toolkit/...` structure, top-level `index.ts` policy, and the split between reusable toolkit code and host adapters. |
-| `plans/toolkit/runtime.md` | Define runtime assumptions and shared operational utilities: project-root discovery, executable resolution, child-process helpers, timeout/cancellation policy, lazy-vs-eager hub startup, and shutdown/termination rules. |
-| `plans/toolkit/server-client.md` | Define the TypeScript mirror of the rewrite server protocol, including JSON-RPC client design, typed request/response helpers, error mapping, request tracking, and compatibility expectations with `docs/server/protocol.md`. |
-| `plans/toolkit/lean-tools.md` | Define the Lean-facing tool family built on the server client: parameter schemas, `aftk_*` naming compatibility, path normalization rules, node-id handling, result formatting, and which main-worktree behaviors should be preserved or improved. |
-| `plans/toolkit/knowledgebase-tools.md` | Define the selected knowledge-base tool surface for the rewrite: which `lake exe aftk knowledgebase ...` commands should receive TypeScript wrappers first, how JSON parsing should work, mutation-vs-query boundaries, naming conventions, and CLI exit-code/error mapping. |
-| `plans/toolkit/informal-tools.md` | Define the selected informal tool surface for the rewrite: wrappers around `lake exe aftk informal ...`, module/root option handling, presentation/dependency query coverage, naming conventions, and normalization of the informal CLI’s command-shaped JSON into toolkit-friendly results. |
-| `plans/toolkit/pi-integration.md` | Define how the reusable toolkit should be mounted into `pi` and custom `@mariozechner/pi-coding-agent` SDK sessions, including thin extension wrappers, session-shutdown hooks, optional stop commands, and the boundary between generic toolkit code and `pi`-specific code. |
-| `plans/toolkit/output.md` | Define the cross-tool result contract: concise text, structured details, truncation behavior, error envelopes, stderr handling, and normalization of differences between server-backed and CLI-backed tool results. |
-| `plans/toolkit/testing.md` | Define the toolkit-layer testing strategy: unit coverage for pure helpers, subprocess tests for hub/CLI integration, temporary-fixture policy for mutation commands, and how toolkit tests should fit into repository workflows. |
+| Design doc | Primary implementation responsibility | Phases it primarily governs |
+| --- | --- | --- |
+| `plans/toolkit/layout.md` | Source-tree shape, curated exports, module boundaries, `src/` migration, and the split between toolkit core and host adapters. | 0, 6, 7 |
+| `plans/toolkit/runtime.md` | Runtime context construction, project-root discovery, executable resolution, subprocess helpers, timeout/cancellation policy, and shutdown/termination rules. | 1, 2, 4, 5 |
+| `plans/toolkit/output.md` | Shared host-facing result envelope, normalized error/warning model, truncation policy, diagnostics policy, and shared render/truncation helpers. | 1, 3, 4, 5, 6 |
+| `plans/toolkit/server-client.md` | TypeScript mirror of `docs/server/protocol.md`, JSON-RPC client design, request tracking, result guards, protocol-failure handling, and hub lifecycle rules. | 2, 3 |
+| `plans/toolkit/lean-tools.md` | Exact Lean-facing `aftk_*` tool surface, parameter schemas, path normalization, server-error presentation, and dedicated Lean-tools factory. | 3 |
+| `plans/toolkit/knowledgebase-tools.md` | Selected `knowledgebase_*` v1 surface, CLI bridge behavior, JSON-envelope parsing, validation-report handling, naming policy, and knowledge-base-family renderers. | 4 |
+| `plans/toolkit/informal-tools.md` | Full current `informal_*` v1 surface, command-shaped JSON parsing, `modules` / `root` handling, dependency/presentation semantics, and informal-family renderers. | 5 |
+| `plans/toolkit/pi-integration.md` | Thin pi mounting strategy, extension-vs-SDK integration modes, stop-command/session-shutdown policy, and `src/hosts/pi/*` responsibilities. | 6 |
+| `plans/toolkit/testing.md` | Toolkit-native test tree, support helpers, script workflow, synthetic process fixtures, and real subprocess coverage expectations. | 0, 1, 2, 3, 4, 5, 6, 7 |
 
-Recommended writing order:
+Recommended implementation-reference order:
 
-1. `layout.md`
-2. `runtime.md`
-3. `server-client.md`
-4. `output.md`
-5. `lean-tools.md`
-6. `knowledgebase-tools.md`
-7. `informal-tools.md`
-8. `pi-integration.md`
-9. `testing.md`
+1. `layout.md`, `runtime.md`, and `output.md` as the shared foundation
+2. `server-client.md` as the first lower-layer integration boundary
+3. `lean-tools.md` for the main-worktree compatibility surface
+4. `knowledgebase-tools.md` and `informal-tools.md` for the rewrite-specific expansion beyond the old server-only toolkit
+5. `pi-integration.md` and `testing.md` as the mounting and hardening layers
 
-Likely future component plans include:
+Likely future component plans still include:
 
 - `plans/toolkit/composite-tools.md` if we later add cross-layer compound helpers that combine multiple lower-layer calls but still fall short of full AI orchestration
 - a structured-results addendum only if the server protocol grows significantly beyond the current text-heavy goal/hover surface
@@ -480,292 +475,546 @@ The following overview-level design points are now considered settled enough to 
 - The toolkit should assume a Node-compatible runtime model unless later component work proves a different assumption is necessary.
 - The current Bun-style placeholder package setup in this worktree should be treated as scaffolding to replace, not as a settled design signal.
 
-## Remaining design work before implementation
+## Remaining coordination work before implementation starts in earnest
 
-Unlike the first three layers, this layer does not yet have any component design docs in the rewrite worktree.
-So the next step is to turn the research summary above into the component docs listed under `plans/toolkit/`.
+The component-plan suite now answers most of the broad design questions.
+The remaining plan-level work is narrower and mostly about keeping the first implementation disciplined.
+The main coordination questions still worth resolving explicitly during implementation are:
 
-The biggest questions those component docs still need to settle are:
+- the exact public TypeScript names for the package’s top-level factories, option types, and cleanup handles
+- whether toolkit families expose a host-agnostic internal tool-definition type first or directly expose pi-compatible `ToolDefinition` values from the start
+- the exact package-script / loader combination for running the Node-native test suite (for example `tsx`-style execution)
+- the exact aggregate-toolset composition surface once Lean, knowledge-base, and informal families all exist together
+- whether any narrowly scoped composite helpers belong in the initial implementation or should wait for a later `composite-tools.md`
 
-- the concrete TypeScript module layout and package/export policy
-- the exact runtime assumptions and dependency set
-- the exact boundary between shared runtime helpers, server client code, CLI bridge code, and `pi` adapters
-- which knowledge-base commands should receive first-class toolkit tools in v1
-- which informal commands should receive first-class toolkit tools in v1
-- naming policy for new non-Lean tool families so they do not collide with the existing server-compatible `aftk_*` names
-- the exact normalized output contract across server-backed and CLI-backed tools
-- the toolkit-layer testing workflow and its relation to the existing Lean-focused `lake test` flow
-
-The architecture itself is already clear enough to begin component design.
-The remaining work is design refinement, not broad architectural discovery.
+None of these questions block coding the baseline.
+They are implementation-shaping questions, not architectural uncertainty about the layer’s role.
 
 ## Detailed phased implementation plan
 
-Implementation should proceed bottom-up from shared runtime/process code to lower-layer clients and only then to host-specific adapter surfaces.
-The key sequencing rules should be:
+Implementation should proceed bottom-up from shared runtime/process code to lower-layer clients, then to tool families, and only after that to host-specific adapters.
+The main-worktree toolkit is still the best behavioral reference for the Lean-facing server surface, but the rewrite must broaden beyond that server-only scope because the first three layers now already expose more than one public boundary.
 
-- build reusable library pieces before registering tools into `pi`
-- preserve lower-layer contracts instead of smearing them together too early
-- land the Lean-facing server-compatible surface first, because it is the strongest compatibility target from the main worktree
-- then add selected knowledge-base and informal tool families on top of the already-implemented rewrite CLIs
-- test each process boundary with real subprocesses before treating it as stable
-- if implementation experience forces a real design change, update the relevant component doc before continuing
+### Phase dependency and landing overview
 
-### Phase 0 — replace the placeholder TypeScript scaffold with a real toolkit skeleton
+| Phase | Main outcome | Depends on | Should land before |
+| --- | --- | --- | --- |
+| 0 | Real TypeScript package skeleton replaces Bun placeholder scaffold | current repository only | 1–7 |
+| 1 | Shared runtime + output foundation | 0 | 2–7 |
+| 2 | Typed managed `aftk_server` client | 1 | 3, 6, 7 |
+| 3 | Lean-facing `aftk_*` tool family | 2 | 6, 7 |
+| 4 | Initial `knowledgebase_*` tool family | 1 | 6, 7 |
+| 5 | Initial `informal_*` tool family | 1, 4 helpful but not strictly required | 6, 7 |
+| 6 | Aggregate toolkit composition + pi adapters | 3, 4, 5 | 7 |
+| 7 | Hardening, docs, and AI-layer handoff readiness | 0–6 | final baseline |
 
-Purpose:
+Recommended landing discipline:
 
-- create the structural homes this layer will use
-- stop treating `index.ts` and the current placeholder package config as meaningful architecture
-- establish the separation between reusable toolkit code and host-specific adapters
+- each phase should leave the repository buildable and typecheckable
+- each new lower-layer boundary should receive at least minimal direct tests in the same phase that introduces it
+- later phases may refine earlier helper names, but should not silently violate the component-plan contracts without updating those docs first
 
-Primary component docs:
+### Phase 0 — replace the placeholder scaffold with a real toolkit package skeleton
+
+Objective:
+
+- remove the accidental Bun-playground shape from the rewrite worktree
+- create the filesystem and package structure that all later phases depend on
+- make the library/core-vs-host split visible before behavior accumulates
+
+Primary docs:
 
 - `plans/toolkit/layout.md`
 - `plans/toolkit/testing.md`
+- `plans/toolkit/pi-integration.md`
 
-Concrete deliverables:
+Implementation work items:
 
-- replace the current placeholder `index.ts` with a thin public export layer or other explicitly settled equivalent
-- update `package.json` from the current minimal placeholder toward the dependencies actually needed for the toolkit
-- update `tsconfig.json` from the current Bun scaffold toward the settled toolkit runtime assumptions
-- add the initial directory/module skeleton for the toolkit, likely under something like:
-  - `src/toolkit/runtime/`
-  - `src/toolkit/server/`
-  - `src/toolkit/tools/`
-  - `src/toolkit/pi/`
-- add a place for toolkit tests under something like `tests/toolkit/` or a similarly explicit TypeScript test tree
-- keep the package buildable/typecheckable with skeletal modules before significant behavior lands
+1. **Source-tree migration**
+   - create `src/index.ts` as the curated library root
+   - create empty or skeletal module groups under:
+     - `src/toolkit/runtime/`
+     - `src/toolkit/output/`
+     - `src/toolkit/server/`
+     - `src/toolkit/knowledgebase/`
+     - `src/toolkit/informal/`
+     - `src/toolkit/tools/`
+     - `src/hosts/pi/`
+   - create `tests/toolkit/` plus the subdirectories settled in `plans/toolkit/testing.md`
+
+2. **Package metadata migration**
+   - replace the current Bun-oriented `package.json` scaffold with a Node-compatible ESM package shape
+   - add explicit exports for at least:
+     - `.` -> `src/index.ts`
+     - `./pi` -> `src/hosts/pi/index.ts`
+     - `./pi-extension` -> `src/hosts/pi/extension.ts`
+   - add `pi.extensions` metadata pointing at the thin extension entrypoint
+   - align dependencies with the actual toolkit plan rather than the current placeholder package
+
+3. **TypeScript config migration**
+   - replace Bun-oriented compiler defaults with Node-compatible settings that match the runtime plan
+   - include both `src/**/*.ts` and `tests/toolkit/**/*.ts`
+   - ensure the package typechecks with only skeleton modules in place
+
+4. **Root-file cleanup**
+   - remove the root placeholder `index.ts` from being the implementation home
+   - if a temporary compatibility shim is briefly needed, keep it thin and explicitly transitional
+
+5. **Initial workflow wiring**
+   - add at least a `check` script and placeholder toolkit test scripts
+   - ensure a contributor can discover the intended package entrypoints immediately from the repository tree
+
+Phase-0 acceptance tests / checks:
+
+- `tsc --noEmit` (or equivalent chosen typecheck command) succeeds on the new tree
+- importing the package root and pi subpaths is structurally possible
+- no new implementation logic is hiding in root-level placeholder files
 
 Exit criteria:
 
-- the worktree has a real toolkit module skeleton rather than a placeholder script
-- the package/typecheck setup reflects deliberate runtime assumptions
-- there is a dedicated place for toolkit tests and host adapters
+- the repository clearly contains a real toolkit package layout
+- `package.json` and `tsconfig.json` reflect deliberate runtime assumptions
+- host adapters and tests have explicit homes, even if behavior remains skeletal
 
-### Phase 1 — implement shared runtime and process-management foundations
+### Phase 1 — implement the shared runtime and output foundations
 
-Purpose:
+Objective:
 
-- centralize the operational helpers that every tool family will need
-- avoid duplicating process, timeout, and output plumbing across server and CLI integrations
+- establish the shared machinery that every lower-layer integration and tool family will reuse
+- make runtime/process behavior and result normalization explicit before any one family invents its own conventions
 
-Primary component docs:
+Primary docs:
 
 - `plans/toolkit/runtime.md`
 - `plans/toolkit/output.md`
+- `plans/toolkit/testing.md`
 
-Concrete deliverables:
+Implementation work items:
 
-- implement project-root discovery and override handling
-- implement executable resolution policy for:
-  - `lake exe aftk_server`
-  - `lake exe aftk knowledgebase ...`
-  - `lake exe aftk informal ...`
-- implement shared child-process helpers for:
-  - long-running managed processes
-  - one-shot CLI commands
-- implement timeout and cancellation helpers using standard TypeScript/Node primitives
-- implement shared stderr capture policy and bounded stdout/stderr rendering
-- implement common error types for runtime failures, lower-layer failures, and cancellation/timeout cases
-- implement shared truncation/result-formatting helpers so later tool families do not invent incompatible local conventions
+1. **Runtime context and option resolution**
+   - implement `src/toolkit/runtime/options.ts`
+   - normalize `cwd`, explicit `projectRoot`, environment overrides, timeout policy, and capture policy into one resolved runtime context
+
+2. **Project-root discovery**
+   - implement `src/toolkit/runtime/project-root.ts`
+   - follow the settled upward search for `lakefile.toml` / `lakefile.lean`
+   - fail clearly if no project root is found instead of inheriting the main-worktree fallback to arbitrary cwd
+
+3. **Executable resolution**
+   - implement `src/toolkit/runtime/executables.ts`
+   - represent explicit command specs for:
+     - `lake exe aftk_server`
+     - `lake exe aftk knowledgebase`
+     - `lake exe aftk informal`
+   - support per-spec overrides for tests and advanced integrations
+
+4. **Runtime error model**
+   - implement `src/toolkit/runtime/errors.ts`
+   - cover configuration, spawn/start, process-result, timeout, cancellation, and lifecycle failures
+
+5. **Subprocess helpers**
+   - implement `src/toolkit/runtime/subprocess.ts`
+   - provide both:
+     - a managed-process helper for the long-running hub
+     - a one-shot command helper for CLI families
+   - implement bounded capture, abort handling, and conservative `SIGTERM`/`SIGKILL` escalation
+
+6. **Shared CLI helper**
+   - implement `src/toolkit/runtime/cli.ts`
+   - provide a structured completed-command value that later client layers can interpret without re-running subprocess logic
+
+7. **Output foundation**
+   - implement:
+     - `src/toolkit/output/result.ts`
+     - `src/toolkit/output/truncate.ts`
+     - `src/toolkit/output/render.ts`
+   - define the normalized success/failure envelope
+   - define normalized error kinds/categories and warning/diagnostic/truncation metadata
+   - add shared truncation helpers and small shared text-building helpers
+
+Phase-1 acceptance tests / checks:
+
+- unit tests cover project-root discovery, command-spec resolution, timeout/cancellation, and normalized result builders
+- synthetic process tests cover malformed output, stderr flood, timeout, and stubborn-child termination
+- at least one minimal real smoke test proves the runtime helpers can invoke a real `lake exe ...` command successfully
 
 Exit criteria:
 
-- the toolkit has a reusable operational foundation for both hub and CLI integrations
-- timeout/cancellation/shutdown policy is explicit in code
-- output/error shaping has one shared home rather than being scattered across tool families
+- runtime/process behavior is centralized instead of duplicated
+- one shared output contract exists for all later tool families
+- no runtime module depends on `pi` or on any family-specific semantics
 
 ### Phase 2 — implement the typed rewrite server client
 
-Purpose:
+Objective:
 
-- recreate the most valuable main-worktree toolkit capability against the rewrite server
-- provide the reusable Lean-facing integration layer that later tool definitions can simply consume
+- rebuild the strongest main-worktree capability first: a reusable managed client for `aftk_server`
+- put JSON-RPC lifecycle and protocol validation below any tool-definition layer
 
-Primary component docs:
+Primary docs:
 
 - `plans/toolkit/server-client.md`
 - `plans/toolkit/runtime.md`
 - `plans/toolkit/output.md`
+- `docs/server/protocol.md`
 
-Concrete deliverables:
+Implementation work items:
 
-- define TypeScript-side protocol types matching `docs/server/protocol.md`
-- implement newline-delimited JSON-RPC request/response handling over stdio
-- implement lazy managed startup of `lake exe aftk_server`
-- implement pending-request tracking keyed by request id
-- preserve typed error information, especially server-family error codes such as:
-  - `-32010`
-  - `-32011`
-  - `-32012`
-  - `-32013`
-- implement graceful shutdown plus forced termination fallback
-- expose a reusable client API that host adapters and tool factories can use directly
+1. **Protocol mirror**
+   - implement `src/toolkit/server/protocol.ts`
+   - define the method map for:
+     - `open`
+     - `close`
+     - `load_node`
+     - `get_hover`
+     - `get_plain_goal`
+     - `get_plain_term_goal`
+     - `get_infoview`
+     - `get_goals`
+     - `run_tactic`
+     - `run_tactic_steps`
+     - `shutdown`
+   - expose typed known server error codes corresponding to the current Lean definitions:
+     - `-32001`
+     - `-32010`
+     - `-32011`
+     - `-32012`
+     - `-32013`
+   - add lightweight method-aware result guards
 
-Recommended implementation note:
+2. **Managed client implementation**
+   - implement `src/toolkit/server/client.ts`
+   - build on the managed-process helper from Phase 1
+   - implement newline-delimited JSON-RPC parsing, startup deduplication, pending-request tracking, and request timeout handling
+   - treat malformed completed non-empty stdout lines as protocol failure rather than ignoring them
 
-The main-worktree `AftkHubClient` is a strong reference point for lifecycle behavior, but the rewrite should factor that logic into clearer modules rather than reproducing one large file verbatim.
+3. **Lifecycle surface**
+   - expose:
+     - `start()`
+     - `isRunning()`
+     - typed `request(...)`
+     - named convenience methods
+     - semantic `shutdown()`
+     - lifecycle `stop(graceful?)`
+   - preserve the useful main-worktree behavior that abort cancels local waiting but does not promise remote server-side cancellation
+
+4. **Diagnostics behavior**
+   - preserve recent stderr for protocol/runtime failures through the shared diagnostics model rather than blindly mirroring it to parent stderr
+
+Phase-2 acceptance tests / checks:
+
+- synthetic tests cover request correlation, timeout vs cancellation, malformed stdout, unknown ids, JSON-RPC error envelopes, and `shutdown()` vs `stop(...)`
+- real integration tests exercise representative commands against `lake exe aftk_server`
+- no tool definitions are needed yet for the client to be useful and testable
 
 Exit criteria:
 
-- the rewrite toolkit can talk to the rewrite `aftk_server` reliably from TypeScript
-- the managed hub lifecycle is explicit and testable
-- typed request/response and error behavior exist below any tool-definition layer
+- the toolkit can talk to the rewrite hub reliably from TypeScript
+- the server client has explicit protocol typing and validation
+- lifecycle and error behavior are stable enough for the Lean tool family to consume directly
 
-### Phase 3 — implement the Lean-facing tool family on top of the server client
+### Phase 3 — implement the Lean-facing `aftk_*` tool family
 
-Purpose:
+Objective:
 
-- reach practical parity with the main-worktree agent-facing Lean tools
-- preserve the already valuable `aftk_*` surface while targeting the rewrite server implementation
+- restore the practical, already-proven Lean-facing surface that agents in the main worktree relied on
+- keep the public `aftk_*` namespace tied specifically to the server-backed Lean family
 
-Primary component docs:
+Primary docs:
 
 - `plans/toolkit/lean-tools.md`
 - `plans/toolkit/server-client.md`
 - `plans/toolkit/output.md`
 - `plans/toolkit/pi-integration.md`
 
-Concrete deliverables:
+Implementation work items:
 
-- implement tool definitions for the Lean-facing server family:
-  - `aftk_open`
-  - `aftk_close`
-  - `aftk_load_node`
-  - `aftk_get_hover`
-  - `aftk_get_plain_goal`
-  - `aftk_get_plain_term_goal`
-  - `aftk_get_infoview`
-  - `aftk_get_goals`
-  - `aftk_run_tactic`
-  - `aftk_run_tactic_steps`
-  - `aftk_shutdown`
-- define parameter schemas and result-formatting policy for each tool
-- preserve path normalization rules that are still useful in `pi`-style usage
-- preserve the distinction between concise text content and structured details
-- expose a shared `create...Tools(...)`-style factory for this Lean tool family, even before the `pi` wrapper is finalized
+1. **Dedicated Lean tools factory**
+   - implement `src/toolkit/tools/lean.ts`
+   - expose a dedicated family factory that returns the full current Lean-facing surface:
+     - `aftk_open`
+     - `aftk_close`
+     - `aftk_load_node`
+     - `aftk_get_hover`
+     - `aftk_get_plain_goal`
+     - `aftk_get_plain_term_goal`
+     - `aftk_get_infoview`
+     - `aftk_get_goals`
+     - `aftk_run_tactic`
+     - `aftk_run_tactic_steps`
+     - `aftk_shutdown`
+
+2. **Parameter schemas and normalization**
+   - implement 1-based location validation
+   - keep leading-`@` stripping in the tool layer, not in the server client or runtime layer
+   - preserve node ids as opaque server-owned values
+
+3. **Shared output usage**
+   - map all success/failure cases into the shared result envelope
+   - preserve raw server result payloads under `details.result`
+   - attach `family: "lean"` and backend metadata `{ kind: "server", method }`
+
+4. **Error presentation**
+   - render known server codes more actionably while preserving exact code/data in structured details
+   - keep no-auto-open semantics for file-scoped tools
+   - keep `aftk_shutdown` as semantic shutdown plus owned-client cleanup
+
+5. **Compatibility cross-check against the main worktree**
+   - confirm the new family preserves the essential behavioral shape of `createAFTKTools(...)` for the Lean-facing surface
+   - improve structure and validation without drifting on public tool names or basic expectations
+
+Phase-3 acceptance tests / checks:
+
+- fast tests assert the exact exported tool name set and parameter behavior
+- representative real integration tests hit open/query/node/tactic/shutdown flows on real Lean fixtures
+- no Lean tool requires the pi adapter in order to exist or be tested
 
 Exit criteria:
 
-- the rewrite has a practical Lean-facing TypeScript tool surface again
+- the rewrite once again has a usable Lean-facing TypeScript tool family
 - the most important migration target from the main worktree is covered
-- the Lean-facing toolkit no longer depends on host-specific wrapper code for its core behavior
+- the family is reusable outside `pi`
 
-### Phase 4 — add selected knowledge-base toolkit tools
+### Phase 4 — implement the initial knowledge-base tool family
 
-Purpose:
+Objective:
 
-- make the rewrite toolkit aware of the actual knowledge-base layer that now exists below it
-- expose high-value knowledge-base capabilities through TypeScript without waiting for AI-layer orchestration work
+- expose the already-implemented rewrite knowledge-base CLI through a disciplined TypeScript bridge
+- start with the read/query/report commands that are immediately useful and already semantically stable
 
-Primary component docs:
+Primary docs:
 
 - `plans/toolkit/knowledgebase-tools.md`
 - `plans/toolkit/runtime.md`
 - `plans/toolkit/output.md`
+- `docs/knowledgebase/cli.md`
 
-Concrete deliverables:
+Implementation work items:
 
-- implement a reusable CLI bridge for `lake exe aftk knowledgebase ...`
-- parse successful JSON output and map exit codes/failures into toolkit error/result conventions
-- start with selected high-value commands, likely from the read/query/discovery family, such as:
-  - status/probe operations
-  - node listing/showing
-  - search/relationship queries
-  - validation/reporting where that materially helps agent workflows
-- consider mutation wrappers only after the read/query bridge and output/error model are stable
-- make naming conventions explicit so knowledge-base tool names do not conflict with the Lean-facing `aftk_*` server family
+1. **Knowledge-base CLI client**
+   - implement `src/toolkit/knowledgebase/client.ts`
+   - build command constructors for the selected v1 read/query/report surface
+   - always invoke the CLI in JSON mode by default
+   - parse the envelope fields `command`, `root`, `ok`, `result` / `error`, and `warnings`
+   - preserve exact dot-separated command identifiers such as `search.text`, `validate.storage`, and `relationships.related`
+
+2. **Selected v1 tool surface**
+   - implement `src/toolkit/tools/knowledgebase.ts`
+   - expose exactly the currently chosen initial tools:
+     - `knowledgebase_status`
+     - `knowledgebase_list`
+     - `knowledgebase_show`
+     - `knowledgebase_search_text`
+     - `knowledgebase_search_tag`
+     - `knowledgebase_relationships`
+     - `knowledgebase_validate_storage`
+     - `knowledgebase_validate_node`
+     - `knowledgebase_validate_metadata`
+     - `knowledgebase_validate_all`
+
+3. **Root and exit-code semantics**
+   - expose optional `root` on every knowledge-base tool
+   - preserve the lower-layer fact that omitted/relative roots resolve against child-process `cwd`
+   - implement the special validation rule: exit code `4` plus a valid report remains a semantic success
+
+4. **Normalization and rendering**
+   - map knowledge-base results into `family: "knowledgebase"`
+   - preserve warnings structurally
+   - render concise text from structured result data instead of relaying lower-layer text output
+
+5. **Explicit deferrals**
+   - do not yet implement mutation wrappers for:
+     - `init`
+     - `create`
+     - `rename`
+     - `delete`
+     - `body set`
+     - `metadata replace`
+   - do not quietly add toolkit-only query semantics beyond the lower-layer CLI
+
+Phase-4 acceptance tests / checks:
+
+- fast tests cover argv construction, envelope parsing, exact raw `command` preservation, and validation-report success-with-exit-4 handling
+- real integration tests use checked-in knowledge-base fixtures and copied invalid roots where mutation is needed for testing
+- results strongly assert normalized backend metadata, preserved exit codes, warnings, and actionable text
 
 Exit criteria:
 
-- the toolkit exposes an initial practical knowledge-base tool family
-- those tools are clearly built on the existing CLI rather than on hidden file parsing
-- JSON output and exit-code behavior are normalized into stable TypeScript-facing results
+- the toolkit exposes a stable, query-first `knowledgebase_*` family
+- the bridge is clearly CLI-based rather than file-parsing-based
+- the validation/reporting behavior remains faithful to the lower layer
 
-### Phase 5 — add selected informal toolkit tools
+### Phase 5 — implement the initial informal tool family
 
-Purpose:
+Objective:
 
-- expose the rewrite’s direct informal-layer query/presentation functionality at the toolkit level
-- complement the server’s Lean-centric informal hover integration with explicit informal-layer query tools
+- expose the rewrite informal layer directly, rather than forcing all informal-facing usage through hover-like server surfaces
+- preserve the actual split between environment-backed tracking/dependency queries and direct knowledge-base-backed presentation
 
-Primary component docs:
+Primary docs:
 
 - `plans/toolkit/informal-tools.md`
 - `plans/toolkit/runtime.md`
 - `plans/toolkit/output.md`
+- `docs/informal/cli.md`
 
-Concrete deliverables:
+Implementation work items:
 
-- implement a reusable CLI bridge for `lake exe aftk informal ...`
-- normalize its command-shaped JSON outputs into toolkit-facing result shapes
-- start with selected high-value commands, likely including:
-  - status/summary queries
-  - declaration/reference queries
-  - dependency queries
-  - direct presentation queries
-- make module-loading and `--root` handling explicit in the toolkit-facing API
-- preserve the informal layer’s meaning rather than turning it into an ad hoc agent-only abstraction
+1. **Informal CLI client**
+   - implement `src/toolkit/informal/client.ts`
+   - build command constructors for the full current rewrite informal CLI surface
+   - parse command-shaped success JSON centered on `data`, with command-specific fields such as `modules`, `target`, `mode`, and `bodyMode`
+   - parse structured failure JSON with `ok: false`, `error`, `command?`, and `format`
+
+2. **Selected v1 tool surface**
+   - implement `src/toolkit/tools/informal.ts`
+   - expose the full current informal surface:
+     - `informal_status`
+     - `informal_decls`
+     - `informal_decl`
+     - `informal_refs`
+     - `informal_ref`
+     - `informal_deps`
+     - `informal_present`
+
+3. **Parameter and semantic rules**
+   - require non-empty `modules` for environment-backed commands
+   - keep `root` optional and presentation-specific for `informal_present`
+   - preserve the `mode` / `body` rules for `informal_present`, including rejection of `body` with `mode: "compact"`
+   - preserve the lower-layer distinction between `informal.notTracked` and other CLI failures in structured details
+
+4. **Normalization and rendering**
+   - map all results into `family: "informal"`
+   - preserve deterministic ordering already provided by the lower layer instead of re-sorting arbitrarily in conflicting ways
+   - preserve preview-body truncation metadata from the lower layer rather than inferring it only from rendered text
+
+5. **Boundary discipline**
+   - do not resurrect old `informalize_*` naming
+   - do not add sidecar-management commands absent from the rewrite CLI
+   - keep `informal_present` distinct from server-backed hover tools
+
+Phase-5 acceptance tests / checks:
+
+- fast tests cover repeated `--module` formation, command-shaped JSON parsing, exact lower-layer error-code preservation, and `present` parameter validation
+- real integration tests use current informal fixture modules and knowledge-base fixture roots
+- results assert deterministic ordering, structured payload preservation, preview truncation metadata, and stable normalized errors
 
 Exit criteria:
 
-- the toolkit exposes an initial practical informal tool family
-- the toolkit now spans all three lower layers in a coherent but still explicit way
-- the informal tool family complements, rather than duplicates confusingly, the Lean-hover integration already available through the server layer
+- the toolkit exposes the full current informal query/presentation surface cleanly
+- the informal family complements the Lean tools without blurring their responsibilities
+- no TypeScript code is re-parsing Lean environments or knowledge-base files directly
 
-### Phase 6 — implement host adapters and integration surfaces
+### Phase 6 — implement aggregate toolkit composition and pi integration surfaces
 
-Purpose:
+Objective:
 
-- mount the reusable toolkit into actual host environments without making those hosts the owner of the implementation
-- preserve the main-worktree “shared toolset + thin `pi` wrapper” architecture in a broader rewrite-compatible form
+- compose the now-separate tool families into reusable host-facing bundles
+- preserve the successful main-worktree architecture of shared toolkit logic plus a thin pi wrapper, while supporting both extension and direct SDK mounting
 
-Primary component docs:
+Primary docs:
 
 - `plans/toolkit/pi-integration.md`
 - `plans/toolkit/layout.md`
 - `plans/toolkit/testing.md`
+- `plans/toolkit/output.md`
 
-Concrete deliverables:
+Implementation work items:
 
-- implement a thin `pi` extension wrapper over the reusable toolkit code
-- add explicit session-shutdown cleanup hooks
-- decide whether to preserve an explicit stop command analogous to the main-worktree extension stop command
-- expose integration helpers for custom `@mariozechner/pi-coding-agent` SDK sessions that do not depend on the full upstream `pi` extension mechanism
-- document the intended integration points for the later AI-agent layer
+1. **Aggregate toolkit composition**
+   - implement `src/toolkit/tools/aggregate.ts`
+   - provide family-selection and cleanup composition across:
+     - managed Lean/server-backed tools
+     - one-shot knowledge-base tools
+     - one-shot informal tools
+   - ensure cleanup is explicit and idempotent, even though only the managed hub meaningfully participates in shutdown
+
+2. **Direct pi SDK helper**
+   - implement `src/hosts/pi/index.ts` support for a direct SDK path such as `createPiToolkitCustomTools(options?)`
+   - return pi-compatible custom tools plus an explicit `dispose()` handle
+
+3. **Extension registration helper**
+   - implement a registration helper such as `registerToolkitExtension(pi, options?)`
+   - register the selected families
+   - hook `session_shutdown`
+   - register the explicit stop command
+   - keep the stop command limited to toolkit cleanup rather than calling `ctx.shutdown()`
+
+4. **Thin extension entrypoint**
+   - implement `src/hosts/pi/extension.ts`
+   - default to `cwd: process.cwd()` for project discovery anchoring
+   - keep the file extremely small and declarative
+
+5. **Package/distribution alignment**
+   - make sure package exports and `pi.extensions` metadata match the actual implemented entrypoints
+   - align dependency placement with current pi package guidance
+
+Phase-6 acceptance tests / checks:
+
+- adapter tests verify tool registration, family selection, stop-command behavior, and `session_shutdown` cleanup
+- direct SDK helpers can be instantiated without the full extension runtime
+- the adapter preserves tool names, descriptions, parameters, and result semantics from the underlying toolkit families
 
 Exit criteria:
 
-- the reusable toolkit can be mounted cleanly into `pi` and custom sessions
-- host adapters remain thin and operational rather than becoming the canonical implementation home
+- the toolkit can be mounted both as a pi extension and as direct SDK custom tools
+- the pi layer remains thin and host-specific rather than becoming the owner of semantics
+- cleanup behavior is explicit, idempotent, and test-covered
 
-### Phase 7 — harden testing, docs, and higher-layer readiness
+### Phase 7 — harden tests, docs, and higher-layer handoff readiness
 
-Purpose:
+Objective:
 
-- make the toolkit safe for reuse by the later AI-agent layer
-- turn the toolkit’s operational guarantees into tested repository behavior
+- turn the baseline toolkit into a dependable substrate for the later AI layer
+- make the repository honest about what is implemented, how it is tested, and what remains deferred
 
-Primary component docs:
+Primary docs:
 
 - `plans/toolkit/testing.md`
 - `plans/toolkit/output.md`
-- all earlier component docs as needed
+- all earlier toolkit component docs as needed
+- `plan.md` and repository-facing docs when the toolkit becomes real enough to mention there concretely
 
-Concrete deliverables:
+Implementation work items:
 
-- add unit tests for pure helpers such as result shaping, truncation, and normalization utilities
-- add subprocess tests for the real rewrite `aftk_server`
-- add subprocess tests for real `lake exe aftk knowledgebase ...` and `lake exe aftk informal ...` commands against fixtures and temporary mutable copies where needed
-- add integration tests for host adapters where practical
-- update repository docs so the toolkit layer has the same implementation/documentation honesty as the first three layers
-- update `plans/toolkit.md` implementation status when the baseline is genuinely landed
+1. **Finish the planned test matrix**
+   - fill gaps in unit, synthetic, integration, and adapter coverage across all families
+   - ensure the initial exact tool name sets and normalized result envelopes are asserted
+   - keep real subprocess tests conservative and deterministic
+
+2. **Workflow scripts and support helpers**
+   - finalize package scripts for:
+     - typecheck
+     - toolkit unit tests
+     - toolkit integration tests
+     - combined full-stack workflow with `lake test`
+   - finish support helpers under `tests/toolkit/support/`
+
+3. **Repository documentation updates**
+   - document the toolkit package entrypoints and intended host-integration surfaces
+   - update toolkit-related overview docs if implementation reality has diverged from earlier placeholders
+   - make it clear which commands/families are implemented versus intentionally deferred
+
+4. **Plan-status and handoff updates**
+   - update the status sections in `plans/toolkit.md` and the component docs honestly as phases complete
+   - record any implementation-driven design change back into the relevant component doc
+   - leave explicit notes for the later AI layer about which toolkit surfaces are the stable starting point
+
+5. **Explicitly deferred follow-on work**
+   - continue deferring knowledge-base mutation tools until the temp-copy mutation-test policy is actually implemented
+   - continue deferring cross-layer composite tools and full AI orchestration concerns until the baseline toolkit is stable
+
+Phase-7 acceptance tests / checks:
+
+- the full intended toolkit workflow can be run through repository scripts
+- documentation and code agree on the implemented public surface
+- the later AI layer can consume the toolkit without requiring foundational runtime/process redesign
 
 Exit criteria:
 
-- the toolkit has realistic TypeScript test coverage over the actual lower-layer boundaries it depends on
-- the later AI-agent layer can treat the toolkit as a stable foundation rather than as an experiment
+- the toolkit has realistic test coverage over every lower-layer boundary it depends on
+- repository docs and plan statuses are honest and current
+- the toolkit is stable enough to serve as the default TypeScript foundation for the AI autoformalization layer
 
 ## Cross-phase implementation rules
 
@@ -799,6 +1048,24 @@ The toolkit does not need to mirror every command before it becomes useful.
 - knowledge-base CLI bridges should get real CLI tests
 - informal CLI bridges should get real CLI tests
 - adapter lifecycle behavior should get direct tests where practical
+
+### 6. Respect explicit deferrals
+
+Until the baseline is stable, the implementation should continue to defer:
+
+- knowledge-base mutation wrappers beyond the commands explicitly selected in the knowledge-base plan
+- ad hoc cross-layer composite helpers that deserve their own design doc
+- AI-orchestration logic that belongs to the later agent layer
+
+### 7. Keep the plan suite synchronized with implementation
+
+If coding uncovers a real mismatch between:
+
+- this overview plan,
+- a toolkit component plan,
+- and the implementation reality,
+
+then the relevant plan file should be updated in the same phase rather than letting the design-doc suite drift silently.
 
 ## Completion checklist for this plan
 
