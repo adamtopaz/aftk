@@ -6,12 +6,30 @@ The public CLI is:
 lake exe aftk knowledgebase ...
 ```
 
+Help is available at both entrypoints:
+
+```text
+lake exe aftk --help
+lake exe aftk knowledgebase --help
+lake exe aftk knowledgebase <command> --help
+```
+
 ## Global options
 
 Supported global options:
 
 - `--root <path>`
 - `--format text|json`
+- `--help`
+
+Every command and nested subcommand also supports `--help`.
+For example:
+
+```text
+lake exe aftk knowledgebase create --help
+lake exe aftk knowledgebase body set --help
+lake exe aftk knowledgebase validate node --help
+```
 
 ## Root commands
 

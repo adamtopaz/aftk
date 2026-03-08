@@ -168,21 +168,30 @@ private def writeSuccess (format : OutputFormat) (command : Command) (root : Sys
 
 
 def run (args : List String) : IO UInt8 := do
-  match Parse.parseArgs args with
+  match Parse.parseHelpTopic? args with
   | .error err =>
       let root ← resolveRootPath
       writeFailure .text none root err
       return err.exitCode
-  | .ok (global, command) =>
-      let root ← resolveRootPath global.root?
-      let result ← (dispatch root command).toIO'
-      match result with
-      | Except.ok result =>
-          writeSuccess global.format command root result
-          return exitCodeForResult result
-      | Except.error err =>
-          writeFailure global.format (some command) root err
+  | .ok (some topic) =>
+      IO.println <| Render.renderHelp topic
+      return 0
+  | .ok none =>
+      match Parse.parseArgs args with
+      | .error err =>
+          let root ← resolveRootPath
+          writeFailure .text none root err
           return err.exitCode
+      | .ok (global, command) =>
+          let root ← resolveRootPath global.root?
+          let result ← (dispatch root command).toIO'
+          match result with
+          | Except.ok result =>
+              writeSuccess global.format command root result
+              return exitCodeForResult result
+          | Except.error err =>
+              writeFailure global.format (some command) root err
+              return err.exitCode
 
 
 def main (args : List String) : IO Unit := do

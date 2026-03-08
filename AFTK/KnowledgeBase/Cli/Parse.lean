@@ -148,6 +148,66 @@ private def parseSearchLimit (args : List String) : Except KnowledgeBaseError (O
   | [arg] => usageError s!"Unknown search option '{arg}'"
   | arg :: _ => usageError s!"Unknown search option '{arg}'"
 
+private def isHelpFlag (arg : String) : Bool :=
+  arg == "--help"
+
+private partial def stripLeadingGlobalOptions : List String → Except KnowledgeBaseError (List String)
+  | "--root" :: path :: rest =>
+      if isHelpFlag path then
+        usageError "Missing value for --root"
+      else
+        stripLeadingGlobalOptions rest
+  | "--root" :: [] => usageError "Missing value for --root"
+  | "--format" :: format :: rest => do
+      let _ ← parseOutputFormat format
+      stripLeadingGlobalOptions rest
+  | "--format" :: [] => usageError "Missing value for --format"
+  | arg :: rest =>
+      if isHelpFlag arg then
+        pure (arg :: rest)
+      else if arg.startsWith "--" then
+        usageError s!"Unknown global option '{arg}'"
+      else
+        pure (arg :: rest)
+  | [] => pure []
+
+private def helpTopicForPrefix : List String → HelpTopic
+  | [] => .knowledgebase
+  | "init" :: _ => .init
+  | "status" :: _ => .status
+  | "list" :: _ => .list
+  | "show" :: _ => .show
+  | "create" :: _ => .create
+  | "rename" :: _ => .rename
+  | "delete" :: _ => .delete
+  | "body" :: "show" :: _ => .bodyShow
+  | "body" :: "set" :: _ => .bodySet
+  | "body" :: _ => .body
+  | "metadata" :: "show" :: _ => .metadataShow
+  | "metadata" :: "replace" :: _ => .metadataReplace
+  | "metadata" :: "validate" :: _ => .metadataValidate
+  | "metadata" :: _ => .metadata
+  | "validate" :: "storage" :: _ => .validateStorage
+  | "validate" :: "node" :: _ => .validateNode
+  | "validate" :: "all" :: _ => .validateAll
+  | "validate" :: _ => .validate
+  | "search" :: "text" :: _ => .searchText
+  | "search" :: "tag" :: _ => .searchTag
+  | "search" :: _ => .search
+  | "relationships" :: "outgoing" :: _ => .relationshipsOutgoing
+  | "relationships" :: "incoming" :: _ => .relationshipsIncoming
+  | "relationships" :: "related" :: _ => .relationshipsRelated
+  | "relationships" :: _ => .relationships
+  | _ => .knowledgebase
+
+def parseHelpTopic? (args : List String) : Except KnowledgeBaseError (Option HelpTopic) := do
+  let rest ← stripLeadingGlobalOptions args
+  if rest.any isHelpFlag then
+    let commandPrefix := rest.takeWhile fun arg => !isHelpFlag arg
+    pure <| some (helpTopicForPrefix commandPrefix)
+  else
+    pure none
+
 private def parseCommand : List String → Except KnowledgeBaseError Command
   | [] => usageError "Expected a knowledgebase command"
   | "init" :: rest =>

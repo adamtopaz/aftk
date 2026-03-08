@@ -11,7 +11,7 @@ The current implementation provides:
 - Markdown bodies and JSON metadata for each node
 - validated dotted node IDs such as `topology.open_cover`
 - structured relationships between nodes
-- a Lean CLI at `lake exe aftk knowledgebase ...`
+- a Lean CLI at `lake exe aftk knowledgebase ...`, including built-in `--help` for the main entrypoint and subcommands
 - direct-scan validation and search
 - a `lake test` driver with unit, storage, validation, search, and CLI coverage
 

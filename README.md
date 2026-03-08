@@ -25,6 +25,14 @@ Run the knowledgebase CLI:
 lake exe aftk knowledgebase status
 ```
 
+Get CLI help:
+
+```text
+lake exe aftk --help
+lake exe aftk knowledgebase --help
+lake exe aftk knowledgebase create --help
+```
+
 Run tests:
 
 ```text

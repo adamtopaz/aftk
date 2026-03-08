@@ -88,6 +88,35 @@ inductive Command
   | relationships (cmd : RelationshipCommand)
   deriving Repr, DecidableEq
 
+inductive HelpTopic
+  | knowledgebase
+  | init
+  | status
+  | list
+  | show
+  | create
+  | rename
+  | delete
+  | body
+  | bodyShow
+  | bodySet
+  | metadata
+  | metadataShow
+  | metadataReplace
+  | metadataValidate
+  | validate
+  | validateStorage
+  | validateNode
+  | validateAll
+  | search
+  | searchText
+  | searchTag
+  | relationships
+  | relationshipsOutgoing
+  | relationshipsIncoming
+  | relationshipsRelated
+  deriving Repr, DecidableEq, Inhabited
+
 structure CliWarning where
   code : String
   message : String

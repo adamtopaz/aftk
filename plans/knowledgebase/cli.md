@@ -9,7 +9,7 @@ This document refines the overall knowledge base plan in `plans/knowledgebase.md
 
 - Overall status: Implemented for the current v1 command surface
 - Implemented in code: Yes
-- Last updated basis: current `knowledgebase` CLI commands, text rendering, JSON rendering, and dispatch behavior
+- Last updated basis: current `knowledgebase` CLI commands, `--help` support, text rendering, JSON rendering, and dispatch behavior
 
 ## Purpose
 
@@ -63,9 +63,7 @@ The initial CLI design should support global options like these:
 
 - `--root <path>` — override the default knowledge-base root
 - `--format text|json` — select output format
-- `--quiet` — reduce nonessential text output
-- `--verbose` — include more operational detail
-- `--no-color` — disable colorized human output if color is added later
+- `--help` — show help for the current command or subcommand
 
 ### Default root
 

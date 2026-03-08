@@ -31,6 +31,7 @@ The current suite covers:
 - whole-root validation for missing relationship targets
 - direct-scan search for text and tags
 - CLI smoke coverage for init/create/show with JSON output
+- CLI help coverage for the top-level entrypoint, the knowledgebase entrypoint, and subcommand help topics
 
 The Lean test modules now live under the project-wide `AFTKTest/` tree rather than under the production `AFTK/` library tree.
 

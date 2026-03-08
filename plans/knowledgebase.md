@@ -445,7 +445,7 @@ Purpose:
 
 Main work:
 
-- implement global CLI option handling for `--root`, `--format`, `--quiet`, `--verbose`, and `--no-color`
+- implement global CLI option handling for `--root`, `--format`, and `--help`
 - implement parser, dispatcher, and text/JSON renderers
 - implement the first command slice from `plans/knowledgebase/cli.md`:
   - `init`
