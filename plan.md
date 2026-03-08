@@ -18,7 +18,7 @@ The main-branch worktree serves as the reference point for:
 - the existing server and file-worker,
 - the current `informal[...]` elaborator design,
 - implementation ideas,
-- and migration/comparison during the rewrite.
+- and comparison during the rewrite.
 
 We will use the main-branch worktree to study the existing system and to get ideas for how some parts of the rewrite should behave or be structured. In practice, AI agents may read files in the main-branch worktree and then make corresponding edits in the rewrite worktree.
 
@@ -256,7 +256,6 @@ This document stays high-level for now. Later planning should refine at least th
 - AI-agent orchestration architecture for autoformalization
 - pi agent SDK integration patterns for the AI agent layer
 - boundaries between toolkit usage and direct CLI usage in agent workflows
-- migration strategy from the main-branch architecture
 
 ---
 
