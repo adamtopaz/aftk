@@ -7,9 +7,9 @@ This document refines the overall server-layer plan in `plans/server.md` and wor
 
 ## Component implementation status
 
-- Overall status: Planned
-- Implemented in code: No
-- Last updated basis: the rewrite worktree now has a top-level server plan plus component design docs, but still has no `AFTK.Server` / `AFTK.FileWorker` implementation, no transport library, and no standalone server/file-worker executables.
+- Overall status: Implemented
+- Implemented in code: Yes
+- Last updated basis: the rewrite worktree now depends on `lean_worker`, has an `AFTK.Server.Transport` integration module, and ships standalone `aftk_server` / `aftk_file_worker` executables over newline-delimited JSON-RPC on stdio.
 
 ## Purpose
 

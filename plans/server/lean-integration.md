@@ -7,9 +7,9 @@ This document refines the overall server-layer plan in `plans/server.md` and wor
 
 ## Component implementation status
 
-- Overall status: Planned
-- Implemented in code: No
-- Last updated basis: main-worktree and Lean 4 core server/frontend research has been completed and recorded, but no rewrite implementation has been added yet.
+- Overall status: Implemented
+- Implemented in code: Yes
+- Last updated basis: the rewrite worker now uses the documented one-shot Lean frontend path (`parseHeader`, `processHeader`, `processCommands`) together with Lean core info-tree query utilities for hover, goal, and term-goal lookup.
 
 ## Purpose
 

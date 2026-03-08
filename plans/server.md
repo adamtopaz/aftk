@@ -8,9 +8,9 @@ Detailed subdesigns should live in component plan files under `plans/server/`.
 
 ## Plan implementation status
 
-- Overall status: Not implemented in the rewrite worktree
-- Fully implemented: No
-- Last updated basis: the rewrite worktree currently contains the knowledge-base and informal layers, but no server/file-worker library tree, no `aftk_server` or `aftk_file_worker` executables, and no server-layer test suite
+- Overall status: Implemented in the rewrite worktree
+- Fully implemented: Yes
+- Last updated basis: the rewrite worktree now contains reusable `AFTK.Server` / `AFTK.FileWorker` module trees, standalone `aftk_server` and `aftk_file_worker` executables, lower-layer-aware hover integration, and a server-layer test suite wired into `lake test`
 
 This section is the single place for tracking whether the server/file-worker layer plan has been fully implemented.
 It should be updated whenever the implementation meaningfully changes.

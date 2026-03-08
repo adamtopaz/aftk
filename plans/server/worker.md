@@ -7,9 +7,9 @@ This document refines the overall server-layer plan in `plans/server.md` and wor
 
 ## Component implementation status
 
-- Overall status: Planned
-- Implemented in code: No
-- Last updated basis: the rewrite worktree still has no file-worker implementation, but the worker’s responsibilities and v1 operating model are now documented.
+- Overall status: Implemented
+- Implemented in code: Yes
+- Last updated basis: the rewrite worktree now has a one-shot per-file worker, source-position query handlers, transient tactic-state support, worker shutdown handling, and lower-layer-aware informal hover integration.
 
 ## Purpose
 
@@ -211,6 +211,8 @@ This is a convenience method, not a new semantic primitive.
 - capture one `StateNode` per goal context available there
 - allocate one fresh opaque id per captured state
 - return the resulting id array in stable order
+
+The implemented rewrite worker uses `GoalsAtResult.useAfter` when choosing the captured tactic state, so a cursor position that Lean core interprets as “after the tactic” loads the corresponding post-tactic state rather than always forcing the pre-tactic state.
 
 The worker should return an empty array if no tactic node can be loaded at that location.
 

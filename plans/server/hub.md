@@ -7,9 +7,9 @@ This document refines the overall server-layer plan in `plans/server.md` and wor
 
 ## Component implementation status
 
-- Overall status: Planned
-- Implemented in code: No
-- Last updated basis: the rewrite worktree still has no hub/session implementation, but the server-layer architecture and component decisions are now documented.
+- Overall status: Implemented
+- Implemented in code: Yes
+- Last updated basis: the rewrite worktree now has a hub/session implementation with per-file workers, canonical/alias path lookup, reopen-on-change invalidation, worker-unavailable cleanup, and hub-level `run_tactic_steps` orchestration.
 
 ## Purpose
 

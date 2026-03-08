@@ -1,5 +1,6 @@
 import AFTKTest.KnowledgeBase
 import AFTKTest.Informal
+import AFTKTest.Server
 
 private unsafe def allTests : List AFTKTest.KnowledgeBase.TestCase :=
   AFTKTest.KnowledgeBase.Types.tests ++
@@ -15,7 +16,8 @@ private unsafe def allTests : List AFTKTest.KnowledgeBase.TestCase :=
   AFTKTest.Informal.Dependencies.tests ++
   AFTKTest.Informal.Presentation.tests ++
   AFTKTest.Informal.Elaboration.tests ++
-  AFTKTest.Informal.Cli.tests
+  AFTKTest.Informal.Cli.tests ++
+  AFTKTest.Server.tests
 
 unsafe def main (_args : List String) : IO Unit := do
   IO.Process.exit (← AFTKTest.KnowledgeBase.runTestCases allTests)

@@ -7,9 +7,9 @@ This document refines the overall server-layer plan in `plans/server.md` and wor
 
 ## Component implementation status
 
-- Overall status: Planned
-- Implemented in code: No
-- Last updated basis: the lower layers already exist in the rewrite worktree and the server-layer integration strategy has now been documented, but no server/file-worker implementation exists yet.
+- Overall status: Implemented
+- Implemented in code: Yes
+- Last updated basis: the worker now preserves ordinary Lean hover, reuses existing informal-layer APIs, and produces richer preview-style hover for recognized `informal[...]` sites without adding new first-class lower-layer RPC methods.
 
 ## Purpose
 

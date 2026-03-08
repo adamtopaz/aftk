@@ -3,6 +3,11 @@ version = "0.1.0"
 defaultTargets = ["aftk"]
 testDriver = "aftk_test"
 
+[[require]]
+name = "lean_worker"
+git = "https://github.com/adamtopaz/lean_worker"
+rev = "main"
+
 [[lean_lib]]
 name = "AFTK"
 
@@ -12,6 +17,16 @@ name = "AFTKTest"
 [[lean_exe]]
 name = "aftk"
 root = "Main"
+supportInterpreter = true
+
+[[lean_exe]]
+name = "aftk_server"
+root = "AFTK.Server.Main"
+supportInterpreter = true
+
+[[lean_exe]]
+name = "aftk_file_worker"
+root = "AFTK.FileWorker.Main"
 supportInterpreter = true
 
 [[lean_exe]]

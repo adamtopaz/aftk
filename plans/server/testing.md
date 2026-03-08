@@ -7,9 +7,9 @@ This document refines the overall server-layer plan in `plans/server.md` and wor
 
 ## Component implementation status
 
-- Overall status: Planned
-- Implemented in code: No
-- Last updated basis: the rewrite worktree currently has no server-layer test suite, but the intended testing strategy and test layout are now documented.
+- Overall status: Implemented
+- Implemented in code: Yes
+- Last updated basis: the rewrite worktree now has `AFTKTest/Server/*`, checked-in server fixtures, direct worker/hub tests, and subprocess end-to-end coverage integrated into `lake test`.
 
 ## Purpose
 

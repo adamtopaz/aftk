@@ -7,9 +7,9 @@ This document refines the overall server-layer plan in `plans/server.md` and wor
 
 ## Component implementation status
 
-- Overall status: Planned
-- Implemented in code: No
-- Last updated basis: the rewrite worktree now has a server-layer overview and component design docs, but still has no shared server/file-worker protocol module or executable implementation.
+- Overall status: Implemented
+- Implemented in code: Yes
+- Last updated basis: the rewrite worktree now has a shared `AFTK.Server.Protocol` module, public and worker-local request/response types, and tested error-code behavior.
 
 ## Purpose
 

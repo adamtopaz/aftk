@@ -7,9 +7,9 @@ This document refines the overall server-layer plan in `plans/server.md` and wor
 
 ## Component implementation status
 
-- Overall status: Planned
-- Implemented in code: No
-- Last updated basis: the rewrite worktree currently has no server/file-worker module tree or executables, but the intended layout is now documented.
+- Overall status: Implemented
+- Implemented in code: Yes
+- Last updated basis: the rewrite worktree now has the documented server/file-worker module tree, standalone executables, and server test-tree wiring.
 
 ## Purpose
 
