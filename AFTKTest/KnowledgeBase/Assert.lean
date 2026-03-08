@@ -77,14 +77,25 @@ private def errorMessageOf (err : KnowledgeBaseError) : String :=
   let cwd ← liftIO IO.currentDir
   liftIO <| IO.FS.readFile (cwd / "tests" / "knowledgebase" / "golden" / name)
 
+@[inline] private def printStdoutLine (line : String) : IO Unit := do
+  let stdout ← IO.getStdout
+  stdout.putStrLn line
+  stdout.flush
+
+@[inline] private def printStderrLine (line : String) : IO Unit := do
+  let stderr ← IO.getStderr
+  stderr.putStrLn line
+  stderr.flush
+
 @[inline] def runTestCase (test : TestCase) : IO Bool := do
+  printStdoutLine s!"[RUN] {test.name}"
   let result ← test.run.toIO'
   match result with
   | .ok _ =>
-      IO.println s!"[PASS] {test.name}"
+      printStdoutLine s!"[PASS] {test.name}"
       pure true
   | .error err =>
-      IO.eprintln s!"[FAIL] {test.name}\n{err}"
+      printStderrLine s!"[FAIL] {test.name}\n{err}"
       pure false
 
 @[inline] def runTestCases (tests : List TestCase) : IO UInt8 := do
@@ -95,7 +106,8 @@ private def errorMessageOf (err : KnowledgeBaseError) : String :=
       passed := passed + 1
     else
       failed := failed + 1
-  IO.println s!"\nTest summary: {passed} passed; {failed} failed"
+  printStdoutLine ""
+  printStdoutLine s!"Test summary: {passed} passed; {failed} failed"
   pure <| if failed == 0 then 0 else 1
 
 end AFTKTest.KnowledgeBase
