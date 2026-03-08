@@ -105,6 +105,9 @@ Key findings from that implementation:
   - TypeBox parameter schemas,
   - and tool-result formatting.
 - The current `AftkHubClient` lazily starts `lake exe aftk_server`, line-buffers newline-delimited JSON-RPC responses, tracks pending requests by id, and performs graceful shutdown with `SIGTERM`/`SIGKILL` fallback.
+- The current toolkit reuses pi helper truncation defaults (`DEFAULT_MAX_BYTES`, `DEFAULT_MAX_LINES`, and `truncateHead(...)`) rather than owning a toolkit-specific truncation policy of its own.
+- The current abort handling only cancels the local waiting promise; it does not cancel an already-sent hub request remotely.
+- The current `aftk_shutdown` tool performs the semantic `shutdown` request and then explicitly clears owned child-process state with `client.stop(false)`.
 - The current tool outputs are intentionally simple:
   - concise text for human consumption,
   - plus structured `details` for programmatic access.
@@ -141,6 +144,22 @@ Primary rewrite TypeScript/package files studied:
 - `index.ts`
 - `package.json`
 - `tsconfig.json`
+- `lakefile.toml`
+
+Primary rewrite implementation files studied:
+
+- `AFTK/Server/Main.lean`
+- `AFTK/Server/Protocol.lean`
+- `AFTK/KnowledgeBase/PathLayout.lean`
+- `AFTK/KnowledgeBase/Cli/Main.lean`
+- `AFTK/KnowledgeBase/Cli/Types.lean`
+- `AFTK/KnowledgeBase/Cli/Render.lean`
+- `AFTK/Informal/Cli/Main.lean`
+- `AFTK/Informal/Cli/Types.lean`
+- `AFTK/Informal/Cli/Render.lean`
+- `AFTK/Informal/Tracking.lean`
+- `AFTK/Informal/Dependencies.lean`
+- `AFTK/Informal/Presentation.lean`
 
 Key findings from the current rewrite worktree:
 
@@ -160,8 +179,22 @@ Key findings from the current rewrite worktree:
   - while the informal CLI currently uses command-shaped JSON.
 - There is currently **no actual toolkit implementation** in the rewrite:
   - `index.ts` is only `console.log("Hello via Bun!")`,
-  - `package.json` is a minimal placeholder,
+  - `package.json` still points `module` at that root file and only carries Bun-oriented scaffolding such as `@types/bun`,
+  - `tsconfig.json` still uses Bun-style defaults such as `module: "Preserve"` and `moduleResolution: "bundler"`,
   - and `docs/architecture.md` explicitly marks the toolkit layer as not implemented.
+- `lakefile.toml` already defines the lower-layer executables the toolkit will target:
+  - `aftk`
+  - `aftk_server`
+  - `aftk_file_worker`
+- `AFTK/Server/Main.lean` currently accepts no CLI flags, always speaks over stdio, and drains remaining sessions on exit.
+- `AFTK/KnowledgeBase/PathLayout.resolveRootPath` resolves relative roots against the process working directory, so toolkit child-process `cwd` choice directly affects default knowledge-base and informal-root behavior when `--root` is omitted.
+- `AFTK/KnowledgeBase/Cli/Render.lean` currently emits exact dot-separated JSON command names such as:
+  - `metadata.validate`
+  - `validate.storage`
+  - `search.text`
+  - `relationships.related`
+- `AFTK/Informal/Cli/Render.lean` success JSON is command-shaped around a `data` field and adds fields such as `modules`, `target`, `mode`, and `bodyMode` depending on the command.
+- `AFTK/Informal/Tracking.lean`, `AFTK/Informal/Dependencies.lean`, and `AFTK/Informal/Presentation.lean` already sort declarations, references, dependency rows/leaves, tags, authors, relationship lines, and Lean-ref lines deterministically; rich `present` output also carries explicit body-preview truncation metadata.
 - The current TypeScript placeholder setup is Bun-flavored, but the main-worktree implementation and `pi` integration are Node-oriented.
   This needs an explicit design decision rather than accidental drift.
 
