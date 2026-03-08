@@ -2,14 +2,14 @@
 
 ## Status
 
-Design-only component plan for knowledge-base serialization.
+Component plan and implementation-status document for knowledge-base serialization.
 This document refines the overall knowledge base plan in `plans/knowledgebase.md` and works together with `plans/knowledgebase/metadata.md`, `plans/knowledgebase/node.md`, `plans/knowledgebase/storage.md`, `plans/knowledgebase/cli.md`, `plans/knowledgebase/validation.md`, and `plans/knowledgebase/search.md`.
 
 ## Component implementation status
 
-- Overall status: Not implemented
-- Implemented in code: No
-- Last updated basis: design only
+- Overall status: Implemented for canonical manifest/metadata JSON, Markdown normalization, and CLI JSON output
+- Implemented in code: Yes
+- Last updated basis: current serialization layer plus CLI JSON envelope rendering
 
 ## Purpose
 
@@ -21,8 +21,8 @@ It covers both:
 
 The goal is to make the filesystem representation and automation-facing JSON behavior predictable before implementation begins.
 
-No code is being added yet.
-This file is only a design target for later implementation.
+Code has now been added.
+This file remains the design reference and status tracker for the implemented serialization rules.
 
 ## Design goals
 

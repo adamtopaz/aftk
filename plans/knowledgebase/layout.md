@@ -2,14 +2,14 @@
 
 ## Status
 
-Design-only component plan for the Lean library layout of the knowledge base.
+Component plan and implementation-status document for the Lean library layout of the knowledge base.
 This document refines the overall knowledge base plan in `plans/knowledgebase.md` and complements the storage, node, metadata, serialization, CLI, validation, search, repair, and indexing component plans.
 
 ## Component implementation status
 
-- Overall status: Not implemented
-- Implemented in code: No
-- Last updated basis: design only
+- Overall status: Implemented in initial usable form
+- Implemented in code: Yes
+- Last updated basis: current `AFTK/KnowledgeBase/*` module tree plus `AFTK/KnowledgeBase/Cli/*`, with project-wide tests living separately under `AFTKTest/KnowledgeBase/*`
 
 ## Purpose
 
@@ -19,8 +19,8 @@ That separate on-disk storage design is defined in `plans/knowledgebase/storage.
 
 The goal is to make implementation start from a clear module structure rather than accumulating logic ad hoc in `Main.lean` or in one oversized file.
 
-No code is being added yet.
-This file is only a design target for later implementation.
+Code has now been added.
+This file remains the design reference and status tracker for the implemented library layout.
 
 ## Design goals
 

@@ -2,14 +2,14 @@
 
 ## Status
 
-Design-only component plan for knowledge-base repair.
+Component plan and implementation-status document for knowledge-base repair.
 This document refines the overall knowledge base plan in `plans/knowledgebase.md` and works together with `plans/knowledgebase/storage.md`, `plans/knowledgebase/node.md`, `plans/knowledgebase/metadata.md`, `plans/knowledgebase/serialization.md`, `plans/knowledgebase/validation.md`, and `plans/knowledgebase/cli.md`.
 
 ## Component implementation status
 
-- Overall status: Not implemented
-- Implemented in code: No
-- Last updated basis: design only
+- Overall status: Not implemented beyond placeholder scaffolding
+- Implemented in code: Placeholder types only
+- Last updated basis: current placeholder `RepairAction` and `RepairPlan` types; no operational repair workflow yet
 
 ## Purpose
 
@@ -18,8 +18,8 @@ It describes how the system should respond when validation finds malformed stora
 
 The goal is to make repair behavior explicit before implementation begins, especially where automatic mutation could otherwise become unsafe or ambiguous.
 
-No code is being added yet.
-This file is only a design target for later implementation.
+Minimal scaffolding types now exist in code.
+This file still primarily serves as the design reference for the deferred operational repair implementation.
 
 ## Design goals
 

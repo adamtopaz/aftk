@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "topology.open_cover",
+  "title": "Open cover",
+  "kind": "definition",
+  "status": "active",
+  "summary": "Definition of an open cover.",
+  "tags": ["topology"],
+  "authors": ["aftk"],
+  "createdAt": "2026-03-07T21:49:18Z",
+  "updatedAt": "2026-03-07T21:49:18Z"
+}

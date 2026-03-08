@@ -8,9 +8,9 @@ Detailed subdesigns should live in component plan files under `plans/knowledgeba
 
 ## Plan implementation status
 
-- Overall status: Not implemented
+- Overall status: Partially implemented, with the core v1 knowledgebase layer landed in code
 - Fully implemented: No
-- Last updated basis: overall plan plus metadata, node, storage, layout, testing, CLI, validation, search, serialization, repair, and indexing component designs
+- Last updated basis: implemented types, storage, serialization, CLI, validation, search, relationship traversal, `lake test` driver, and initial implementation docs; repair and indexing remain deferred beyond scaffolding
 
 This section is the single place for tracking whether the knowledge base layer plan has been fully implemented.
 It should be updated whenever the implementation meaningfully changes.
@@ -320,7 +320,7 @@ Main work:
 
 - add a dedicated knowledge-base test target, such as a small `lake exe` test runner
 - add a project-local test harness with basic assertion helpers and grouped test execution
-- choose the initial test-module layout under `AFTK/KnowledgeBase/Test/`
+- choose the initial test-module layout under `AFTKTest/KnowledgeBase/`
 - add fixture and golden-data directories such as `tests/knowledgebase/fixtures/` and `tests/knowledgebase/golden/`
 - add temporary-directory helpers so storage tests never mutate repository working files directly
 - define the first fixture roots for:
@@ -641,56 +641,48 @@ It should be updated as design decisions are made and code lands.
 
 ### Lean CLI surface
 
-- [ ] Add the top-level `lake exe aftk knowledgebase ...` command entry point
+- [x] Add the top-level `lake exe aftk knowledgebase ...` command entry point
 - [x] Define the initial subcommand structure (`plans/knowledgebase/cli.md`)
-- [ ] Implement `create`
-- [ ] Implement `read`/`show`
-- [ ] Implement `list`
-- [ ] Implement body mutation commands
-- [ ] Implement metadata inspection/replacement commands
+- [x] Implement `create`
+- [x] Implement `read`/`show`
+- [x] Implement `list`
+- [x] Implement body mutation commands
+- [x] Implement metadata inspection/replacement commands
 
 ### Validation and discovery
 
-- [ ] Implement metadata validation
-- [ ] Implement node structure validation
-- [ ] Implement basic full-text search
-- [ ] Implement metadata-based query/filter support
-- [ ] Implement relationship traversal/query support
-- [ ] Implement broken-reference detection
+- [x] Implement metadata validation
+- [x] Implement node structure validation
+- [x] Implement basic full-text search
+- [x] Implement metadata-based query/filter support
+- [x] Implement relationship traversal/query support
+- [x] Implement broken-reference detection
 
 ### Testing and hardening
 
-- [ ] Add a dedicated knowledge-base test target/harness
-- [ ] Add unit tests for `NodeId`, path/layout mapping, and canonical path derivation
-- [ ] Add serialization tests for strict manifest/metadata parsing and deterministic writing
-- [ ] Add temporary-directory storage tests for init/create/load/body/metadata flows
-- [ ] Add CLI integration tests for the initial command slice
+- [x] Add a dedicated knowledge-base test target/harness
+- [x] Add unit tests for `NodeId`, path/layout mapping, and canonical path derivation
+- [x] Add serialization tests for strict manifest/metadata parsing and deterministic writing
+- [x] Add temporary-directory storage tests for init/create/load/body/metadata flows
+- [x] Add CLI integration tests for the initial command slice
 - [ ] Add regression fixtures for malformed roots, orphan files, path/ID mismatches, and broken relationships
 
 ### Integration readiness
 
-- [ ] Provide stable node references for higher layers
-- [ ] Document assumptions needed by the informal layer
-- [ ] Document assumptions needed by the server/file-worker layer
+- [x] Provide stable node references for higher layers
+- [x] Document assumptions needed by the informal layer
+- [x] Document assumptions needed by the server/file-worker layer
 
 ### Notes
 
-- Current state: planning plus metadata, node, storage, layout, testing, CLI, validation, search, serialization, repair, and indexing design only
-- No knowledge base implementation has been landed yet
-- The initial metadata type design is now captured in `plans/knowledgebase/metadata.md`
-- The initial node design is now captured in `plans/knowledgebase/node.md`
-- The initial storage design is now captured in `plans/knowledgebase/storage.md`
-- The initial library layout design is now captured in `plans/knowledgebase/layout.md`
-- The initial testing design is now captured in `plans/knowledgebase/testing.md`
-- The initial CLI design is now captured in `plans/knowledgebase/cli.md`
-- The initial validation design is now captured in `plans/knowledgebase/validation.md`
-- The initial search design is now captured in `plans/knowledgebase/search.md`
-- The initial serialization design is now captured in `plans/knowledgebase/serialization.md`
-- The initial repair design is now captured in `plans/knowledgebase/repair.md`
-- The initial indexing design is now captured in `plans/knowledgebase/indexing.md`
-- A detailed phased implementation plan is now captured in this overview document
-- No additional blocking design clarification is currently identified before implementation
-- This checklist is intentionally high-level and can be refined into smaller tasks later
+- Current state: core knowledgebase library, CLI, validation, search, relationship traversal, and test driver are implemented
+- Canonical storage lives under `knowledgebase/manifest.json` and `knowledgebase/nodes/**`
+- The public CLI surface is available at `lake exe aftk knowledgebase ...`
+- Tests now run through `lake test`
+- Implementation-facing docs now live under `docs/knowledgebase/`
+- Repair and indexing remain intentionally deferred beyond placeholder module scaffolding
+- A larger malformed-root regression-fixture suite is still pending
+- This checklist is intentionally high-level and can be refined further as the implementation grows
 
 ## Summary
 

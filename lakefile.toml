@@ -1,10 +1,18 @@
 name = "aftk"
 version = "0.1.0"
 defaultTargets = ["aftk"]
+testDriver = "aftk_test"
 
 [[lean_lib]]
 name = "AFTK"
 
+[[lean_lib]]
+name = "AFTKTest"
+
 [[lean_exe]]
 name = "aftk"
 root = "Main"
+
+[[lean_exe]]
+name = "aftk_test"
+root = "AFTKTest.KnowledgeBase.Main"

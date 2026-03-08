@@ -2,22 +2,22 @@
 
 ## Status
 
-Design-only component plan for the knowledge base metadata type.
+Component plan and implementation-status document for the knowledge base metadata type.
 This document refines the overall knowledge base plan in `plans/knowledgebase.md`.
 
 ## Component implementation status
 
-- Overall status: Not implemented
-- Implemented in code: No
-- Last updated basis: design only
+- Overall status: Implemented for the current v1 metadata schema
+- Implemented in code: Yes
+- Last updated basis: current strict metadata types, JSON parsing, validation, and canonical writing behavior
 
 ## Purpose
 
 This document proposes the initial metadata model for knowledge-base nodes.
 The intent is to implement this as an actual Lean type, while storing metadata on the filesystem as JSON.
 
-No code is being added yet.
-This file is only a design target for later implementation.
+Code has now been added.
+This file remains the design reference and status tracker for the implemented metadata schema.
 
 ## Design goals
 

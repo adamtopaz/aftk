@@ -2,14 +2,14 @@
 
 ## Status
 
-Design-only component plan for knowledge-base nodes.
+Component plan and implementation-status document for knowledge-base nodes.
 This document refines the overall knowledge base plan in `plans/knowledgebase.md` and complements `plans/knowledgebase/metadata.md`.
 
 ## Component implementation status
 
-- Overall status: Not implemented
-- Implemented in code: No
-- Last updated basis: design only
+- Overall status: Implemented for the current v1 node model
+- Implemented in code: Yes
+- Last updated basis: current `NodeId`, `Node`, `NodePaths`, `StoredNode`, and storage invariants implemented in the knowledgebase library
 
 ## Purpose
 
@@ -17,8 +17,8 @@ This document defines what a knowledge-base node is, both as a logical object in
 
 The goal is to make node identity, Markdown/JSON pairing, and core node invariants explicit before implementation begins.
 
-No code is being added yet.
-This file is only a design target for later implementation.
+Code has now been added.
+This file remains the design reference and status tracker for the implemented node model.
 
 ## Design goals
 

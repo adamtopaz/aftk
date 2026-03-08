@@ -2,22 +2,22 @@
 
 ## Status
 
-Design-only component plan for knowledge-base storage.
+Component plan and implementation-status document for knowledge-base storage.
 This document refines the overall knowledge base plan in `plans/knowledgebase.md` and works together with `plans/knowledgebase/node.md` and `plans/knowledgebase/metadata.md`.
 
 ## Component implementation status
 
-- Overall status: Not implemented
-- Implemented in code: No
-- Last updated basis: design only
+- Overall status: Implemented for the v1 canonical storage slice
+- Implemented in code: Yes
+- Last updated basis: current manifest, node storage, mutation, and scan implementation under `AFTK/KnowledgeBase/Storage.lean`
 
 ## Purpose
 
 This document defines the filesystem-level storage system for the knowledge base.
 It fixes the overall root-directory layout around the node design, distinguishes canonical data from derived state, and gives the storage model a concrete shape for later Lean implementation.
 
-No code is being added yet.
-This file is only a design target for later implementation.
+Code has now been added.
+This file remains the design reference and status tracker for the implemented storage system.
 
 ## Design goals
 

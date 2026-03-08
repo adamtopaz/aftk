@@ -2,22 +2,22 @@
 
 ## Status
 
-Design-only component plan for knowledge-base search.
+Component plan and implementation-status document for knowledge-base search.
 This document refines the overall knowledge base plan in `plans/knowledgebase.md` and works together with `plans/knowledgebase/storage.md`, `plans/knowledgebase/node.md`, `plans/knowledgebase/metadata.md`, `plans/knowledgebase/cli.md`, and `plans/knowledgebase/indexing.md`.
 
 ## Component implementation status
 
-- Overall status: Not implemented
-- Implemented in code: No
-- Last updated basis: design only
+- Overall status: Implemented for direct-scan text search, tag search, and relationship discovery
+- Implemented in code: Yes
+- Last updated basis: current search and relationship query implementation over canonical storage
 
 ## Purpose
 
 This document defines the search model for the knowledge base layer.
 It describes what should be searchable, how initial search behavior should work, how search should relate to canonical versus derived data, and how search should connect to the CLI.
 
-No code is being added yet.
-This file is only a design target for later implementation.
+Code has now been added.
+This file remains the design reference and status tracker for the implemented search layer.
 
 ## Design goals
 

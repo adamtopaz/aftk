@@ -2,14 +2,14 @@
 
 ## Status
 
-Design-only component plan for knowledge-base testing.
+Component plan and implementation-status document for knowledge-base testing.
 This document refines the overall knowledge base plan in `plans/knowledgebase.md` and works together with the layout, storage, node, metadata, serialization, CLI, validation, search, repair, and indexing component plans.
 
 ## Component implementation status
 
-- Overall status: Not implemented
-- Implemented in code: No
-- Last updated basis: design only
+- Overall status: Implemented for the initial `lake test` driver and core knowledgebase coverage
+- Implemented in code: Yes
+- Last updated basis: current test driver, harness, golden files, and unit/storage/validation/search/CLI tests
 
 ## Purpose
 
@@ -18,8 +18,8 @@ It covers unit tests, fixture-backed storage tests, CLI integration tests, regre
 
 The goal is to make testing part of the design of the layer rather than something deferred until after most of the implementation is already in place.
 
-No code is being added yet.
-This file is only a design target for later implementation.
+Code has now been added.
+This file remains the design reference and status tracker for the implemented test strategy.
 
 ## Design goals
 
@@ -114,16 +114,16 @@ Instead:
 A practical initial test layout would be:
 
 ```text
-AFTK/KnowledgeBase/Test/Assert.lean
-AFTK/KnowledgeBase/Test/Fixtures.lean
-AFTK/KnowledgeBase/Test/Types.lean
-AFTK/KnowledgeBase/Test/PathLayout.lean
-AFTK/KnowledgeBase/Test/Serialization.lean
-AFTK/KnowledgeBase/Test/Storage.lean
-AFTK/KnowledgeBase/Test/Cli.lean
-AFTK/KnowledgeBase/Test/Validation.lean
-AFTK/KnowledgeBase/Test/Search.lean
-AFTK/KnowledgeBase/Test/Main.lean
+AFTKTest/KnowledgeBase/Assert.lean
+AFTKTest/KnowledgeBase/Fixtures.lean
+AFTKTest/KnowledgeBase/Types.lean
+AFTKTest/KnowledgeBase/PathLayout.lean
+AFTKTest/KnowledgeBase/Serialization.lean
+AFTKTest/KnowledgeBase/Storage.lean
+AFTKTest/KnowledgeBase/Cli.lean
+AFTKTest/KnowledgeBase/Validation.lean
+AFTKTest/KnowledgeBase/Search.lean
+AFTKTest/KnowledgeBase/Main.lean
 tests/knowledgebase/fixtures/
 tests/knowledgebase/golden/
 ```
@@ -141,14 +141,14 @@ A good initial test runner strategy is to add a dedicated Lean executable target
 
 ```toml
 [[lean_exe]]
-name = "aftk-kb-test"
-root = "AFTK.KnowledgeBase.Test.Main"
+name = "aftk_test"
+root = "AFTKTest.KnowledgeBase.Main"
 ```
 
-This would allow a simple workflow such as:
+The current project uses that pattern through the package test driver, so the main workflow is:
 
 ```text
-lake exe aftk-kb-test
+lake test
 ```
 
 If the test suite later becomes large, it can be split into multiple executables or test groups.
@@ -157,7 +157,7 @@ However, one focused knowledge-base test runner is a good first step.
 ## Test harness design
 
 The first implementation does not need a third-party Lean testing framework.
-A small project-local harness should be sufficient.
+A small project-local harness under the project-wide `AFTKTest/` tree is sufficient.
 
 ### Recommended harness features
 

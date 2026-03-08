@@ -2,22 +2,22 @@
 
 ## Status
 
-Design-only component plan for knowledge-base indexing.
+Component plan and implementation-status document for knowledge-base indexing.
 This document refines the overall knowledge base plan in `plans/knowledgebase.md` and works together with `plans/knowledgebase/storage.md`, `plans/knowledgebase/search.md`, `plans/knowledgebase/validation.md`, `plans/knowledgebase/repair.md`, and `plans/knowledgebase/cli.md`.
 
 ## Component implementation status
 
-- Overall status: Not implemented
-- Implemented in code: No
-- Last updated basis: design only
+- Overall status: Not implemented beyond placeholder scaffolding
+- Implemented in code: Placeholder types only
+- Last updated basis: current placeholder `IndexStatus` type; no operational indexing workflow yet
 
 ## Purpose
 
 This document defines the indexing model for the knowledge base layer.
 It explains what indexes are for, what they may contain, where they live, how they relate to canonical storage, how they are rebuilt, and how they interact with search, validation, and repair.
 
-No code is being added yet.
-This file is only a design target for later implementation.
+Minimal scaffolding types now exist in code.
+This file still primarily serves as the design reference for the deferred operational indexing implementation.
 
 ## Design goals
 

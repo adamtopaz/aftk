@@ -2,22 +2,22 @@
 
 ## Status
 
-Design-only component plan for knowledge-base validation.
+Component plan and implementation-status document for knowledge-base validation.
 This document refines the overall knowledge base plan in `plans/knowledgebase.md` and works together with `plans/knowledgebase/storage.md`, `plans/knowledgebase/node.md`, `plans/knowledgebase/metadata.md`, `plans/knowledgebase/cli.md`, and `plans/knowledgebase/repair.md`.
 
 ## Component implementation status
 
-- Overall status: Not implemented
-- Implemented in code: No
-- Last updated basis: design only
+- Overall status: Implemented for storage, metadata, node, and whole-root validation
+- Implemented in code: Yes
+- Last updated basis: current validation issue types, reports, CLI integration, and broken-reference detection
 
 ## Purpose
 
 This document defines the validation model for the knowledge base layer.
 It describes what should be validated, how validation scopes should be organized, what kinds of issues should be reported, and how validation should connect to the CLI.
 
-No code is being added yet.
-This file is only a design target for later implementation.
+Code has now been added.
+This file remains the design reference and status tracker for the implemented validation layer.
 
 ## Design goals
 

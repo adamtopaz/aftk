@@ -2,22 +2,22 @@
 
 ## Status
 
-Design-only component plan for the knowledge base CLI.
+Component plan and implementation-status document for the knowledge base CLI.
 This document refines the overall knowledge base plan in `plans/knowledgebase.md` and works together with `plans/knowledgebase/storage.md`, `plans/knowledgebase/node.md`, `plans/knowledgebase/metadata.md`, `plans/knowledgebase/validation.md`, `plans/knowledgebase/search.md`, `plans/knowledgebase/serialization.md`, `plans/knowledgebase/repair.md`, and `plans/knowledgebase/indexing.md`.
 
 ## Component implementation status
 
-- Overall status: Not implemented
-- Implemented in code: No
-- Last updated basis: design only
+- Overall status: Implemented for the current v1 command surface
+- Implemented in code: Yes
+- Last updated basis: current `knowledgebase` CLI commands, text rendering, JSON rendering, and dispatch behavior
 
 ## Purpose
 
 This document defines the planned command-line interface for the knowledge base layer.
 It is the design target for the Lean CLI that will manage knowledge-base storage, nodes, metadata, validation, search, and relationship traversal.
 
-No code is being added yet.
-This file is only a design target for later implementation.
+Code has now been added.
+This file remains the design reference and status tracker for the implemented CLI surface.
 
 ## Design goals
 
