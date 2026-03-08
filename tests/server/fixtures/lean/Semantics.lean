@@ -1,4 +1,4 @@
-import AFTK
+import Lean
 
 namespace AFTKTest.Server.Fixtures
 

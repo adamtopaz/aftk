@@ -1,4 +1,5 @@
-import AFTK
+import AFTK.Informal
+import AFTK.KnowledgeBase
 import AFTKTest.Informal.Assert
 import Lean
 import Lean.Elab.Import

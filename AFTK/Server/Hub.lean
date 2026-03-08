@@ -36,7 +36,6 @@ structure State where
 
 structure Context where
   state : Std.Mutex State
-  transport : JsonTransport
 
 abbrev HubM := LeanWorker.Server.StatelessHandlerM Context
 
@@ -290,7 +289,6 @@ def closeFileIO (ctx : Context) (rawPath : String) : IO (Except JsonRpc.Error Cl
 
 def shutdownIO (ctx : Context) : IO (Except JsonRpc.Error ShutdownResult) := do
   let stopped ← stopAllSessions ctx.state
-  let _ ← ctx.transport.inbox.close.toBaseIO
   pure <| .ok { stopped := stopped }
 
 private def withFileSession [FromJson α]

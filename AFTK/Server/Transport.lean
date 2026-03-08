@@ -54,55 +54,14 @@ def decodeResult [FromJson α] (json : Json) : Except String α :=
   fromJson? (α := α) json
 
 
-private partial def waitForExitLoop (child : WorkerChild) (remainingMs pollMs : Nat) : IO Bool := do
+def stopChildGracefully (child : WorkerChild) (client : RpcClient) : IO Unit := do
+  let _ ← (Async.block client.shutdown).toBaseIO
   match ← child.tryWait.toBaseIO with
   | .ok (some _) =>
-      pure true
-  | .ok none =>
-      if remainingMs == 0 then
-        pure false
-      else
-        let nap := Nat.min remainingMs pollMs
-        IO.sleep (UInt32.ofNat nap)
-        waitForExitLoop child (remainingMs - nap) pollMs
-  | .error _ =>
-      pure true
-
-
-def waitForExit (child : WorkerChild) (timeoutMs : Nat := 1500) (pollMs : Nat := 50) : IO Bool :=
-  waitForExitLoop child timeoutMs pollMs
-
-
-def sendShutdownRequest (client : RpcClient) : IO Unit := do
-  let _ ← (EAsync.block <| client.request "shutdown" (some (objParams []))).toBaseIO
-  pure ()
-
-
-def forceKill (child : WorkerChild) : IO Unit := do
-  let _ ← IO.Process.output {
-    cmd := "kill"
-    args := #["-KILL", toString child.pid]
-    stdin := .null
-    stdout := .null
-    stderr := .null
-  }
-  pure ()
-
-
-def stopChildGracefully (child : WorkerChild) (client : RpcClient) (timeoutMs : Nat := 1500) : IO Unit := do
-  let _ ← (sendShutdownRequest client).toBaseIO
-  if ← waitForExit child timeoutMs then
-    let _ ← (Async.block client.shutdown).toBaseIO
-    pure ()
-  else
-    let _ ← child.kill.toBaseIO
-    if ← waitForExit child timeoutMs then
-      let _ ← (Async.block client.shutdown).toBaseIO
       pure ()
-    else
-      forceKill child
-      discard <| child.wait.toBaseIO
-      let _ ← (Async.block client.shutdown).toBaseIO
+  | _ =>
+      let _ ← child.kill.toBaseIO
+      let _ ← child.wait.toBaseIO
       pure ()
 
 

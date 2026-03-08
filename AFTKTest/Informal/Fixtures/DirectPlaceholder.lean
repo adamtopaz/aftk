@@ -1,4 +1,4 @@
-import AFTK
+import AFTK.Informal
 
 namespace AFTKTest.Informal.Fixtures.DirectPlaceholder
 

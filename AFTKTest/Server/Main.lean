@@ -5,7 +5,7 @@ import AFTKTest.Server.Hub
 import AFTKTest.Server.Integration
 import AFTKTest.Server.Process
 
-namespace AFTKTest.Server
+open AFTKTest.Server
 
 private unsafe def allTests : List TestCase :=
   AFTKTest.Server.Protocol.tests ++
@@ -14,10 +14,5 @@ private unsafe def allTests : List TestCase :=
   AFTKTest.Server.Integration.tests ++
   AFTKTest.Server.Process.tests
 
-unsafe def tests : List TestCase :=
-  allTests
-
 unsafe def main (_args : List String) : IO Unit := do
   IO.Process.exit (← AFTKTest.KnowledgeBase.runTestCases allTests)
-
-end AFTKTest.Server

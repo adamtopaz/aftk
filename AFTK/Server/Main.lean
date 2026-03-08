@@ -1,8 +1,6 @@
 import AFTK.Server
 import LeanWorker
 
-open Std.Internal.IO.Async
-
 unsafe def main (args : List String) : IO Unit := do
   let [] := args
     | throw <| IO.userError "Usage: lake exe aftk_server"
@@ -10,7 +8,6 @@ unsafe def main (args : List String) : IO Unit := do
   let state ← Std.Mutex.new ({ } : AFTK.Server.Hub.State)
   let ctx : AFTK.Server.Hub.Context := {
     state := state
-    transport := transport
   }
   let server := LeanWorker.Server.run (AFTK.Server.Hub.server transport) ctx <| ← Std.Mutex.new ()
   try
@@ -18,6 +15,3 @@ unsafe def main (args : List String) : IO Unit := do
   finally
     for session in (← AFTK.Server.Hub.drainSessions state) do
       AFTK.Server.Hub.stopSessionIO session
-    let _ ← transport.outbox.close.toBaseIO
-    let _ ← transport.inbox.close.toBaseIO
-    pure ()

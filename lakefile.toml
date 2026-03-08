@@ -30,6 +30,21 @@ root = "AFTK.FileWorker.Main"
 supportInterpreter = true
 
 [[lean_exe]]
+name = "aftk_knowledgebase_test"
+root = "AFTKTest.KnowledgeBase.Main"
+supportInterpreter = true
+
+[[lean_exe]]
+name = "aftk_informal_test"
+root = "AFTKTest.Informal.Main"
+supportInterpreter = true
+
+[[lean_exe]]
+name = "aftk_server_test"
+root = "AFTKTest.Server.Main"
+supportInterpreter = true
+
+[[lean_exe]]
 name = "aftk_test"
 root = "AFTKTest.Main"
 supportInterpreter = true

@@ -5,4 +5,3 @@ import AFTKTest.Server.Worker
 import AFTKTest.Server.Hub
 import AFTKTest.Server.Integration
 import AFTKTest.Server.Process
-import AFTKTest.Server.Main

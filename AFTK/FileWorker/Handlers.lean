@@ -16,7 +16,6 @@ open AFTK.FileWorker.TacticState
 
 structure RuntimeContext where
   worker : WorkerContext
-  transport : AFTK.Server.Transport.JsonTransport
 
 abbrev HandlerM := LeanWorker.Server.StatefulHandlerM RuntimeContext State
 
@@ -97,13 +96,6 @@ def handleRunTactic : LeanWorker.Server.StatefulHandler RuntimeContext State Wor
     TacticState.runTactic id tactic
 
 
-def handleShutdown : LeanWorker.Server.StatefulHandler RuntimeContext State ShutdownParam WorkerShutdownResult :=
-  fun _ => do
-    let runtime ← read
-    let _ ← runtime.transport.inbox.close.toBaseIO
-    pure {}
-
-
 def server (transport : AFTK.Server.Transport.JsonTransport) : LeanWorker.Server.Server RuntimeContext State where
   handlers := LeanWorker.Server.HandlerRegistry.empty
     |>.addStateful "load_node" handleLoadNode
@@ -113,7 +105,6 @@ def server (transport : AFTK.Server.Transport.JsonTransport) : LeanWorker.Server
     |>.addStateful "get_infoview" handleGetInfoView
     |>.addStateful "get_goals" handleGetGoals
     |>.addStateful "run_tactic" handleRunTactic
-    |>.addStateful "shutdown" handleShutdown
   notifications := .empty
   transport := transport
 
