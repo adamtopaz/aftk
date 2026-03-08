@@ -249,6 +249,27 @@ This overview leaves several important questions open for later design documents
 - What operations should be atomic from the CLI’s point of view?
 - What parts of the implementation should be pure Lean, and what parts may rely on supporting libraries or tools?
 
+## Lean 4 core and bundled-library reuse strategy
+
+Research against the Lean 4 v4.28.0 sources bundled under:
+
+```text
+/home/dev/.elan/toolchains/leanprover--lean4---v4.28.0/src/lean
+```
+
+suggests that the first implementation should reuse existing Lean and bundled Lake infrastructure aggressively instead of introducing custom plumbing too early.
+
+The most important reusable pieces are:
+
+- `System.FilePath` and `IO.FS` for path computation, directory traversal, UTF-8 file IO, temp files, renames, and directory creation
+- `Lean.Data.Json` plus `Lean.Data.Json.FromToJson` for JSON parsing, pretty-printing, and derived `ToJson`/`FromJson` instances
+- `Std.HashMap` and `Std.HashSet` for accumulation, deduplication, and duplicate detection during scans
+- `Std.TreeMap` and `Std.TreeSet` for deterministic ordering, persisted index structures, and ordered queries
+- `Std.Time` for timestamp acquisition, parsing, and formatting support
+- bundled Lake utilities such as `Lake.Util.Cli`, `Lake.Util.MainM`, and `Lake.Util.Log` if importing Lake modules into the executable target is acceptable
+
+The component plans below now record file-specific reuse findings so implementation can start from the existing Lean toolchain rather than from fresh utility code.
+
 ## Remaining design work before implementation
 
 The core knowledge-base architecture is now defined well enough that no additional large component plan is strictly required before beginning implementation.
@@ -306,6 +327,7 @@ It should be updated as design decisions are made and code lands.
 - [x] Add a follow-up component plan for serialization design (`plans/knowledgebase/serialization.md`)
 - [x] Add a follow-up component plan for repair design (`plans/knowledgebase/repair.md`)
 - [x] Add a follow-up component plan for indexing design (`plans/knowledgebase/indexing.md`)
+- [x] Research reusable Lean 4 core and bundled Lake support for implementation and record the findings across the component plans
 
 ### Lean CLI surface
 

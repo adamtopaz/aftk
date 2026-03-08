@@ -378,6 +378,18 @@ A sensible first indexing slice would likely be:
 
 This would provide real operational value while keeping the semantic source of truth simple.
 
+## Lean 4 reuse findings
+
+The core `Std` collections already cover much of the intended indexing workload.
+
+- `Std.HashMap` and `Std.HashSet` are good for fast accumulation during full rebuilds.
+- `Std.TreeMap` and `Std.TreeSet` are especially attractive for persisted index data because they give deterministic key order and ordered queries.
+- `Std.TreeMap` already exposes `minKey?`, `maxKey?`, `getEntryGE?`, `getEntryGT?`, `getEntryLE?`, and `getEntryLT?`, which are useful for prefix and range-style index queries later.
+- `Lean.Data.Json.FromToJson.Extra` already provides `ToJson` and `FromJson` instances for `Std.TreeMap String α`, which can reduce boilerplate if string-keyed index files are stored as JSON objects.
+- `Array.qsort` remains a simple fallback for deterministic arrays if an index is accumulated in hash-based structures first and only sorted at write time.
+- `IO.FS.Metadata.modified` and related timestamp APIs are available if the index manifest later wants cheap staleness hints.
+- If stable insertion-order dedup becomes useful, the bundled `Lake.Util.OrdHashSet` is a small optional reference implementation worth considering.
+
 ## Open questions for later refinement
 
 - Should node inventory indexing be split from search indexing, or combined under one manifest?

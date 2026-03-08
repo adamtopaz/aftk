@@ -415,6 +415,19 @@ The initial validation design intentionally does **not** require:
 
 Those may come later, but v1 should focus on reliable structural and referential checks.
 
+## Lean 4 reuse findings
+
+The core libraries already cover most of the mechanics needed for structural validation.
+
+- `Std.HashSet.containsThenInsert`, `Std.HashMap.containsThenInsert`, and `getThenInsertIfNew?` are good fits for duplicate-ID and duplicate-edge detection.
+- `Std.TreeMap` and `Std.TreeSet` can be used when validation reports need deterministic grouping or sorted output.
+- `ValidationSeverity`, `ValidationScope`, `ValidationIssue`, and `ValidationReport` should be able to derive `ToJson` cleanly for CLI output, with custom parsing only where stricter canonical behavior is needed elsewhere.
+- `Lean.Data.Json.parse` plus manual object decoding provides enough infrastructure for strict manifest and metadata validation; Lake's manifest code is a good bundled reference for attaching field-specific error context.
+- `System.FilePath.metadata`, `symlinkMetadata`, `isDir`, and `pathExists` cover most file-existence and file-kind checks.
+- `IO.FS.Metadata` already exposes `type`, `modified`, and `byteSize`, which may be useful for richer diagnostics later.
+- `Std.Time.Format` can help validate timestamp strings, but because v1 wants an exact canonical spelling policy, the validator should still enforce the precise accepted form after parsing.
+- Domain-specific issue types should remain project-local; the reusable pieces are the parsing, container, and filesystem utilities rather than the issue taxonomy itself.
+
 ## Open questions for later refinement
 
 - How much structured repair guidance should validation output include directly, given the separate repair design in `plans/knowledgebase/repair.md`?

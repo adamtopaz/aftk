@@ -327,6 +327,18 @@ The initial search design intentionally does **not** require:
 
 Those may become useful later, but v1 should focus on correctness, clarity, and simple discoverability.
 
+## Lean 4 reuse findings
+
+Lean's core string and collection libraries are already enough for the planned v1 search semantics.
+
+- `String.contains`, `String.toLower`, `String.startsWith`, `String.endsWith`, `String.trim`, and `String.splitOn` cover the planned case-insensitive substring search and simple query normalization.
+- `String.Slice` and the core string pattern-search machinery are available if later work wants snippet extraction without immediately copying whole strings.
+- `Std.HashSet` and `Std.HashMap` are natural fits for deduplication and hit accumulation during direct scans.
+- `Array.qsort` or `List.mergeSort` can impose deterministic node-ID ordering when a scan naturally produces arrays or lists.
+- `Std.TreeMap` and `Std.TreeSet` are good fits for ordered search/index structures because they preserve deterministic key order.
+- In particular, `Std.TreeMap` already exposes range-style queries such as `getEntryGE?` and `getEntryGT?`, which will be useful if future search grows prefix or ordered-ID queries.
+- No external text-search library is needed for the first implementation slice.
+
 ## Open questions for later refinement
 
 - What snippet-generation behavior is best for readable text output?

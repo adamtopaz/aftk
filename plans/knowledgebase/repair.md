@@ -461,6 +461,18 @@ The initial repair design intentionally does **not** require:
 
 Those may be revisited later, but v1 repair should remain conservative and data-preserving.
 
+## Lean 4 reuse findings
+
+The existing IO and bundled Lake utilities already support most of the mechanics a conservative repair engine needs.
+
+- `IO.FS.withTempFile` and `rename` support safe rewrite-and-replace flows for normalized manifest or metadata files.
+- `IO.FS.createTempDir` and `IO.FS.withTempDir` are good fits for staging rebuilt derived state or quarantine preparation.
+- `IO.FS.removeFile` and `IO.FS.removeDirAll` support aggressive cleanup of derived state under `.aftk/`.
+- `System.FilePath.symlinkMetadata` is especially relevant for repair because it allows the tool to inspect suspicious entries without accidentally traversing or mutating through symlinks.
+- `IO.FS.Metadata.modified` and `byteSize` are available if quarantine manifests later want to record lightweight forensic context.
+- `Lake.Util.Log`, `Lake.Util.MainM`, and `Lake.Util.Cli` are plausible reusable building blocks for repair-plan, dry-run, and apply commands if importing bundled Lake modules is acceptable.
+- Lake's manifest save/load pattern is also a good reference for repair actions that normalize already-parseable JSON and then write it back deterministically.
+
 ## Open questions for later refinement
 
 - Should repair plan construction always run validation internally, or may it also accept existing validation reports?

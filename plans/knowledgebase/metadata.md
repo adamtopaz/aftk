@@ -101,6 +101,11 @@ end AFTK.KnowledgeBase
 ```
 
 The exact deriving clauses and JSON instances can be decided during implementation.
+Research against Lean's bundled JSON code suggests a likely split:
+
+- small enums and leaf helper structures can likely use `deriving ToJson, FromJson`
+- top-level canonical readers should likely use manual object parsing where v1 strictness requires unknown-field rejection
+
 The broader canonical JSON contract is refined in `plans/knowledgebase/serialization.md`.
 However, the intended behavior is:
 
@@ -284,6 +289,18 @@ The initial metadata design intentionally does **not** include:
 
 Those can be added later if experience shows they are needed.
 For v1, the priority is a small, explicit, implementable Lean type that maps cleanly to JSON.
+
+## Lean 4 reuse findings
+
+Research against `Lean.Data.Json`, `Lean.Elab.Deriving.FromToJson`, `Std.Time`, and bundled Lake helpers suggests the following implementation strategy for metadata.
+
+- `Lean.Data.Json.FromToJson.Basic` already provides `FromJson`/`ToJson` instances for core building blocks such as `String`, `Nat`, `Bool`, `Option`, `Array`, `System.FilePath`, and `Name`.
+- `Lean.Elab.Deriving.FromToJson` registers deriving handlers for `ToJson` and `FromJson`, so `NodeKind`, `NodeStatus`, `RelationshipKind`, and other small helper types can likely use `deriving` with minimal boilerplate.
+- `Lean.Data.Json.Basic` and `Lean.Data.Json.FromToJson.Basic` provide `Json.getObjVal?`, `Json.getObjValAs?`, `Json.setObjValAs!`, and `Json.opt`, which are enough to hand-write strict object readers and deterministic writers where needed.
+- A key caveat from the core code is that derived `FromJson` for structures reads declared fields but does not itself reject extra object fields. Because v1 canonical metadata wants unknown-field rejection, the top-level `NodeMetadata` reader should likely be hand-written rather than relying only on `deriving FromJson`.
+- `Lake.Util.JsonObject` is a useful bundled wrapper if we want slightly less boilerplate for manual object decoding while still controlling strictness ourselves.
+- `Std.Time.Format` already provides parsers and formatters for Lean-style timestamps, but those parsers are broader than the exact v1 canonical contract. They are a good validation aid, but the final metadata validator should still enforce the exact UTC whole-second form required by this plan.
+- If Lean declaration references later become more structured, core Lean already has JSON support for `Name`, so `LeanDeclRef` can evolve without inventing a separate name encoding scheme.
 
 ## Open questions for later refinement
 

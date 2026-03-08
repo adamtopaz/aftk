@@ -329,6 +329,18 @@ The initial storage design intentionally does **not** include:
 
 Those may be explored later, but the first storage system should stay simple, local, and inspectable.
 
+## Lean 4 reuse findings
+
+The core filesystem APIs are already rich enough for the planned storage layer.
+
+- `System.FilePath` gives `normalize`, `parent`, `/`, `withExtension`, `extension`, `components`, `isAbsolute`, and `isRelative`, which cover most root and node-path computations.
+- `System.FilePath.readDir`, `metadata`, `symlinkMetadata`, `isDir`, and `pathExists` support root discovery and storage validation.
+- `IO.FS.createDirAll` directly supports `init` and lazy creation of internal directories.
+- `IO.FS.realPath` and `Lean.Util.Path.realPathNormalized` provide canonicalized root/path resolution when needed.
+- `IO.FS.withTempFile`, `createTempDir`, `rename`, `removeFile`, and `removeDirAll` line up well with the plan's temp-file-plus-rename and rebuildable-derived-state semantics.
+- Lake's own `Lake.Load.Manifest` code is a useful bundled reference for versioned manifest load/parse/save patterns, including newline-terminated pretty JSON writes.
+- One caveat from the core APIs is that `System.FilePath.walkDir` follows symlinks. If canonical storage should stay strictly inside `knowledgebase/nodes/`, explicit `readDir` recursion is safer than default `walkDir` use.
+
 ## Open questions for later refinement
 
 - Should the manifest eventually include more global settings?

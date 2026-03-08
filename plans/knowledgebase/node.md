@@ -286,6 +286,17 @@ The initial node design intentionally does **not** include:
 
 Those may be considered later, but the initial design should stay simple: one Markdown file plus one JSON file per node.
 
+## Lean 4 reuse findings
+
+Research against `System.FilePath`, `IO.FS`, and `Lean.Util.Path` suggests several low-boilerplate implementation choices for nodes.
+
+- `System.FilePath` already provides `parent`, `fileStem`, `extension`, `withExtension`, `addExtension`, `components`, `normalize`, and `/`; these cover most of the path-pairing logic for sibling `.md` and `.json` files.
+- `IO.FS.readFile` and `IO.FS.writeFile` directly cover UTF-8 body IO for Markdown and metadata files.
+- `System.FilePath.readDir` and `IO.FS.DirEntry.path` are enough for explicit canonical-tree scans when enumerating nodes.
+- `Lean.Util.Path.modToFilePath` and `Lean.Util.Path.forEachModuleInDir` are strong reference points because node IDs follow a dotted, module-like namespace. If `NodeId` is internally represented by a validated wrapper around `Lean.Name`, these helpers could remove path-mapping boilerplate.
+- `Lean.Name` already has component/root operations, but it should only be reused behind a `NodeId` wrapper because raw `Name` permits anonymous and numeric components that may not match the canonical storage policy for knowledge-base IDs.
+- One caveat from the core IO API is that `System.FilePath.walkDir` follows symlinks. For strict canonical node traversal, explicit recursion over `readDir` is probably safer than blindly using `walkDir`.
+
 ## Open questions for later refinement
 
 - Should rename operations preserve aliases or historical IDs later?

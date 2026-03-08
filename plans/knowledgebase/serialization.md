@@ -118,7 +118,7 @@ The canonical writer should use a deterministic formatting policy.
 For v1, that policy should be:
 
 - 2-space indentation
-- stable object key order
+- stable object key order (and, if the implementation relies directly on `Lean.Json`, that order will naturally be key-sorted)
 - no unnecessary whitespace beyond normal pretty-printing
 - trailing newline at end of file
 
@@ -185,6 +185,8 @@ The metadata reader should:
 - reject malformed field types
 - reject unsupported schema versions
 
+In practice, that likely means a manual top-level object reader for canonical metadata rather than relying only on derived `FromJson` instances.
+
 ### Writer policy
 
 The metadata writer should produce deterministic JSON.
@@ -232,6 +234,7 @@ When writing metadata JSON, fields should appear in this order:
 
 This is a deterministic presentation rule for the canonical writer.
 It is not a semantic requirement for readers beyond the normal JSON object model.
+If the implementation relies only on `Lean.Json` object emission, preserving this non-lexicographic order will require a tiny custom object writer rather than the default `Json.pretty` path.
 
 ## Canonical relationship JSON contract
 
@@ -276,6 +279,8 @@ The manifest reader should:
 - require all manifest fields from the v1 schema
 - reject unknown fields in v1
 - reject unsupported schema versions
+
+As with metadata, a manual top-level object reader is the most direct way to satisfy this strictness policy with Lean's bundled JSON tools.
 
 ### Writer policy
 
@@ -443,6 +448,22 @@ The initial serialization design intentionally does **not** include:
 - schema-less CLI JSON output
 
 Those choices may be revisited later, but v1 should prioritize predictability and correctness.
+
+## Lean 4 reuse findings
+
+Lean's bundled JSON support is strong, but it has one important consequence for this design.
+
+- `Lean.Data.Json.parse`, `Json.pretty`, `Json.compress`, `Json.getObjValAs?`, `Json.setObjValAs!`, and `Json.opt` cover most parsing and writing needs.
+- `Lean.Elab.Deriving.FromToJson` already registers deriving handlers for `ToJson` and `FromJson`, so leaf enums and simple helper structures can likely use `deriving`.
+- `IO.FS.readFile` and `IO.FS.writeFile` already provide UTF-8 text IO for canonical JSON and Markdown files.
+- A crucial detail from `Lean.Data.Json.Basic` is that `Json.obj` is backed by `Std.TreeMap.Raw String Json`, and `Json.mkObj` builds objects through that ordered map.
+- That means `Json.pretty` naturally gives deterministic key-sorted object output, but it does not preserve an arbitrary custom insertion order.
+- Consequently, the implementation has two realistic low-boilerplate choices:
+  - align canonical object ordering with the sorted-key behavior of `Lean.Json`, or
+  - keep the custom field-order policy from this plan and implement a tiny project-local canonical object writer for those files.
+- Likewise, strict unknown-field rejection for canonical files will likely require manual object decoders for top-level manifest and metadata types, since derived `FromJson` for structures does not by itself enforce a no-extra-fields policy.
+- `Lake.Util.JsonObject` is a useful bundled helper if we want manual strict decoders without working directly with raw tree maps everywhere.
+- `Std.Time.Format` is a good validation and formatting aid for timestamps, but exact canonical `...Z` whole-second output may still want a small wrapper on top of the broader library formats.
 
 ## Open questions for later refinement
 

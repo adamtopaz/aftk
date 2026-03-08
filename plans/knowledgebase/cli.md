@@ -520,6 +520,19 @@ end AFTK.KnowledgeBase
 ```
 
 This is only a conceptual design, not a commitment to a specific parser library or exact implementation type.
+That said, the bundled `Lake.Util.Cli` code now looks like the strongest low-boilerplate implementation candidate for the first parser.
+
+## Lean 4 reuse findings
+
+The bundled Lake sources contain the strongest ready-made CLI infrastructure currently available in the Lean toolchain.
+
+- `Lake.Util.Cli` already provides a small argument-parsing framework based on `ArgsT`, with helpers such as `takeArg?`, `takeArgs`, `processLeadingOptions`, `collectArgs`, `longOption`, and `shortOption`.
+- That is enough to implement a clean project-local parser for `knowledgebase` commands without bringing in a third-party CLI library.
+- `Lake.Util.MainM` and `Lake.Util.Exit` provide a lightweight main-monad and exit-code pattern for Lean executables.
+- `Lake.Util.Log` provides reusable verbosity, log-level, ANSI, and structured log-entry machinery if the CLI wants standardized text and JSON operational output.
+- `IO.currentDir`, `IO.println`, `IO.eprintln`, and `System.FilePath` already cover the remaining basic runtime needs once arguments are parsed.
+- If importing bundled Lake modules into the executable target is acceptable, the initial CLI implementation should strongly prefer these utilities over hand-written argument-state plumbing.
+- If we choose not to depend on Lake modules directly, the `Lake.Util.Cli` sources are still the clearest bundled reference for a minimal parser architecture.
 
 ## Open questions for later refinement
 
