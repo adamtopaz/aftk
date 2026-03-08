@@ -33,7 +33,7 @@ private unsafe def hoverInfoSmoke : TestCase := {
   run := do
     let root ← basicRoot
     let input := String.intercalate "\n" [
-      "import AFTK",
+      "import AFTK.Informal",
       s!"set_option aftk.informal.root \"{root}\"",
       "def hoverSmoke : Nat := informal[group.basic.definition]",
       ""
