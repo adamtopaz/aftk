@@ -18,6 +18,18 @@ private unsafe def importEnvironment (modules : Array Name) : IO Environment := 
   let imports := modules.map fun moduleName => ({ module := moduleName : Import })
   Lean.importModules imports {} (loadExts := true)
 
+initialize importedEnvCache : IO.Ref (Std.HashMap (Array Name) Environment) ← IO.mkRef {}
+
+private unsafe def cachedEnvironment (modules : Array Name) : IO Environment := do
+  let cache ← importedEnvCache.get
+  match cache.get? modules with
+  | some env =>
+      pure env
+  | none =>
+      let env ← importEnvironment modules
+      importedEnvCache.modify fun cache => cache.insert modules env
+      pure env
+
 private def runCoreInEnv (env : Environment) (x : CoreM α) : IO α := do
   let ctx : Core.Context := {
     fileName := "<aftk-informal-test>"
@@ -49,11 +61,11 @@ private def runCoreInEnv (env : Environment) (x : CoreM α) : IO α := do
   #[`AFTKTest.Informal.Fixtures.DirectPlaceholder]
 
 @[inline] unsafe def withImportedModules (modules : Array Name) (f : Environment → TestM α) : TestM α := do
-  let env ← liftIO <| importEnvironment modules
+  let env ← liftIO <| cachedEnvironment modules
   f env
 
 @[inline] unsafe def runCoreInModules (modules : Array Name) (x : CoreM α) : TestM α := do
-  let env ← liftIO <| importEnvironment modules
+  let env ← liftIO <| cachedEnvironment modules
   liftIO <| runCoreInEnv env x
 
 @[inline] def runTopLevelAftkCli (args : Array String) (input? : Option String := none) : TestM IO.Process.Output := do
