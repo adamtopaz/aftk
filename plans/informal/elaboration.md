@@ -7,9 +7,9 @@ This document refines the overall informal-layer plan in `plans/informal.md` and
 
 ## Component implementation status
 
-- Overall status: Not implemented
-- Implemented in code: No
-- Last updated basis: rewrite worktree has no informal elaborator yet; this design is based on `plan.md`, `plans/informal.md`, and the current main-worktree implementation in `/home/dev/aftk/Informalize/Elaborator.lean`
+- Overall status: Implemented (initial v1)
+- Implemented in code: Yes
+- Last updated basis: rewrite worktree now elaborates bracketed `informal[...]` references against the knowledge base, attaches compact hover summaries, and records successful declaration-level occurrences.
 
 ## Purpose
 

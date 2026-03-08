@@ -7,9 +7,9 @@ This document refines the overall informal-layer plan in `plans/informal.md` and
 
 ## Component implementation status
 
-- Overall status: Not implemented
-- Implemented in code: No
-- Last updated basis: rewrite worktree has no informal-layer CLI yet; this design is based on `plans/informal.md`, the current main-worktree `Informalize.Cli` design in `/home/dev/aftk/Informalize/Cli.lean`, and the current rewrite top-level executable shape in `Main.lean`
+- Overall status: Implemented (initial v1)
+- Implemented in code: Yes
+- Last updated basis: rewrite worktree now provides `AFTK.Informal.Cli.*`, top-level `lake exe aftk informal ...` dispatch, JSON/text rendering, and tested environment-backed and presentation-backed commands.
 
 ## Purpose
 

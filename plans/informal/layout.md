@@ -7,9 +7,9 @@ This document refines the overall informal-layer plan in `plans/informal.md` and
 
 ## Component implementation status
 
-- Overall status: Not implemented
-- Implemented in code: No
-- Last updated basis: rewrite worktree currently has no `AFTK/Informal/*` module tree; this document is based on the current knowledge-base layout under `AFTK/KnowledgeBase/*`, the current top-level executable shape in `Main.lean`, and the informal-layer component plans already added under `plans/informal/`
+- Overall status: Implemented (initial v1)
+- Implemented in code: Yes
+- Last updated basis: rewrite worktree now contains the planned `AFTK/Informal/*`, `AFTK/Informal/Cli/*`, and `AFTKTest/Informal/*` module trees together with top-level executable and test-driver integration.
 
 ## Purpose
 

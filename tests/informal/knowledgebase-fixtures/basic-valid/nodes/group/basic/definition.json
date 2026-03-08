@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "group.basic.definition",
+  "title": "Definition of group",
+  "kind": "definition",
+  "status": "active",
+  "summary": "A group is a monoid in which every element has an inverse.",
+  "tags": ["algebra", "basic"],
+  "authors": ["AFTK"],
+  "relationships": [
+    {
+      "kind": "dependsOn",
+      "target": "algebra.monoid.definition",
+      "label": "extends"
+    }
+  ],
+  "leanRefs": [
+    {
+      "module": "AFTKTest.Informal.Fixtures.Basic",
+      "declaration": "oneRef",
+      "kind": "definition"
+    }
+  ]
+}

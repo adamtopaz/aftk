@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "group.basic.operation_note",
+  "title": "Operation note",
+  "kind": "note",
+  "status": "draft",
+  "summary": "Notation and operation choices for groups."
+}

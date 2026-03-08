@@ -7,9 +7,9 @@ This document refines the overall informal-layer plan in `plans/informal.md` and
 
 ## Component implementation status
 
-- Overall status: Not implemented
-- Implemented in code: No
-- Last updated basis: rewrite worktree has no informal-layer presentation module yet; this design is based on `plans/informal.md`, `plans/informal/elaboration.md`, the current knowledge-base node metadata shape under `AFTK/KnowledgeBase/Types.lean`, and the current main-worktree hover integration in `/home/dev/aftk/Informalize/Elaborator.lean` and `/home/dev/aftk/Informalize/Metadata.lean`
+- Overall status: Implemented (initial v1)
+- Implemented in code: Yes
+- Last updated basis: rewrite worktree now implements compact and rich presentation builders/renderers in `AFTK.Informal.Presentation` and attaches compact summaries to info trees during elaboration.
 
 ## Purpose
 

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "analysis.uniform_continuity",
+  "title": "Uniform continuity",
+  "kind": "explanation",
+  "status": "active",
+  "summary": "A global continuity condition with one modulus working on the whole domain.",
+  "tags": ["analysis", "continuity"],
+  "authors": ["Ada", "Bernhard"],
+  "relationships": [
+    {
+      "kind": "seeAlso",
+      "target": "group.basic.definition",
+      "label": "comparison"
+    },
+    {
+      "kind": "relatedTo",
+      "target": "algebra.monoid.definition"
+    }
+  ],
+  "leanRefs": [
+    {
+      "module": "Mathlib",
+      "declaration": "UniformContinuous",
+      "kind": "theorem"
+    }
+  ]
+}

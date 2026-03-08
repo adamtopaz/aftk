@@ -12,7 +12,9 @@ name = "AFTKTest"
 [[lean_exe]]
 name = "aftk"
 root = "Main"
+supportInterpreter = true
 
 [[lean_exe]]
 name = "aftk_test"
-root = "AFTKTest.KnowledgeBase.Main"
+root = "AFTKTest.Main"
+supportInterpreter = true

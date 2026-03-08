@@ -7,9 +7,9 @@ This document refines the overall informal-layer plan in `plans/informal.md` and
 
 ## Component implementation status
 
-- Overall status: Not implemented
-- Implemented in code: No
-- Last updated basis: rewrite worktree has no informal-layer reference module yet; this design is based on `plans/informal.md`, `plans/informal/elaboration.md`, the current knowledge-base implementation under `AFTK/KnowledgeBase/*`, and the current main-worktree `Informalize.LocationId` design in `/home/dev/aftk/Informalize/Location.lean`
+- Overall status: Implemented (initial v1)
+- Implemented in code: Yes
+- Last updated basis: rewrite worktree now implements `InformalReference`, `ResolvedInformalReference`, and exact knowledge-base-backed resolution helpers in `AFTK.Informal.References`.
 
 ## Purpose
 

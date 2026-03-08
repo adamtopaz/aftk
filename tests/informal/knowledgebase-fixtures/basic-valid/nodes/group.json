@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "group",
+  "title": "Group",
+  "kind": "concept",
+  "status": "active",
+  "summary": "A group is a monoid with inverses."
+}

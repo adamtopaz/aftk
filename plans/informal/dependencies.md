@@ -7,9 +7,9 @@ This document refines the overall informal-layer plan in `plans/informal.md` and
 
 ## Component implementation status
 
-- Overall status: Not implemented
-- Implemented in code: No
-- Last updated basis: rewrite worktree has no informal-layer dependency module yet; this design is based on `plans/informal.md`, `plans/informal/tracking.md`, and the current main-worktree dependency logic in `/home/dev/aftk/Informalize/Cli.lean`
+- Overall status: Implemented (initial v1)
+- Implemented in code: Yes
+- Last updated basis: rewrite worktree now derives declaration and reference dependency views in `AFTK.Informal.Dependencies` from Lean environment usage plus tracked declaration↔reference linkage.
 
 ## Purpose
 

@@ -8,9 +8,9 @@ Detailed subdesigns should live in component plan files under `plans/informal/`.
 
 ## Plan implementation status
 
-- Overall status: Not implemented
-- Fully implemented: No
-- Last updated basis: rewrite worktree currently has no dedicated informal-layer code; this plan is based on the overall rewrite architecture in `plan.md` and on the current main-worktree `Informalize` implementation in `/home/dev/aftk`
+- Overall status: Implemented (initial v1)
+- Fully implemented: Yes
+- Last updated basis: rewrite worktree now contains the initial `AFTK.Informal` library, `lake exe aftk informal ...` CLI, knowledge-base-backed elaboration/tracking/presentation support, and an integrated informal-layer test suite.
 
 This section is the single place for tracking whether the informal layer plan has been fully implemented.
 It should be updated whenever the implementation meaningfully changes.

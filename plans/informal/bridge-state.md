@@ -7,9 +7,9 @@ This document refines the overall informal-layer plan in `plans/informal.md` and
 
 ## Component implementation status
 
-- Overall status: Not implemented
-- Implemented in code: No
-- Last updated basis: rewrite worktree has no dedicated bridge-state module or filesystem state yet; this design is based on `plans/informal.md` and the already-added informal component plans
+- Overall status: Implemented (initial v1)
+- Implemented in code: Yes
+- Last updated basis: rewrite worktree now implements declaration→reference bridge state through `AFTK.Informal.Tracking` and keeps richer bridge views derived rather than persisted.
 
 ## Purpose
 

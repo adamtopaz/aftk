@@ -7,9 +7,9 @@ This document refines the overall informal-layer plan in `plans/informal.md` and
 
 ## Component implementation status
 
-- Overall status: Not implemented
-- Implemented in code: No
-- Last updated basis: rewrite worktree has no informal-layer tracking module yet; this design is based on `plans/informal.md`, `plans/informal/elaboration.md`, `plans/informal/references.md`, and the current main-worktree persistent-environment-extension design in `/home/dev/aftk/Informalize/Extension.lean`
+- Overall status: Implemented (initial v1)
+- Implemented in code: Yes
+- Last updated basis: rewrite worktree now records declaration↔reference linkage through `AFTK.Informal.Tracking` using a `SimplePersistentEnvExtension` with deterministic declaration and reverse-reference query APIs.
 
 ## Purpose
 

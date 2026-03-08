@@ -7,9 +7,9 @@ This document refines the overall informal-layer plan in `plans/informal.md` and
 
 ## Component implementation status
 
-- Overall status: Not implemented
-- Implemented in code: No
-- Last updated basis: rewrite worktree currently has no informal-layer test tree; this document is based on the current knowledge-base test structure under `AFTKTest/KnowledgeBase/*`, the informal-layer component plans under `plans/informal/`, and the current main-worktree experience that elaboration- and CLI-heavy behavior needs both imported-module tests and subprocess-style integration tests
+- Overall status: Implemented (initial v1)
+- Implemented in code: Yes
+- Last updated basis: rewrite worktree now contains an `AFTKTest/Informal/*` suite, successful elaboration fixtures, compile-fail subprocess fixtures, fixture knowledge-base roots, and CLI integration coverage under `lake test`.
 
 ## Purpose
 

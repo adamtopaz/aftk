@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "algebra.monoid.definition",
+  "title": "Definition of monoid",
+  "kind": "definition",
+  "status": "active",
+  "summary": "A monoid is a semigroup with an identity element."
+}
