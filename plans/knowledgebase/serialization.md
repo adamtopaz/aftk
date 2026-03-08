@@ -141,6 +141,8 @@ Examples:
 "2026-03-07T21:49:18Z"
 ```
 
+For v1, `Timestamp` should use a strict UTC whole-second form such as `YYYY-MM-DDTHH:MM:SSZ`.
+
 ### Enum-like types
 
 Enum-like Lean types should serialize as predictable JSON strings.
@@ -197,6 +199,19 @@ For v1, it should:
 - omit defaulted empty arrays
 
 This keeps metadata readable while preserving stable canonical semantics.
+
+### Operational field management for `NodeMetadata`
+
+The canonical metadata schema is distinct from the operational behavior of CLI mutation commands.
+In v1, the intended operational rules are:
+
+- `create` populates both `createdAt` and `updatedAt`
+- `body set` refreshes `updatedAt`
+- `metadata replace` refreshes `updatedAt`
+- `rename` refreshes `updatedAt`
+- `metadata replace <id>` must not implicitly change `id`
+
+Those rules should be applied before canonical JSON is written back to disk.
 
 ### Field order for `NodeMetadata`
 

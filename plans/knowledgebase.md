@@ -163,7 +163,7 @@ The knowledge base CLI should eventually support operations in categories like t
 ### Content management
 
 - create a node
-- update a node
+- update a node’s body or metadata
 - rename or move a node
 - delete a node if deletion is supported
 - view a node
@@ -260,20 +260,19 @@ These are likely useful follow-up documents, but they are not all blockers for t
 
 - none currently identified as missing design docs
 
-### Design clarifications to resolve before first implementation
+### Design clarifications resolved for the first implementation
 
-The following points should be clarified before implementation starts in earnest:
+The previously identified blocking clarifications have now been resolved in the component plans:
 
-- [ ] Creation and mutation defaults: whether empty Markdown bodies are allowed, which metadata defaults are auto-populated on create, and whether body/metadata updates should auto-update `updatedAt`
-- [ ] Metadata replacement identity rule: whether `metadata replace <id>` must preserve the existing node ID and reject accidental implicit renames
-- [ ] Search v1 semantics: case sensitivity, which textual fields are searched by default, matching behavior, result ordering, and limit behavior
-- [ ] Validation severity policy: which conditions should be errors versus warnings in v1
-- [ ] Mutation command model reconciliation: whether there is a real top-level `update` command or whether the initial mutation model is instead `body set` plus `metadata replace`
-- [ ] Cleanup of now-stale resolved questions in component docs as decisions are incorporated
+- [x] Root discovery semantics fixed in `plans/knowledgebase/storage.md` and `plans/knowledgebase/cli.md`
+- [x] Creation and mutation defaults fixed in `plans/knowledgebase/node.md`, `plans/knowledgebase/metadata.md`, and `plans/knowledgebase/cli.md`
+- [x] Metadata replacement identity rule fixed in `plans/knowledgebase/metadata.md` and `plans/knowledgebase/cli.md`
+- [x] Search v1 semantics fixed in `plans/knowledgebase/search.md` and `plans/knowledgebase/cli.md`
+- [x] Validation severity policy fixed in `plans/knowledgebase/validation.md`
+- [x] Mutation command model reconciled in `plans/knowledgebase/cli.md` and this overview plan
+- [x] Stale resolved questions cleaned up where they were blocking implementation
 
-The root-discovery rule has now been fixed: when invoked via `lake exe`, the tool is assumed to be run from the root of a Lake project, so the default knowledge-base root is `knowledgebase/` at that project root unless `--root` is provided.
-
-Once the remaining clarifications are resolved, the knowledge base layer should be ready for implementation without any further major architectural planning.
+At this point, no additional blocking design clarification is identified before starting implementation.
 
 ## Immediate implementation direction
 
@@ -281,7 +280,7 @@ The first implementation work for this layer should likely focus on:
 
 1. implementing the initial node, metadata, and storage types plus their JSON/path mappings
 2. creating the initial `lake exe aftk knowledgebase ...` command surface
-3. supporting basic create/read/update/list operations
+3. supporting basic create/read/list operations plus body and metadata mutation commands
 4. adding simple validation and search
 5. implementing root initialization and node-resolution logic
 6. refining the design where implementation pressure reveals missing details
@@ -315,8 +314,8 @@ It should be updated as design decisions are made and code lands.
 - [ ] Implement `create`
 - [ ] Implement `read`/`show`
 - [ ] Implement `list`
-- [ ] Implement `update`
-- [ ] Implement metadata inspection/editing commands
+- [ ] Implement body mutation commands
+- [ ] Implement metadata inspection/replacement commands
 
 ### Validation and discovery
 
@@ -346,6 +345,7 @@ It should be updated as design decisions are made and code lands.
 - The initial serialization design is now captured in `plans/knowledgebase/serialization.md`
 - The initial repair design is now captured in `plans/knowledgebase/repair.md`
 - The initial indexing design is now captured in `plans/knowledgebase/indexing.md`
+- No additional blocking design clarification is currently identified before implementation
 - This checklist is intentionally high-level and can be refined into smaller tasks later
 
 ## Summary

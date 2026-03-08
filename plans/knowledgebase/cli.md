@@ -79,6 +79,12 @@ knowledgebase/
 The v1 CLI should not attempt upward directory discovery in the default case.
 If the caller needs a different root, they should pass `--root` explicitly.
 
+### Initialization requirement
+
+All commands other than `init` should require the resolved root to already be an initialized knowledge base.
+The v1 CLI should not lazily initialize `knowledgebase/` as a side effect of commands such as `create`, `show`, or `search`.
+If the root is missing or uninitialized, those commands should fail with a storage initialization error.
+
 ### Output format
 
 The CLI should support two broad output modes:
@@ -200,9 +206,13 @@ Initial create behavior should:
 
 - validate the node ID
 - resolve canonical storage paths
+- require an already initialized knowledge-base root
 - fail if the node already exists unless overwrite behavior is explicitly requested later
 - create both the Markdown and JSON files
 - initialize required metadata fields
+- allow an empty Markdown body if no body content is supplied
+- auto-populate `createdAt` and `updatedAt` to the creation timestamp
+- default `kind` to `note` and `status` to `draft` unless explicitly provided
 
 #### `rename <old-id> <new-id>`
 
@@ -230,6 +240,7 @@ If safety flags such as `--dry-run` or `--yes` are later needed, they can be add
 
 The Markdown body is important enough to justify a dedicated command family.
 This avoids forcing all edits through a single overly generic `update` command.
+In fact, the v1 CLI should not have a generic top-level `update` command at all; mutation should happen through explicit body and metadata subcommands.
 
 #### `body show <id>`
 
@@ -245,6 +256,7 @@ lake exe aftk knowledgebase body set topology.open_cover --stdin
 ```
 
 The initial design should prefer explicit body replacement over complicated patch semantics.
+A successful body update should also refresh `updatedAt` in the node metadata.
 More sophisticated editing commands can be added later.
 
 ### Metadata commands
@@ -267,6 +279,8 @@ lake exe aftk knowledgebase metadata replace topology.open_cover --stdin
 ```
 
 This command should replace the full metadata object subject to validation.
+In v1, it must preserve the targeted node ID: if the supplied metadata has an `id` different from `<id>`, the command should fail rather than silently performing a rename.
+A successful metadata replacement should also refresh `updatedAt` to the current timestamp.
 That is simpler and safer for an initial implementation than exposing a rich patch language immediately.
 
 #### `metadata validate <id>`
@@ -314,17 +328,21 @@ Search should have its own command family so that discovery can grow over time w
 
 ```text
 lake exe aftk knowledgebase search text "open cover"
+lake exe aftk knowledgebase search text "open cover" --limit 20
 ```
 
-Initial behavior should be simple full-text search over canonical content.
+In v1, this should perform a case-insensitive substring search over Markdown body text plus the `title` and `summary` metadata fields.
+Results should be returned in deterministic node-ID order, with no ranking required in the initial implementation.
 
 #### `search tag <tag>`
 
 ```text
 lake exe aftk knowledgebase search tag topology
+lake exe aftk knowledgebase search tag topology --limit 20
 ```
 
 This provides a lightweight metadata-driven query path.
+In v1, it should use exact tag matching and return results in deterministic node-ID order.
 
 ### Relationship commands
 

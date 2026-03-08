@@ -102,19 +102,21 @@ This is the basic full-text search command.
 Initial semantics should be:
 
 - search Markdown body text
-- optionally include selected textual metadata fields such as `title` and `summary`
+- also search the `title` and `summary` metadata fields by default
+- use case-insensitive substring matching in v1
 - return matching nodes
-- prefer simple substring or token-based matching in v1
+- support an optional result limit when the CLI exposes `--limit`
 
-The first implementation does not need stemming, fuzzy search, or advanced ranking.
+The first implementation does not need stemming, fuzzy search, token ranking, or advanced scoring.
 
 ### `search tag <tag>`
 
 This is a structured metadata search over the `tags` field.
 Initial semantics should be:
 
-- exact tag match
+- exact tag match against stored tag strings
 - return nodes carrying that tag
+- support an optional result limit when the CLI exposes `--limit`
 
 This should be easy to implement and very useful in practice.
 
@@ -222,18 +224,13 @@ The initial implementation should keep ordering rules simple.
 
 ### For `search text`
 
-A simple initial strategy could be one of:
-
-- unsophisticated stable order by node ID
-- stable order by path scan order
-- lightweight ranking by number or quality of textual matches
-
-If ranking is introduced, it should be shallow and explainable.
-The design should not require advanced scoring in v1.
+In v1, text-search results should use stable node-ID order.
+The design should not require ranking in the initial implementation.
+If ranking is introduced later, it should be shallow and explainable.
 
 ### For structured searches
 
-For tag/kind/status/prefix-style queries, a stable deterministic order such as node ID order is preferable.
+For tag/kind/status/prefix-style queries, v1 should also use stable node-ID order.
 
 ## Relationship-aware discovery
 
@@ -305,9 +302,9 @@ For example:
 
 The first search implementation should likely prioritize:
 
-1. `search text <query>` over Markdown body plus lightweight textual metadata
+1. `search text <query>` using case-insensitive substring search over Markdown body plus `title` and `summary`
 2. `search tag <tag>` over exact metadata tags
-3. deterministic text and JSON output
+3. deterministic text and JSON output in node-ID order
 4. direct canonical-file scanning
 
 After that, likely next steps are:
@@ -332,7 +329,6 @@ Those may become useful later, but v1 should focus on correctness, clarity, and 
 
 ## Open questions for later refinement
 
-- Should text search include `title` and `summary` by default, or only Markdown body text?
 - What snippet-generation behavior is best for readable text output?
 - When should ranking be introduced, if at all?
 - How much query composition should the first CLI expose?

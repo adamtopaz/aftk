@@ -84,7 +84,7 @@ Examples:
 - required fields exist
 - `title` is nonempty
 - enum values are recognized
-- timestamps have acceptable string format
+- timestamps use the accepted strict UTC whole-second format
 - relationship targets are syntactically valid node IDs
 - Lean reference fields are structurally valid
 
@@ -193,6 +193,7 @@ Illustrative issue-code families:
 - `storage.rootMissing`
 - `storage.manifestMissing`
 - `storage.manifestParseError`
+- `storage.manifestUnknownField`
 - `storage.unsupportedSchemaVersion`
 - `storage.nodesDirMissing`
 - `storage.canonicalDataInInternalDir`
@@ -215,6 +216,7 @@ Illustrative issue-code families:
 - `metadata.invalidNodeId`
 - `metadata.invalidTimestamp`
 - `metadata.invalidEnumValue`
+- `metadata.unknownField`
 
 ### Relationship-level codes
 
@@ -224,6 +226,40 @@ Illustrative issue-code families:
 - `relationships.contradictoryEdgeWarning`
 
 The exact set can be refined during implementation, but issue codes should be intentional from the start.
+
+## Initial severity policy for v1
+
+The v1 validation policy should classify issues as follows.
+
+### Errors
+
+The following should be treated as errors in v1:
+
+- missing or malformed canonical storage roots and manifests
+- unsupported schema versions
+- unknown fields in canonical manifest or metadata JSON
+- missing canonical Markdown or metadata files
+- orphan canonical `.md` or `.json` files
+- metadata/path ID mismatches
+- duplicate node IDs
+- malformed metadata field values, including invalid timestamps
+- broken relationship targets during full validation
+
+### Warnings
+
+The following should be warnings in v1:
+
+- exact duplicate relationship edges
+- self-relationships
+- obviously contradictory relationship combinations when the validator can detect them cheaply
+
+### Informational findings
+
+The following may be informational in v1:
+
+- missing optional internal derived directories such as `.aftk/index/`, `.aftk/cache/`, or `.aftk/tmp/` when they may be created lazily
+
+This policy is intentionally conservative: canonical-storage integrity failures are errors, while graph-shape oddities that may still be semantically intentional remain warnings unless proven otherwise.
 
 ## Validation rules by component
 
@@ -260,7 +296,7 @@ Metadata validation should check at least:
 - `title` is not empty or all-whitespace
 - `kind` and `status` are recognized
 - tags and authors are well-formed strings
-- timestamps follow the accepted format if present
+- timestamps follow the accepted strict UTC whole-second format if present, such as `2026-03-07T21:49:18Z`
 - relationship records are structurally valid
 - Lean references are structurally valid
 
@@ -270,7 +306,7 @@ Relationship validation should check at least:
 
 - targets are syntactically valid node IDs
 - targets exist when running full validation
-- duplicate edges can be flagged
+- exact duplicate edges can be flagged in v1
 - suspicious self-references can be warned about
 - relationship entries are well-typed and parseable
 
@@ -381,11 +417,8 @@ Those may come later, but v1 should focus on reliable structural and referential
 
 ## Open questions for later refinement
 
-- Which issues should be warnings rather than errors?
-- How much duplicate-edge detection should be done in v1?
 - How much structured repair guidance should validation output include directly, given the separate repair design in `plans/knowledgebase/repair.md`?
 - Should validation output include suggestions/fixes in structured form?
-- How strict should timestamp validation be initially?
 
 ## Summary
 

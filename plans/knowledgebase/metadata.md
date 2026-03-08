@@ -126,6 +126,9 @@ It should be present in metadata even if the file layout also implies an identif
 - consistency between filesystem layout and metadata should be checkable
 - higher layers may want to inspect metadata without reconstructing path-based identity rules
 
+In v1 mutation semantics, this identifier is treated as identity-bearing.
+Replacing metadata for an existing node must preserve this ID; changing it is a rename, not an ordinary metadata edit.
+
 ### `title : String`
 
 A short human-readable title for the node.
@@ -159,8 +162,15 @@ If richer provenance is needed later, this can be refined in a future schema ver
 
 ### `createdAt?` and `updatedAt?`
 
-These are optional timestamp fields stored as ISO-8601 strings.
+These are optional timestamp fields stored as ISO-8601 UTC strings.
+In v1, the accepted canonical format should be a simple whole-second form such as:
+
+```text
+2026-03-07T21:49:18Z
+```
+
 The initial implementation should prefer simple string storage plus validation over a more complicated time representation.
+Operationally, node creation should auto-populate both timestamps, while body updates, metadata updates, and renames should refresh `updatedAt`.
 
 ### `relationships : Array Relationship`
 
@@ -257,7 +267,7 @@ The metadata validator for this schema should eventually check at least the foll
 - `id` is syntactically valid
 - `title` is nonempty
 - enum fields contain known values
-- timestamps, if present, have valid expected string format
+- timestamps, if present, have valid UTC whole-second format such as `2026-03-07T21:49:18Z`
 - relationship targets are syntactically valid node identifiers
 - relationship targets resolve to existing nodes when full-reference validation is requested
 - duplicate or obviously contradictory relationships can be flagged

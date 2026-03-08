@@ -30,7 +30,7 @@ The node design should:
 - support direct filesystem inspection and editing
 - align with the metadata type design
 - make validation rules straightforward to express and enforce
-- support future CLI operations such as create, read, update, rename, and delete
+- support future CLI operations such as create, read, body/metadata mutation, rename, and delete
 
 Lean module and namespace naming for this layer should use `KnowledgeBase` rather than the abbreviation `KB`.
 For example, the intended namespace is `AFTK.KnowledgeBase`.
@@ -204,6 +204,14 @@ Creating a node should create both canonical files:
 
 The new metadata must include the node’s canonical ID.
 
+In v1, node creation should follow these defaults:
+
+- an empty Markdown body is allowed
+- the created Markdown file may therefore be empty aside from normal newline normalization
+- `kind` defaults to `note` unless explicitly provided
+- `status` defaults to `draft` unless explicitly provided
+- `createdAt` and `updatedAt` should both be auto-populated to the creation timestamp
+
 ### Read
 
 Reading a node should:
@@ -216,10 +224,13 @@ Reading a node should:
 ### Update body
 
 Updating the body should modify the Markdown file while preserving the node’s identity.
+In v1, a body update should also refresh `updatedAt` in metadata to the current timestamp, creating that field if it was absent.
 
 ### Update metadata
 
 Updating metadata should modify the JSON file while preserving node/body pairing invariants.
+In v1, metadata mutation should preserve the node’s canonical ID; changing identity requires an explicit rename operation rather than an implicit metadata edit.
+A metadata update should also refresh `updatedAt` to the current timestamp.
 
 ### Rename
 
@@ -231,6 +242,7 @@ It should update:
 - the canonical JSON path
 
 These updates should happen together as one logical operation.
+A rename should also refresh `updatedAt` in the stored metadata.
 
 ### Delete
 
@@ -276,9 +288,6 @@ Those may be considered later, but the initial design should stay simple: one Ma
 
 ## Open questions for later refinement
 
-- What should the overall knowledge-base root directory be?
-- Should the initial implementation permit empty Markdown bodies?
-- Should node creation auto-populate timestamps in metadata?
 - Should rename operations preserve aliases or historical IDs later?
 - Should nodes eventually support attachments or referenced local assets?
 
