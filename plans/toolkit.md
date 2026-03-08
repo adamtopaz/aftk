@@ -332,20 +332,35 @@ The toolkit layer’s main technical job is to unify three heterogeneous lower-l
 
 The point of the toolkit is not to erase those differences entirely, but to make them manageable and explicit for higher-level code.
 
-## Component plans
+## Design docs still needed under `plans/toolkit/`
 
-The following component plans should live under `plans/toolkit/`.
-These are the main design documents currently needed for this layer.
+This layer does not yet have its component design-doc suite.
+Before implementation proceeds far, we should write the following design docs under `plans/toolkit/`.
+This is the dedicated checklist of the toolkit-specific design documents that are still needed, together with the purpose of each one.
 
-- `plans/toolkit/layout.md` — TypeScript package/module layout, public exports, dependency boundaries, likely `src/toolkit/...` structure, top-level `index.ts` policy, and separation between reusable toolkit code and host adapters
-- `plans/toolkit/runtime.md` — runtime assumptions, project-root discovery, executable resolution, child-process helpers, timeout/cancellation policy, lazy-vs-eager hub startup, shutdown/termination rules, and shared process-management utilities
-- `plans/toolkit/server-client.md` — TypeScript mirror of the rewrite server protocol, JSON-RPC client design, typed request/response helpers, error mapping, request tracking, and compatibility expectations with `docs/server/protocol.md`
-- `plans/toolkit/lean-tools.md` — the Lean-facing tool family built on the server client, including parameter schemas, `aftk_*` naming compatibility, path normalization rules, node-id handling, result formatting, and which current main-worktree behaviors should be preserved or improved
-- `plans/toolkit/knowledgebase-tools.md` — selected knowledge-base tool surface for the rewrite, including which `lake exe aftk knowledgebase ...` commands should receive TypeScript wrappers first, JSON parsing policy, mutation-vs-query boundaries, naming conventions, and how CLI exit codes/errors map into toolkit results
-- `plans/toolkit/informal-tools.md` — selected informal tool surface for the rewrite, including wrappers around `lake exe aftk informal ...`, module/root option handling, presentation/dependency query coverage, naming conventions, and normalization of the informal CLI’s command-shaped JSON into toolkit-friendly results
-- `plans/toolkit/pi-integration.md` — how the reusable toolkit should be mounted into `pi` and custom `@mariozechner/pi-coding-agent` SDK sessions, including thin extension wrappers, session-shutdown hooks, optional stop commands, and boundaries between generic toolkit code and `pi`-specific code
-- `plans/toolkit/output.md` — the cross-tool result contract for concise text, structured details, truncation behavior, error envelopes, stderr handling, and how to normalize differences between server RPC results and CLI-backed results
-- `plans/toolkit/testing.md` — test strategy for the toolkit layer, including unit coverage for pure helpers, subprocess tests for hub/CLI integration, temporary-fixture policy for mutation commands, and how toolkit tests should fit into repository workflows
+| Design doc | Purpose |
+| --- | --- |
+| `plans/toolkit/layout.md` | Define the TypeScript package/module layout, public exports, dependency boundaries, likely `src/toolkit/...` structure, top-level `index.ts` policy, and the split between reusable toolkit code and host adapters. |
+| `plans/toolkit/runtime.md` | Define runtime assumptions and shared operational utilities: project-root discovery, executable resolution, child-process helpers, timeout/cancellation policy, lazy-vs-eager hub startup, and shutdown/termination rules. |
+| `plans/toolkit/server-client.md` | Define the TypeScript mirror of the rewrite server protocol, including JSON-RPC client design, typed request/response helpers, error mapping, request tracking, and compatibility expectations with `docs/server/protocol.md`. |
+| `plans/toolkit/lean-tools.md` | Define the Lean-facing tool family built on the server client: parameter schemas, `aftk_*` naming compatibility, path normalization rules, node-id handling, result formatting, and which main-worktree behaviors should be preserved or improved. |
+| `plans/toolkit/knowledgebase-tools.md` | Define the selected knowledge-base tool surface for the rewrite: which `lake exe aftk knowledgebase ...` commands should receive TypeScript wrappers first, how JSON parsing should work, mutation-vs-query boundaries, naming conventions, and CLI exit-code/error mapping. |
+| `plans/toolkit/informal-tools.md` | Define the selected informal tool surface for the rewrite: wrappers around `lake exe aftk informal ...`, module/root option handling, presentation/dependency query coverage, naming conventions, and normalization of the informal CLI’s command-shaped JSON into toolkit-friendly results. |
+| `plans/toolkit/pi-integration.md` | Define how the reusable toolkit should be mounted into `pi` and custom `@mariozechner/pi-coding-agent` SDK sessions, including thin extension wrappers, session-shutdown hooks, optional stop commands, and the boundary between generic toolkit code and `pi`-specific code. |
+| `plans/toolkit/output.md` | Define the cross-tool result contract: concise text, structured details, truncation behavior, error envelopes, stderr handling, and normalization of differences between server-backed and CLI-backed tool results. |
+| `plans/toolkit/testing.md` | Define the toolkit-layer testing strategy: unit coverage for pure helpers, subprocess tests for hub/CLI integration, temporary-fixture policy for mutation commands, and how toolkit tests should fit into repository workflows. |
+
+Recommended writing order:
+
+1. `layout.md`
+2. `runtime.md`
+3. `server-client.md`
+4. `output.md`
+5. `lean-tools.md`
+6. `knowledgebase-tools.md`
+7. `informal-tools.md`
+8. `pi-integration.md`
+9. `testing.md`
 
 Likely future component plans include:
 
