@@ -1,17 +1,14 @@
-# aftk
+# AFTK
 
-This repository is the current `aftk` codebase.
+> [!WARNING]
+> **Work in progress / highly experimental:** `aftk` is still at an early experimental stage.
+> Things may break, interfaces may change, and behavior may shift at any time without much notice.
+> Do not assume stability yet.
 
-The first four planned layers are implemented:
+## About
 
-1. **Knowledge base**
-2. **Informal bridge layer**
-3. **Server / file-worker layer**
-4. **TypeScript toolkit / pi integration layer**
-
-The planned AI autoformalization agent layer is **not implemented yet**.
-
-## What exists today
+AFTK is an AutoFormalization ToolKit for Lean4.
+It consists of four layers:
 
 ### Knowledge base
 
