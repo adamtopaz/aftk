@@ -1,18 +1,19 @@
 # aftk implementation docs
 
 This directory documents the parts of the rewrite worktree that are currently implemented.
-The emphasis is on implementation reality: modules, executables, responsibilities, boundaries, and tested behavior.
+The emphasis is on implementation reality: modules, executables, package entrypoints, responsibilities, boundaries, and tested behavior.
 
 ## Implemented layers
 
-The Lean portion of the rewrite currently includes three working layers:
+The rewrite currently includes four working layers:
 
 1. **Knowledge base** — canonical Markdown + JSON storage, validation, search, relationships, and a CLI
 2. **Informal** — `informal[...]` elaboration, declaration-level tracking, dependency views, presentation, and a CLI
 3. **Server / file worker** — standalone JSON-RPC executables for Lean queries, tactic exploration, and richer informal hover
+4. **Toolkit** — a TypeScript runtime, managed server client, CLI-backed knowledge-base/informal clients, tool families, pi adapters, and a Lake setup script
 
-The planned TypeScript toolkit and AI-agent orchestration layers are **not implemented yet** in this worktree.
-Their current status is described in `docs/architecture.md`.
+The planned AI autoformalization agent layer is **not implemented yet** in this worktree.
+Its remaining high-level status is described in `docs/architecture.md`.
 
 ## Reading order
 
@@ -22,6 +23,7 @@ If you want the shortest path to understanding the implementation, read these fi
 - `docs/knowledgebase/overview.md`
 - `docs/informal/overview.md`
 - `docs/server/overview.md`
+- `docs/toolkit/overview.md`
 
 Then use the layer-specific implementation guides for component-level details.
 
@@ -46,6 +48,16 @@ Then use the layer-specific implementation guides for component-level details.
 - `docs/server/library.md` — component-by-component implementation guide with code pointers
 - `docs/server/protocol.md` — JSON-RPC method surface, result shapes, and error codes
 - `docs/server/testing.md` — direct worker tests, hub tests, and end-to-end process coverage
+
+## Toolkit docs
+
+- `docs/toolkit/overview.md` — layer scope, runtime model, tool families, result contract, and pi integration surface
+- `docs/toolkit/library.md` — component-by-component implementation guide with code pointers
+- `docs/toolkit/testing.md` — package scripts, test layout, fixtures, and current TypeScript-side coverage
+
+## Setup / integration docs
+
+- `docs/aftk_setup.md` — `lake run aftk_setup`, generated `.pi/` files, discovery model, and overwrite policy
 
 ## Relationship to `plan.md` and `plans/`
 
