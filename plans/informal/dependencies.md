@@ -37,7 +37,7 @@ This document makes that boundary precise.
 The dependency layer should:
 
 - compute useful dependency views directly from Lean and informal-layer state
-- preserve the current main-worktree ability to inspect tracked declaration dependencies
+- preserve the earlier ability to inspect tracked declaration dependencies
 - project those dependencies onto tracked knowledge-base references
 - remain deterministic and automation-friendly
 - avoid pretending that informal dependency views are a full scaffold engine
@@ -67,9 +67,9 @@ The dependency layer should:
 
 Those belong to other component plans or higher layers.
 
-## Reference point from the main-worktree implementation
+## Reference point from the earlier implementation
 
-The current main-worktree `Informalize` CLI computes two important views:
+The earlier `Informalize` CLI computes two important views:
 
 - tracked declaration dependencies
 - projected location dependencies
@@ -82,7 +82,7 @@ Its core behavior is:
 4. project those declaration dependencies onto tracked informal locations
 5. report empty-dependency rows as leaves in the selected view
 
-That is a good model for the rewrite.
+That is a good model for AFTK.
 The key changes are:
 
 - tracked items are now `InformalReference` values backed by knowledge-base node ids rather than `LocationId`s
@@ -121,7 +121,7 @@ A tracked declaration `A` depends on a tracked declaration `B` iff:
 - `B ≠ A`
 
 This intentionally allows traversal through intermediate declarations that are not themselves tracked.
-That matches the current main-worktree behavior and is very useful in practice.
+That matches the earlier behavior and is very useful in practice.
 
 ### Why use transitive reachability rather than only one-step tracked edges
 
@@ -141,7 +141,7 @@ The dependency layer should reuse Lean environment information rather than maint
 
 ### Recommended Lean reuse point
 
-The current main-worktree implementation uses `ConstantInfo.getUsedConstantsAsSet`.
+The earlier implementation uses `ConstantInfo.getUsedConstantsAsSet`.
 That remains the right kind of source for v1.
 
 A relevant Lean-core detail is that `ConstantInfo.getUsedConstantsAsSet` is not body-only:
@@ -186,7 +186,7 @@ end AFTK.Informal
 
 ## Declaration traversal algorithm
 
-A good v1 algorithm follows the current main-worktree design closely.
+A good v1 algorithm follows the earlier design closely.
 
 ### Inputs
 
@@ -250,7 +250,7 @@ The recommended v1 projection is:
    - for each dependent declaration, union the references attached to that dependent declaration
    - remove `R` from the final set if present
 
-This is the direct analogue of the current main-worktree location-dependency projection.
+This is the direct analogue of the earlier location-dependency projection.
 
 ## Proposed reference-level types
 
@@ -500,11 +500,11 @@ Rejected because frontier computation in the workflow sense depends on more than
 
 ### 5. Restrict declaration dependencies to only one-step tracked uses
 
-Rejected because that would hide meaningful tracked prerequisites behind untracked helper declarations and would lose the most useful part of the current main-worktree behavior.
+Rejected because that would hide meaningful tracked prerequisites behind untracked helper declarations and would lose the most useful part of the earlier behavior.
 
 ## Lean 4 and current-implementation reuse findings
 
-The current main-worktree dependency code already shows the right overall approach for v1.
+The earlier dependency code already shows the right overall approach for v1.
 The main reusable ideas are:
 
 - use `ConstantInfo.getUsedConstantsAsSet` or equivalent environment support for declaration usage
@@ -516,7 +516,7 @@ The main reusable ideas are:
 Core Lean adds one important semantic detail: `ConstantInfo.getUsedConstantsAsSet` already bakes in Lean’s view of dependencies across declaration types, values, and certain declaration-kind-specific auxiliary names.
 That makes it a good compiled-environment source for v1, but it also means the informal dependency view should be documented as Lean-usage-based rather than narrowly body-text-based.
 
-The rewrite should preserve this architecture while replacing `LocationId`-based projection with `InformalReference` values backed by knowledge-base node ids.
+AFTK should preserve this architecture while replacing `LocationId`-based projection with `InformalReference` values backed by knowledge-base node ids.
 
 ## Open questions for companion docs
 

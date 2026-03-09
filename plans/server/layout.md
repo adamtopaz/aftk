@@ -386,7 +386,7 @@ This mirrors the component split and gives room for both direct-library and subp
 
 ## Why this layout is the right first step
 
-This layout lets the rewrite grow in the same practical way the other layers already do:
+This layout lets AFTK grow in the same practical way the other layers already do:
 
 - reusable library modules first,
 - executable wrappers second,
@@ -401,19 +401,19 @@ For example:
 
 ## Additional implementation findings from the current repository layout
 
-The current main worktree and repository layouts give a few concrete constraints for implementation.
+The earlier implementation and repository layouts give a few concrete constraints for implementation.
 
-- In the main worktree, `../aftk/lakefile.lean` currently builds the server executables directly from single-file roots:
+- In the earlier implementation, `../aftk/lakefile.lean` currently builds the server executables directly from single-file roots:
   - `aftk_server` uses root `AFTK.Server`
   - `aftk_file_worker` uses root `AFTK.FileWorker`
-- That layout works, but it also means the current `AFTK/Server.lean` and `AFTK/FileWorker.lean` each mix protocol types, handlers, subprocess wiring, and executable entrypoint logic in one file. The rewrite should keep the documented split into library modules plus thin `Main` modules specifically to avoid recreating that compression.
+- That layout works, but it also means the current `AFTK/Server.lean` and `AFTK/FileWorker.lean` each mix protocol types, handlers, subprocess wiring, and executable entrypoint logic in one file. AFTK should keep the documented split into library modules plus thin `Main` modules specifically to avoid recreating that compression.
 - In the repository, `lakefile.toml` already uses:
   - `testDriver = "aftk_test"`
   - `root = "AFTKTest.Main"`
 - The existing test suites are aggregated by extending `AFTKTest.Main`, not by creating separate standalone test drivers for each subsystem.
 - `AFTK.lean` currently re-exports only `AFTK.KnowledgeBase` and `AFTK.Informal`, while `Main.lean` currently dispatches only the `knowledgebase` and `informal` CLI surfaces. That confirms the current repo state recorded elsewhere in these plans and reinforces the decision to add standalone `aftk_server` / `aftk_file_worker` executables rather than broadening the umbrella CLI immediately.
 
-These concrete layout facts make the rewrite plan more explicit:
+These concrete layout facts make AFTK plan more explicit:
 
 - split the old monolithic server/worker files into reusable library modules on purpose
 - wire server tests into the existing `aftk_test` aggregation path

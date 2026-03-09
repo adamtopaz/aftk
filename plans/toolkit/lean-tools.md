@@ -23,7 +23,7 @@ Historical sections below may still describe pre-implementation expectations; re
 
 ## Purpose
 
-This document defines the Lean-facing tool family built on top of the rewrite server client.
+This document defines the Lean-facing tool family built on top of the AFTK server client.
 It is about:
 
 - which `aftk_*` tools exist in v1
@@ -33,9 +33,9 @@ It is about:
 - node-id handling policy
 - text rendering policy for Lean results
 - structured details policy for Lean tool results
-- and which main-worktree behaviors should be preserved or improved
+- and which earlier behaviors should be preserved or improved
 
-The goal is to preserve the already useful Lean-facing tool surface from the main worktree while reimplementing it more cleanly on top of the rewrite’s dedicated runtime, server-client, and output layers.
+The goal is to preserve the already useful Lean-facing tool surface from the earlier implementation while reimplementing it more cleanly on top of AFTK's dedicated runtime, server-client, and output layers.
 
 ## Design goals
 
@@ -49,7 +49,7 @@ The Lean-facing tool family should:
 - make file/session lifecycle explicit rather than hiding it behind magical auto-open behavior
 - keep path normalization minimal and predictable
 - treat node ids as opaque transient handles owned by the server layer
-- surface known server errors in a more actionable way than the current main-worktree generic error formatting
+- surface known server errors in a more actionable way than the earlier generic error formatting
 - remain focused on Lean-facing query and proof-exploration workflows, not on knowledge-base or informal CLI queries outside the server surface
 
 ## Scope and non-scope
@@ -71,7 +71,7 @@ The Lean-facing tool family should:
 - knowledge-base CLI-backed tool definitions
 - informal CLI-backed tool definitions outside the server hover/infoview surface
 - `pi`-specific registration and extension wiring
-- future new server methods that do not yet exist in the rewrite protocol
+- future new server methods that do not yet exist in AFTK protocol
 
 Those are covered by companion documents.
 
@@ -88,7 +88,7 @@ Primary files studied:
 - `../aftk/docs/agent-playbook.md`
 - `../aftk/docs/future/autoformalization-tools.md`
 
-Important observations from the current main-worktree tool family:
+Important observations from the earlier tool family:
 
 - The existing Lean-facing TypeScript tool surface is already practical and coherent.
 - The current tool names are:
@@ -121,7 +121,7 @@ Important observations from the current main-worktree tool family:
 - The current tools preserve structured `details` from the server result.
 - The current error rendering is still fairly generic and could be more actionable.
 - The current `aftk_shutdown` implementation also makes one useful lifecycle choice explicit: after the semantic `shutdown` request succeeds, it clears owned process state with a separate local stop call rather than assuming the client state cleaned itself up.
-- The main-worktree playbook shows the intended agent loop clearly:
+- The earlier playbook shows the intended agent loop clearly:
   - explicit `aftk_open`
   - `aftk_get_hover` on `informal[...]`
   - `aftk_load_node`
@@ -132,7 +132,7 @@ Important observations from the current main-worktree tool family:
   - diagnostics
   - tactic candidate branching
 
-Main consequences for the rewrite:
+Main consequences for AFTK:
 
 - AFTK should preserve the existing `aftk_*` family in v1;
 - it should preserve the explicit session-oriented workflow rather than auto-hiding `open` / `reopen`;
@@ -152,9 +152,9 @@ Files studied:
 - `docs/knowledgebase/cli.md`
 - `docs/informal/cli.md`
 
-Important rewrite observations:
+Current AFTK observations:
 
-- The rewrite server intentionally preserves the current Lean-facing public method family.
+- The AFTK server intentionally preserves the current Lean-facing public method family.
 - Public positions remain 1-based.
 - `load_node` still returns `{ id: string[] }` for compatibility.
 - `AFTK/Server/Protocol.lean` fixes the current known-error data payloads as simple strings:
@@ -162,11 +162,11 @@ Important rewrite observations:
   - stale-node errors carry a node-id string,
   - tactic failures carry a rendered message string.
 - Hover may already include richer `informal[...]` presentation through the server layer.
-- `run_tactic_steps` is a first-class public hub method and not just a client-side convenience rewrite.
+- `run_tactic_steps` is a first-class public hub method and not just a client-side convenience wrapper.
 - The toolkit output contract now explicitly treats structured details as the stronger compatibility surface.
 - The toolkit architecture now has room for other tool families too, so the Lean-facing `aftk_*` names should remain a clearly scoped server-backed family rather than becoming the default prefix for every toolkit operation.
 
-Main consequences for the rewrite:
+Main consequences for AFTK:
 
 - the Lean-facing `aftk_*` family should continue to correspond specifically to the server-backed Lean surface;
 - these tools should not absorb knowledge-base or informal CLI queries that are outside the server protocol;
@@ -192,11 +192,11 @@ AFTK should preserve the current Lean-facing tool names exactly:
 - `aftk_run_tactic_steps`
 - `aftk_shutdown`
 
-This is the most important compatibility target from the main-worktree TypeScript surface.
+This is the most important compatibility target from the earlier TypeScript surface.
 
 ### 2. Keep the `aftk_*` prefix scoped to the server-backed Lean family in v1
 
-The rewrite toolkit will eventually contain multiple tool families.
+The AFTK toolkit will eventually contain multiple tool families.
 So the `aftk_*` prefix should remain associated with the Lean/server-compatible family unless a later design explicitly broadens that convention.
 
 That means:
@@ -222,7 +222,7 @@ So the v1 policy should be:
 - if the file is not open, the tool returns a structured failure reflecting server error `-32010`
 - if the file changed, the tool returns a structured failure reflecting `-32011`, and the caller is expected to reopen explicitly
 
-This matches the rewrite server’s settled semantics and keeps agent workflows easier to reason about.
+This matches the AFTK server's settled semantics and keeps agent workflows easier to reason about.
 
 ### 4. Build all Lean tools on the reusable server client
 
@@ -237,7 +237,7 @@ In practice this means:
 
 ### 5. Keep path normalization minimal and tool-specific
 
-The main-worktree tool family strips one leading `@` from paths before calling the server.
+The earlier tool family strips one leading `@` from paths before calling the server.
 That is still useful for `pi`-style path passing and should be preserved.
 
 The v1 path-normalization policy should therefore be:
@@ -287,7 +287,7 @@ So each Lean tool should return:
 
 ### 9. Improve error text while preserving structured error details
 
-The main-worktree toolkit currently formats most server errors generically.
+The earlier toolkit currently formats most server errors generically.
 AFTK should improve the text layer by rendering known server errors more actionably.
 
 For example, failure text should distinguish cases like:
@@ -401,7 +401,7 @@ Conceptual fields:
 - `id: string`
 - `tactic: string`
 
-Recommended validation improvement over the current main-worktree tool:
+Recommended validation improvement over the earlier tool:
 
 - require a non-empty tactic string at the tool-schema level where the chosen schema system makes that practical
 
@@ -477,7 +477,7 @@ returning conceptually:
 }
 ```
 
-This preserves the useful integration pattern from the main worktree while making the family-specific implementation explicit.
+This preserves the useful integration pattern from the earlier implementation while making the family-specific implementation explicit.
 
 ### Compatibility alias policy
 
@@ -531,7 +531,7 @@ Preferred wording:
 - when `opened = true`: `Opened file worker: <canonical path>`
 - when `opened = false`: `File already open: <canonical path>`
 
-This preserves current main-worktree phrasing closely.
+This preserves earlier phrasing closely.
 
 #### `aftk_close`
 
@@ -638,7 +638,7 @@ Loaded 2 node ids:
 - if the server ever returns an empty array, render a clear empty message such as:
   - `No tactic nodes found at this location.`
 
-This is a small improvement over the current main-worktree slash-joined rendering while preserving the raw structured result unchanged.
+This is a small improvement over the earlier slash-joined rendering while preserving the raw structured result unchanged.
 
 #### `aftk_get_hover`
 
@@ -705,7 +705,7 @@ Preferred rendering rules:
   - use `rendered` if it is non-empty after trimming
   - otherwise fall back to rendering the `goals` array deterministically
 
-This preserves the current main-worktree behavior and matches the server protocol’s intent that `rendered` is convenience text while `goals` is the stronger structured field.
+This preserves the earlier behavior and matches the server protocol’s intent that `rendered` is convenience text while `goals` is the stronger structured field.
 
 #### `aftk_get_plain_term_goal`
 
@@ -760,7 +760,7 @@ Fetch the bundled infoview-style result at a source location.
 
 ##### Success text
 
-The text should use a stable multi-section rendering in the style already visible in the main-worktree implementation.
+The text should use a stable multi-section rendering in the style already visible in the earlier implementation.
 A good v1 format is:
 
 ```text
@@ -845,7 +845,7 @@ nextId: <nextId>
 <goal rendering>
 ```
 
-This preserves the current main-worktree behavior closely.
+This preserves the earlier behavior closely.
 
 #### `aftk_run_tactic_steps`
 
@@ -871,7 +871,7 @@ Run a sequence of tactics from a node id.
 
 ##### Success text
 
-The text should render one deterministic block per step, preserving current main-worktree style in spirit.
+The text should render one deterministic block per step, preserving earlier style in spirit.
 A good v1 format is:
 
 ```text
@@ -1027,7 +1027,7 @@ The Lean tool family should preserve the following current behaviors.
 
 ## Future Lean-tool extensions that are not part of v1
 
-The main-worktree future roadmap mentions possible additions such as:
+The earlier future roadmap mentions possible additions such as:
 
 - structured goal/context queries
 - diagnostics
@@ -1121,7 +1121,7 @@ Before the Lean tool family can be considered in place, AFTK should reach at lea
 
 ## Summary
 
-AFTK should preserve the existing `aftk_*` Lean-facing tool family as the practical migration target from the main worktree.
+AFTK should preserve the existing `aftk_*` Lean-facing tool family as the practical migration target from the earlier implementation.
 Those tools should remain a thin but useful semantic layer over the public `aftk_server` protocol:
 
 - explicit file lifecycle,
@@ -1138,4 +1138,4 @@ AFTK should keep the successful parts of the current tool family:
 
 But it should improve the design by placing those tools on top of the dedicated server client and shared output contract, using a dedicated Lean-tools factory, and rendering known server errors in a more actionable way.
 
-That gives the rewrite a clean, reusable Lean-facing tool surface without losing the compatibility and everyday utility that already make the current `aftk_*` tools valuable.
+That gives AFTK a clean, reusable Lean-facing tool surface without losing the compatibility and everyday utility that already make the current `aftk_*` tools valuable.

@@ -13,7 +13,7 @@ This document refines the overall informal-layer plan in `plans/informal.md` and
 
 ## Purpose
 
-This document defines how the rewrite’s `informal[...]` term elaboration should work.
+This document defines how AFTK's `informal[...]` term elaboration should work.
 It covers:
 
 - supported syntax forms
@@ -24,8 +24,8 @@ It covers:
 - how elaboration connects to tracking and presentation hooks
 - what user-facing failures should look like
 
-The goal is to preserve the useful workflow shape of the current main-worktree `Informalize` elaborator while changing the data source underneath it.
-In the rewrite, bracketed informal references must resolve through the knowledge base rather than through `informal/...` sidecar files.
+The goal is to preserve the useful workflow shape of the earlier `Informalize` elaborator while changing the data source underneath it.
+In AFTK, bracketed informal references must resolve through the knowledge base rather than through `informal/...` sidecar files.
 
 ## Design goals
 
@@ -62,9 +62,9 @@ Elaboration for the informal layer should:
 
 Those are covered by the companion component plans.
 
-## Reference point from the main-worktree implementation
+## Reference point from the earlier implementation
 
-The current main-worktree elaborator in `../aftk/Informalize/Elaborator.lean` provides the behavior we are intentionally learning from.
+The earlier elaborator in `../aftk/Informalize/Elaborator.lean` provides the behavior we are intentionally learning from.
 Its key properties are:
 
 - syntax forms:
@@ -79,16 +79,16 @@ Its key properties are:
 - bracketed elaboration also pushes hover/info data into the info tree
 - use is rejected outside declaration/proof contexts
 
-The rewrite should preserve most of that behavior shape.
+AFTK should preserve most of that behavior shape.
 The central changes are:
 
 - the bracketed reference must resolve through `AFTK.KnowledgeBase`
 - the elaborator must not read from an `informal/...` markdown/json sidecar store
-- bare `informal` support should be removed in the rewrite
+- bare `informal` support should be removed in AFTK
 
 ## High-level semantic model
 
-The rewrite should preserve the idea that `informal[...]` is a **typed placeholder term**, not a quotation of markdown and not a parser for mathematical prose.
+AFTK should preserve the idea that `informal[...]` is a **typed placeholder term**, not a quotation of markdown and not a parser for mathematical prose.
 
 More precisely:
 
@@ -114,7 +114,7 @@ informal[node.id] x
 informal[node.id] x y
 ```
 
-Bare `informal` should not be supported in the rewrite.
+Bare `informal` should not be supported in AFTK.
 
 ### Bracketed form
 
@@ -131,7 +131,7 @@ where `informalNodeId` is a dedicated syntax/parser layer intended to accept the
 
 ## Why use the full node-id grammar directly
 
-The rewrite should not make the surface meaning of bracketed informal references depend on Lean identifier syntax.
+AFTK should not make the surface meaning of bracketed informal references depend on Lean identifier syntax.
 Instead, the bracketed payload should be parsed according to the knowledge-base node-id grammar itself.
 
 Important clarification:
@@ -178,7 +178,7 @@ The exact implementation of pseudo-context detection may evolve, but the user-fa
 
 ### Rationale
 
-This matches the main-worktree behavior and keeps occurrence tracking anchored to real declarations rather than ephemeral command contexts.
+This matches the earlier behavior and keeps occurrence tracking anchored to real declarations rather than ephemeral command contexts.
 
 ## Elaboration pipeline
 
@@ -287,7 +287,7 @@ The node reference adds traceability and presentation context, not a type synthe
 
 ## Argument handling
 
-Explicit term arguments should work exactly as they do in the main-worktree elaborator.
+Explicit term arguments should work exactly as they do in the earlier elaborator.
 
 ### Rule 1: elaborate arguments independently as terms
 
@@ -369,7 +369,7 @@ The elaborated term should preserve the current conceptual shape:
 - it takes a unique tag and a result type
 - it yields an inhabitant of that type
 
-At the expression level, the result should follow the current main-worktree pattern:
+At the expression level, the result should follow the earlier pattern:
 
 ```text
 Informal tag (A₁ → ... → Aₙ → R) a₁ ... aₙ
@@ -419,7 +419,7 @@ A generated tag should satisfy the following:
 
 ### Recommended strategy
 
-The recommended v1 strategy is to derive tags primarily from source-location information, reusing the current main-worktree approach as much as practical.
+The recommended v1 strategy is to derive tags primarily from source-location information, reusing the earlier approach as much as practical.
 A good implementation basis is:
 
 - current module name
@@ -506,7 +506,7 @@ If surrounding type inference fails, those failures should surface through ordin
 
 ## Design decisions for v1
 
-The following decisions are recommended for the first rewrite implementation:
+The following decisions are recommended for the first implementation:
 
 1. Support bracketed `informal[...]` only; remove bare `informal` support.
 2. Parse bracketed references using the full knowledge-base node-id grammar directly rather than Lean `ident` syntax.
@@ -520,7 +520,7 @@ The following decisions are recommended for the first rewrite implementation:
 
 ## Lean 4 and current-implementation reuse findings
 
-The current main-worktree elaborator already demonstrates several Lean mechanisms that the rewrite should likely reuse.
+The earlier elaborator already demonstrates several Lean mechanisms that AFTK should likely reuse.
 
 Useful implementation pieces include:
 
@@ -537,7 +537,7 @@ Useful implementation pieces include:
 - `Elab.pushInfoLeaf` and `DelabTermInfo` as a practical basis for hover/info integration
 - `SorryLabelView.encode` as a source-location-driven tag template, with the caveat that it adds fresh macro scopes via `mkFreshUserName` and therefore gives stronger uniqueness guarantees than strict textual tag stability
 
-The rewrite should reuse these Lean mechanisms where they still fit, while changing only the reference-resolution/data-loading part to go through `AFTK.KnowledgeBase`.
+AFTK should reuse these Lean mechanisms where they still fit, while changing only the reference-resolution/data-loading part to go through `AFTK.KnowledgeBase`.
 
 ## Open questions for companion docs
 
@@ -552,7 +552,7 @@ This document intentionally leaves some nearby questions to companion plans:
 
 ## Summary
 
-The rewrite’s elaboration design should preserve the practical meaning of `informal[...]` as a typed placeholder term with optional explicit arguments, declaration-anchored tracking, and Lean-facing presentation support.
+AFTK's elaboration design should preserve the practical meaning of `informal[...]` as a typed placeholder term with optional explicit arguments, declaration-anchored tracking, and Lean-facing presentation support.
 
 The key architectural changes are that bracketed references must resolve through the knowledge base rather than through `informal/...` sidecar files, and that bare `informal` support should be dropped.
-That keeps the rewrite aligned with the knowledge base as the sole canonical store of natural-language content while preserving the useful gradual-formalization workflow shape of the current main-worktree elaborator.
+That keeps AFTK aligned with the knowledge base as the sole canonical store of natural-language content while preserving the useful gradual-formalization workflow shape of the earlier elaborator.

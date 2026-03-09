@@ -86,14 +86,14 @@ Primary files studied:
 - `../aftk/lambda/src/aftk-tools.ts`
 - `../aftk/docs/aftk/README.md`
 
-Important output observations from the main-worktree toolkit:
+Important output observations from the earlier toolkit:
 
 - Each tool currently returns a simple plain-text `content` block plus structured `details`.
 - Error results use `isError: true` and a `details` object with a coarse `type`, such as:
   - `rpc_error`
   - `runtime_error`
 - Human-facing formatting is intentionally concise and task-oriented.
-- The main-worktree toolkit already has useful small renderers for:
+- The earlier toolkit already has useful small renderers for:
   - goals
   - hover
   - term goal
@@ -105,7 +105,7 @@ Important output observations from the main-worktree toolkit:
 - Structured `details` currently vary by tool and error path, but they are not yet governed by one fully explicit cross-tool contract.
 - Runtime stderr is mirrored to parent stderr rather than being deliberately integrated into tool output/diagnostics.
 
-Main consequences for the rewrite:
+Main consequences for AFTK:
 
 - AFTK should preserve the good parts:
   - plain text plus structured details,
@@ -128,7 +128,7 @@ Files studied:
 - `plans/toolkit/runtime.md`
 - `plans/toolkit/server-client.md`
 
-Important output observations from the rewrite:
+Important output observations from AFTK:
 
 - The server already returns structured JSON-RPC result objects with small deterministic shapes.
 - The knowledge-base CLI supports JSON and text modes, and its JSON success format uses a stable envelope with fields like:
@@ -153,7 +153,7 @@ Important output observations from the rewrite:
   - outputs should remain bounded,
   - and lower-layer differences should be normalized deliberately rather than hidden carelessly.
 
-Main consequences for the rewrite:
+Main consequences for AFTK:
 
 - toolkit-backed tools should prefer lower-layer JSON/structured outputs and then render their own concise text from parsed structured data;
 - the toolkit should define one normalized output envelope above all three lower-layer styles;
@@ -199,7 +199,7 @@ Toolkit-backed tools should return both:
 - a concise text presentation for immediate reading
 - a structured details payload for machine consumption
 
-The v1 host-facing convention should remain close in spirit to the main-worktree toolset:
+The v1 host-facing convention should remain close in spirit to the earlier toolset:
 
 - `content`: one plain-text content block
 - `details`: structured JSON-serializable payload
@@ -319,7 +319,7 @@ Instead it should:
 
 ### 9. Keep outputs bounded and make truncation explicit
 
-The toolkit should preserve the main-worktree discipline of bounded output, but make it a cross-tool contract.
+The toolkit should preserve the earlier discipline of bounded output, but make it a cross-tool contract.
 
 Truncation should therefore:
 
@@ -645,7 +645,7 @@ text should usually:
 ### Empty-result wording
 
 The toolkit should use stable, explicit empty-result wording rather than returning blank text.
-Examples of the intended style are already visible in the main-worktree toolkit:
+Examples of the intended style are already visible in the earlier toolkit:
 
 - `No hover information at this location.`
 - `No goal information at this location.`
@@ -663,7 +663,7 @@ For compound results like:
 - stepwise tactic execution
 
 text may use section headers and separators.
-The main-worktree `formatInfoViewResult(...)` pattern is a good reference point in spirit.
+The earlier `formatInfoViewResult(...)` pattern is a good reference point in spirit.
 
 ## Truncation policy
 
@@ -898,7 +898,7 @@ Before the output layer can be considered in place, AFTK should reach at least t
 
 ## Summary
 
-The rewrite toolkit should not let each tool family invent its own return shape.
+The AFTK toolkit should not let each tool family invent its own return shape.
 Instead, it should define one cross-tool output contract built around:
 
 - concise plain-text content for immediate reading,
@@ -908,7 +908,7 @@ Instead, it should define one cross-tool output contract built around:
 - explicit warnings and diagnostics,
 - and bounded, clearly signaled truncation.
 
-That contract should sit above the rewrite’s heterogeneous lower-layer outputs:
+That contract should sit above AFTK's heterogeneous lower-layer outputs:
 
 - structured server JSON-RPC results,
 - knowledge-base CLI JSON envelopes,

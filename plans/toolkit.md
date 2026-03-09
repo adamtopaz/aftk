@@ -43,16 +43,16 @@ Current implementation behavior is documented in `docs/toolkit/**` and `docs/aft
 
 ## Purpose
 
-The toolkit layer is the first TypeScript layer in the rewrite.
+The toolkit layer is the first TypeScript layer in AFTK.
 Its job is to turn the lower-layer services and CLIs into practical, agent-facing TypeScript interfaces.
 
-In the rewrite, the lower layers now include:
+In AFTK, the lower layers now include:
 
 - the knowledge-base layer,
 - the informal layer,
 - and the server/file-worker layer.
 
-So the toolkit layer should not be understood as “just the old AFTK hub wrapper, rewritten in TypeScript.”
+So the toolkit layer should not be understood as “just the old AFTK hub wrapper, expressed in TypeScript.”
 It should preserve the useful parts of that current wrapper while expanding to the broader layered architecture now present in AFTK.
 
 Concretely, the toolkit layer should provide:
@@ -64,7 +64,7 @@ Concretely, the toolkit layer should provide:
 
 ## Position in the layered architecture
 
-The overall rewrite stack is:
+The overall architecture stack is:
 
 1. Knowledge base layer
 2. Informal layer
@@ -133,7 +133,7 @@ Key findings from that implementation:
   - registers each tool,
   - hooks `session_shutdown`,
   - and adds an explicit stop command.
-- The main-worktree docs explicitly treat richer future directions as follow-on work, especially:
+- The earlier docs explicitly treat richer future directions as follow-on work, especially:
   - structured goals,
   - diagnostics,
   - multi-candidate tactic branching,
@@ -142,7 +142,7 @@ Key findings from that implementation:
 
 ### Pre-toolkit repository reference points
 
-Primary rewrite docs and plans studied:
+Primary AFTK docs and plans studied:
 
 - `plan.md`
 - `README.md`
@@ -155,14 +155,14 @@ Primary rewrite docs and plans studied:
 - `plans/informal.md` and `plans/informal/*.md`
 - `plans/server.md` and `plans/server/*.md`
 
-Primary rewrite TypeScript/package files studied:
+Primary AFTK TypeScript/package files studied:
 
 - `index.ts`
 - `package.json`
 - `tsconfig.json`
 - `lakefile.lean`
 
-Primary rewrite implementation files studied:
+Primary AFTK implementation files studied:
 
 - `AFTK/Server/Main.lean`
 - `AFTK/Server/Protocol.lean`
@@ -184,10 +184,10 @@ Key findings from the repository state before the toolkit landed:
   - `docs/server/protocol.md` preserves the current hub method family,
   - `docs/server/overview.md` confirms the current operational model,
   - and `plans/server/integration.md` explicitly rejects turning the server into a general-purpose lower-layer RPC mirror in v1.
-- The rewrite knowledge-base layer already has a stable CLI with JSON and text output:
+- The AFTK knowledge-base layer already has a stable CLI with JSON and text output:
   - `lake exe aftk knowledgebase ...`
   - documented in `docs/knowledgebase/cli.md`.
-- The rewrite informal layer already has a stable CLI with JSON and text output:
+- the AFTK informal layer already has a stable CLI with JSON and text output:
   - `lake exe aftk informal ...`
   - documented in `docs/informal/cli.md`.
 - The two lower-layer CLIs do **not** expose identical output conventions today:
@@ -210,12 +210,12 @@ Key findings from the repository state before the toolkit landed:
   - `relationships.related`
 - `AFTK/Informal/Cli/Render.lean` success JSON is command-shaped around a `data` field and adds fields such as `modules`, `target`, `mode`, and `bodyMode` depending on the command.
 - `AFTK/Informal/Tracking.lean`, `AFTK/Informal/Dependencies.lean`, and `AFTK/Informal/Presentation.lean` already sort declarations, references, dependency rows/leaves, tags, authors, relationship lines, and Lean-ref lines deterministically; rich `present` output also carries explicit body-preview truncation metadata.
-- The pre-implementation TypeScript scaffold was Bun-flavored, while the main-worktree implementation and `pi` integration were Node-oriented.
+- The pre-implementation TypeScript scaffold was Bun-flavored, while the earlier implementation and `pi` integration were Node-oriented.
   Resolving that mismatch was one of the key design decisions that led to the current Node-compatible toolkit runtime.
 
 ### Immediate architectural conclusion from the research
 
-The rewrite toolkit should preserve the best parts of the main-worktree wrapper:
+The AFTK toolkit should preserve the best parts of the earlier wrapper:
 
 - reusable TypeScript library code below adapter surfaces,
 - a managed hub client,
@@ -225,14 +225,14 @@ The rewrite toolkit should preserve the best parts of the main-worktree wrapper:
 But it should also go beyond that wrapper in two important ways:
 
 1. it should be designed as a **real toolkit library**, not one large file built only around a single tool family; and
-2. it should package not only the server layer, but also selected knowledge-base and informal capabilities exposed through the rewrite’s existing lower-layer interfaces.
+2. it should package not only the server layer, but also selected knowledge-base and informal capabilities exposed through AFTK's existing lower-layer interfaces.
 
 ## Core responsibilities
 
 The toolkit layer should eventually provide the following capabilities:
 
 - manage access to the long-running `aftk_server` process from TypeScript
-- expose a typed client for the rewrite server protocol
+- expose a typed client for the AFTK server protocol
 - expose Lean-facing tool definitions built on that client
 - expose selected knowledge-base tools built on `lake exe aftk knowledgebase ...`
 - expose selected informal tools built on `lake exe aftk informal ...`
@@ -257,16 +257,16 @@ It should not parse canonical knowledge-base files directly or recreate Lean/inf
 
 ### 2. Keep reusable toolkit code separate from `pi`-specific registration
 
-The main-worktree split between shared tool implementation and a thin `pi` wrapper is correct in spirit and should be preserved.
+The earlier split between shared tool implementation and a thin `pi` wrapper is correct in spirit and should be preserved.
 
-The rewrite toolkit should therefore distinguish at least between:
+The AFTK toolkit should therefore distinguish at least between:
 
 - reusable TypeScript runtime/client/tool code, and
 - thin adapter code for `pi` or other host environments.
 
 ### 3. Preserve strong compatibility with the current Lean-facing tool family where that materially helps migration
 
-The rewrite server protocol already preserves the current `open`/`hover`/`goals`/`tactic` method family.
+The AFTK server protocol already preserves the current `open`/`hover`/`goals`/`tactic` method family.
 The toolkit should likewise preserve the corresponding `aftk_*` Lean-facing tool family where practical.
 
 This is especially important for:
@@ -285,7 +285,7 @@ This is especially important for:
 
 ### 4. Expand beyond the current server-only scope deliberately, not accidentally
 
-The rewrite now has real knowledge-base and informal CLIs.
+AFTK now has real knowledge-base and informal CLIs.
 So the toolkit layer should not remain permanently frozen at “server wrapper only.”
 
 However, expansion should be deliberate:
@@ -308,7 +308,7 @@ It should not own canonical project state.
 
 ### 6. Treat structured details as the stronger compatibility contract than human text
 
-The main-worktree toolkit already returns both:
+The earlier toolkit already returns both:
 
 - human-readable text content, and
 - structured `details`.
@@ -319,7 +319,7 @@ Text should stay concise and helpful, but the more important machine-facing cont
 ### 7. Keep outputs bounded and explicit
 
 The toolkit is being built for agent workflows.
-So it should preserve and generalize the bounded-output discipline already visible in the main-worktree toolkit:
+So it should preserve and generalize the bounded-output discipline already visible in the earlier toolkit:
 
 - truncation where needed,
 - explicit indication that truncation happened,
@@ -328,7 +328,7 @@ So it should preserve and generalize the bounded-output discipline already visib
 
 ### 8. Keep process lifecycle behavior conservative and testable
 
-The main-worktree toolkit’s startup/shutdown discipline is worth preserving in spirit.
+The earlier toolkit’s startup/shutdown discipline is worth preserving in spirit.
 AFTK should likewise make explicit decisions about:
 
 - lazy versus eager hub startup,
@@ -340,7 +340,7 @@ AFTK should likewise make explicit decisions about:
 
 ### 9. Prefer Node-compatible TypeScript runtime assumptions
 
-The rewrite’s current TypeScript placeholder files come from a Bun-style scaffold, but the actual integration target is much closer to Node:
+AFTK's current TypeScript placeholder files come from a Bun-style scaffold, but the actual integration target is much closer to Node:
 
 - `child_process.spawn`
 - stdio pipes
@@ -365,7 +365,7 @@ rather than depending only on mocked unit tests.
 At a high level, the toolkit layer revolves around a small set of concepts:
 
 - a **toolkit runtime context** that knows the project root, executable resolution policy, timeouts, and output policy
-- a **managed hub client** for the rewrite server protocol
+- a **managed hub client** for the AFTK server protocol
 - a **CLI runner** for one-shot lower-layer commands
 - a **tool family** built on one lower-layer interface
 - a **normalized tool result** combining concise text with structured details
@@ -401,8 +401,8 @@ Recommended implementation-reference order:
 
 1. `layout.md`, `runtime.md`, and `output.md` as the shared foundation
 2. `server-client.md` as the first lower-layer integration boundary
-3. `lean-tools.md` for the main-worktree compatibility surface
-4. `knowledgebase-tools.md` and `informal-tools.md` for the rewrite-specific expansion beyond the old server-only toolkit
+3. `lean-tools.md` for the earlier-implementation compatibility surface
+4. `knowledgebase-tools.md` and `informal-tools.md` for AFTK-specific expansion beyond the old server-only toolkit
 5. `pi-integration.md` and `testing.md` as the mounting and hardening layers
 
 Likely future component plans still include:
@@ -423,13 +423,13 @@ The toolkit should treat the informal CLI as the authoritative direct TypeScript
 
 ### Server and file-worker layer
 
-The toolkit should treat the rewrite server protocol as the authoritative Lean-facing interactive interface.
+The toolkit should treat the AFTK server protocol as the authoritative Lean-facing interactive interface.
 It should not invent a second TypeScript-side interpretation of node ids, hover semantics, or stale-session behavior.
 
 ### AI autoformalization agent layer
 
 The later AI-agent layer should use the toolkit as its default source of practical TypeScript-facing tools.
-However, the top-level rewrite architecture already allows the AI layer to invoke lower-layer CLIs directly when that is genuinely the better fit.
+However, the top-level AFTK architecture already allows the AI layer to invoke lower-layer CLIs directly when that is genuinely the better fit.
 
 So the relationship should be:
 
@@ -471,19 +471,19 @@ As the component plans are written, the toolkit layer should preserve the follow
 - preserve the explicit lower-layer boundaries instead of hiding them behind undocumented toolkit magic
 - keep `pi`-specific integration thin and isolated
 - prefer strong machine-readable details over scraping or depending on human text
-- preserve main-worktree compatibility where it materially reduces migration cost
-- do not blindly copy the current main-worktree one-file implementation wholesale; rewrite it with clearer module boundaries
+- preserve earlier-implementation compatibility where it materially reduces migration cost
+- do not blindly copy the earlier one-file implementation wholesale; reimplement it with clearer module boundaries
 - make timeouts, cancellation, truncation, and shutdown policy explicit in code and docs
 - add real subprocess tests before declaring the layer stable
-- continue following the rewrite policy of selective borrowing from `../aftk` rather than wholesale file copying
+- continue following AFTK policy of selective borrowing from `../aftk` rather than wholesale file copying
 
 ## Design clarifications resolved so far
 
 The following overview-level design points are now considered settled enough to guide the component docs.
 
 - The toolkit should be implemented as a reusable TypeScript library first, with thin host adapters on top.
-- The Lean-facing `aftk_*` tool family should remain an important compatibility target for the rewrite.
-- The toolkit should not wait for new first-class lower-layer server RPC methods before exposing rewrite knowledge-base and informal functionality; it should use the existing CLIs directly where appropriate.
+- The Lean-facing `aftk_*` tool family should remain an important compatibility target for AFTK.
+- The toolkit should not wait for new first-class lower-layer server RPC methods before exposing AFTK knowledge-base and informal functionality; it should use the existing CLIs directly where appropriate.
 - The initial toolkit should prioritize read/query/presentation flows outside the Lean server parity surface, rather than trying to mirror every mutation command from the lower layers immediately.
 - Structured result payloads should be treated as the stronger compatibility contract than free-form text rendering.
 - Lazy managed-hub startup remains a good default baseline unless the runtime design finds a compelling reason to change it.
@@ -508,7 +508,7 @@ They are implementation-shaping questions, not architectural uncertainty about t
 ## Detailed phased implementation plan
 
 Implementation should proceed bottom-up from shared runtime/process code to lower-layer clients, then to tool families, and only after that to host-specific adapters.
-The main-worktree toolkit is still the best behavioral reference for the Lean-facing server surface, but AFTK must broaden beyond that server-only scope because the first three layers now already expose more than one public boundary.
+The earlier toolkit is still the best behavioral reference for the Lean-facing server surface, but AFTK must broaden beyond that server-only scope because the first three layers now already expose more than one public boundary.
 
 ### Phase dependency and landing overview
 
@@ -613,7 +613,7 @@ Implementation work items:
 2. **Project-root discovery**
    - implement `src/toolkit/runtime/project-root.ts`
    - follow the settled upward search for `lakefile.toml` / `lakefile.lean`
-   - fail clearly if no project root is found instead of inheriting the main-worktree fallback to arbitrary cwd
+   - fail clearly if no project root is found instead of inheriting the earlier fallback to arbitrary cwd
 
 3. **Executable resolution**
    - implement `src/toolkit/runtime/executables.ts`
@@ -659,11 +659,11 @@ Exit criteria:
 - one shared output contract exists for all later tool families
 - no runtime module depends on `pi` or on any family-specific semantics
 
-### Phase 2 — implement the typed rewrite server client
+### Phase 2 — implement the typed AFTK server client
 
 Objective:
 
-- rebuild the strongest main-worktree capability first: a reusable managed client for `aftk_server`
+- rebuild the strongest earlier capability first: a reusable managed client for `aftk_server`
 - put JSON-RPC lifecycle and protocol validation below any tool-definition layer
 
 Primary docs:
@@ -711,7 +711,7 @@ Implementation work items:
      - named convenience methods
      - semantic `shutdown()`
      - lifecycle `stop(graceful?)`
-   - preserve the useful main-worktree behavior that abort cancels local waiting but does not promise remote server-side cancellation
+   - preserve the useful earlier behavior that abort cancels local waiting but does not promise remote server-side cancellation
 
 4. **Diagnostics behavior**
    - preserve recent stderr for protocol/runtime failures through the shared diagnostics model rather than blindly mirroring it to parent stderr
@@ -724,7 +724,7 @@ Phase-2 acceptance tests / checks:
 
 Exit criteria:
 
-- the toolkit can talk to the rewrite hub reliably from TypeScript
+- the toolkit can talk to AFTK hub reliably from TypeScript
 - the server client has explicit protocol typing and validation
 - lifecycle and error behavior are stable enough for the Lean tool family to consume directly
 
@@ -732,7 +732,7 @@ Exit criteria:
 
 Objective:
 
-- restore the practical, already-proven Lean-facing surface that agents in the main worktree relied on
+- restore the practical, already-proven Lean-facing surface that agents in the earlier implementation relied on
 - keep the public `aftk_*` namespace tied specifically to the server-backed Lean family
 
 Primary docs:
@@ -774,7 +774,7 @@ Implementation work items:
    - keep no-auto-open semantics for file-scoped tools
    - keep `aftk_shutdown` as semantic shutdown plus owned-client cleanup
 
-5. **Compatibility cross-check against the main worktree**
+5. **Compatibility cross-check against the earlier implementation**
    - confirm the new family preserves the essential behavioral shape of `createAFTKTools(...)` for the Lean-facing surface
    - improve structure and validation without drifting on public tool names or basic expectations
 
@@ -786,15 +786,15 @@ Phase-3 acceptance tests / checks:
 
 Exit criteria:
 
-- the rewrite once again has a usable Lean-facing TypeScript tool family
-- the most important migration target from the main worktree is covered
+- AFTK once again has a usable Lean-facing TypeScript tool family
+- the most important migration target from the earlier implementation is covered
 - the family is reusable outside `pi`
 
 ### Phase 4 — implement the initial knowledge-base tool family
 
 Objective:
 
-- expose the already-implemented rewrite knowledge-base CLI through a disciplined TypeScript bridge
+- expose the already-implemented AFTK knowledge-base CLI through a disciplined TypeScript bridge
 - start with the read/query/report commands that are immediately useful and already semantically stable
 
 Primary docs:
@@ -863,7 +863,7 @@ Exit criteria:
 
 Objective:
 
-- expose the rewrite informal layer directly, rather than forcing all informal-facing usage through hover-like server surfaces
+- expose the AFTK informal layer directly, rather than forcing all informal-facing usage through hover-like server surfaces
 - preserve the actual split between environment-backed tracking/dependency queries and direct knowledge-base-backed presentation
 
 Primary docs:
@@ -905,7 +905,7 @@ Implementation work items:
 
 5. **Boundary discipline**
    - do not resurrect old `informalize_*` naming
-   - do not add sidecar-management commands absent from the rewrite CLI
+   - do not add sidecar-management commands absent from AFTK CLI
    - keep `informal_present` distinct from server-backed hover tools
 
 Phase-5 acceptance tests / checks:
@@ -925,7 +925,7 @@ Exit criteria:
 Objective:
 
 - compose the now-separate tool families into reusable host-facing bundles
-- preserve the successful main-worktree architecture of shared toolkit logic plus a thin pi wrapper, while supporting both extension and direct SDK mounting
+- preserve the successful earlier architecture of shared toolkit logic plus a thin pi wrapper, while supporting both extension and direct SDK mounting
 
 Primary docs:
 
@@ -1054,7 +1054,7 @@ The toolkit should present a consistent result contract, but it should still pre
 
 ### 4. Start with selected high-value CLI-backed tool families, not total command mirroring
 
-The rewrite lower layers already have broad CLI surfaces.
+AFTK lower layers already have broad CLI surfaces.
 The toolkit does not need to mirror every command before it becomes useful.
 
 ### 5. Test each real boundary as it lands
@@ -1088,7 +1088,7 @@ The toolkit layer overview in this file should count as implemented only when al
 
 - the placeholder root TypeScript setup has been replaced by a real toolkit package/module structure
 - reusable runtime/process-management code exists below host adapters
-- a typed rewrite server client exists and is tested
+- a typed AFTK server client exists and is tested
 - the Lean-facing `aftk_*` tool family exists and is tested
 - selected knowledge-base toolkit tools exist and are tested
 - selected informal toolkit tools exist and are tested
@@ -1100,10 +1100,10 @@ Until then, the implementation status at the top of this file should remain “N
 
 ## Summary
 
-The toolkit layer is the rewrite’s first TypeScript layer.
+The toolkit layer is AFTK's first TypeScript layer.
 Its job is to convert the already-implemented Lean lower layers into practical, reusable, agent-facing TypeScript interfaces.
 
-Research against the main worktree shows a valuable reference design:
+Research against the earlier implementation shows a valuable reference design:
 
 - a managed hub client,
 - a shared Lean-facing toolset,
@@ -1115,9 +1115,9 @@ Research against the current repository shows the necessary expansion:
 - the knowledge-base and informal layers already expose real CLIs,
 - and the original pre-implementation repository state had no toolkit implementation beyond placeholders.
 
-So the rewrite toolkit should preserve the useful main-worktree Lean-tool surface while growing into a broader, well-factored TypeScript library that:
+So the AFTK toolkit should preserve the useful earlier Lean-tool surface while growing into a broader, well-factored TypeScript library that:
 
-- wraps the rewrite server cleanly,
+- wraps the AFTK server cleanly,
 - exposes selected knowledge-base and informal tool families,
 - keeps `pi` integration thin,
 - normalizes outputs and errors coherently,

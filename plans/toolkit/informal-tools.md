@@ -39,7 +39,7 @@ It is about:
 - CLI exit-code and error mapping
 - and how informal CLI results should be rendered into concise text plus structured details
 
-The goal is to expose the rewrite’s already implemented informal layer through a practical TypeScript tool surface, while preserving the rewrite’s key architectural rule that the informal layer is a bridge to the knowledge base rather than a second prose store.
+The goal is to expose AFTK's already implemented informal layer through a practical TypeScript tool surface, while preserving AFTK's key architectural rule that the informal layer is a bridge to the knowledge base rather than a second prose store.
 
 ## Design goals
 
@@ -54,7 +54,7 @@ The informal tool family should:
 - make the split between environment-backed queries and knowledge-base-backed presentation explicit
 - make `modules` handling clear and ergonomic for environment-backed commands
 - keep `present` as a complement to server hover rather than a confusing duplicate of it
-- avoid reintroducing any main-worktree `informalize` sidecar-management API that no longer exists in the rewrite
+- avoid reintroducing any earlier `informalize` sidecar-management API that no longer exists in AFTK
 - preserve structured dependency/presentation data for later higher-level agent use
 
 ## Scope and non-scope
@@ -73,7 +73,7 @@ The informal tool family should:
 - server-backed Lean hover/query/tactic tools
 - direct parsing of Lean environments or knowledge-base files from TypeScript
 - `pi`-specific registration code
-- the old main-worktree `informalize meta ...` / sidecar-management surface
+- the old `informalize meta ...` / sidecar-management surface
 - redesign of the informal CLI itself
 - mutation of knowledge-base content through the informal tool family
 
@@ -91,13 +91,13 @@ Primary files studied:
 - `../aftk/docs/agent-playbook.md`
 - `../aftk/docs/future/autoformalization-tools.md`
 
-Important observations from the main worktree:
+Important observations from the earlier implementation:
 
-- The old main-worktree Informalize CLI was sidecar-oriented and included commands such as:
+- The old Informalize CLI was sidecar-oriented and included commands such as:
   - location queries,
   - metadata inspection/mutation,
   - and sidecar-management operations.
-- The main-worktree playbook used `informal[...]` as a blueprint layer tied to `informal/...` markdown/json files.
+- The earlier playbook used `informal[...]` as a blueprint layer tied to `informal/...` markdown/json files.
 - The future-tool roadmap suggests that if informal-layer data is later surfaced through the Lean hub, names like:
   - `aftk_informal_status`
   - `aftk_informal_deps`
@@ -105,10 +105,10 @@ Important observations from the main worktree:
 
   would be plausible **hub-aware** additions.
 
-Main consequences for the rewrite:
+Main consequences for AFTK:
 
-- the old sidecar-management `informalize` CLI is **not** the compatibility target for the rewrite toolkit;
-- the rewrite toolkit should wrap the rewrite’s current `informal` CLI, not resurrect old `informalize meta` or `location` command families;
+- the old sidecar-management `informalize` CLI is **not** the compatibility target for the AFTK toolkit;
+- the AFTK toolkit should wrap AFTK's current `informal` CLI, not resurrect old `informalize meta` or `location` command families;
 - and the toolkit should avoid occupying the `aftk_informal_*` namespace in v1, because that namespace is a better fit for possible future hub-backed informal additions.
 
 ### Repository reference points
@@ -129,7 +129,7 @@ Primary files studied:
 - `plans/toolkit/runtime.md`
 - `plans/toolkit/knowledgebase-tools.md`
 
-Important rewrite observations:
+Current AFTK observations:
 
 - The public CLI is:
 
@@ -137,7 +137,7 @@ Important rewrite observations:
 lake exe aftk informal ...
 ```
 
-- The rewrite informal CLI is already query-oriented and relatively small.
+- the AFTK informal CLI is already query-oriented and relatively small.
 - The implemented commands are:
   - `status`
   - `decls`
@@ -188,11 +188,11 @@ lake exe aftk informal ...
 - `AFTK/Informal/Tracking.lean` and `AFTK/Informal/Dependencies.lean` sort declaration/reference rows and dependency rows/leaves deterministically before returning them.
 - `AFTK/Informal/Presentation.lean` sorts tags, authors, relationship lines, and Lean-ref lines deterministically and currently uses a preview-body policy of 6 lines / 250 characters with explicit `truncated` metadata.
 - The informal layer overview explicitly says:
-  - the rewrite informal layer does not own a second prose store,
+  - the AFTK informal layer does not own a second prose store,
   - canonical prose still lives in the knowledge base,
   - and the server layer already reuses informal presentation for richer hover.
 
-Main consequences for the rewrite:
+Main consequences for AFTK:
 
 - the toolkit can reasonably wrap the **full current** informal CLI surface in v1 because it is already modest and read-oriented;
 - it should expose environment-backed and presentation-backed operations distinctly;
@@ -227,7 +227,7 @@ That preserves lower-layer ownership of:
 
 ### 2. Wrap the full current informal CLI surface in v1
 
-Unlike the knowledge-base CLI, the rewrite informal CLI is already relatively small and entirely query/presentation oriented.
+Unlike the knowledge-base CLI, the AFTK informal CLI is already relatively small and entirely query/presentation oriented.
 So the initial toolkit surface can and should wrap the full current command set:
 
 - `status`
@@ -238,7 +238,7 @@ So the initial toolkit surface can and should wrap the full current command set:
 - `deps`
 - `present`
 
-This gives the toolkit immediate practical coverage of the rewrite informal layer without premature mutation design.
+This gives the toolkit immediate practical coverage of the AFTK informal layer without premature mutation design.
 
 ### 3. Use an `informal_*` naming convention
 
@@ -254,8 +254,8 @@ The v1 naming convention for this family should be:
 
 This choice is deliberate:
 
-- it aligns with the rewrite layer’s public `informal` naming,
-- it avoids the old `informalize` naming from the main worktree,
+- it aligns with AFTK's public `informal` naming,
+- it avoids the old `informalize` naming from the earlier implementation,
 - and it avoids the Lean-family `aftk_*` namespace.
 
 ### 4. Do not use `aftk_informal_*` names in v1
@@ -356,14 +356,14 @@ It should not try to replace or subsume `aftk_get_hover`.
 
 ### 12. Do not resurrect old sidecar-management commands in the toolkit surface
 
-The rewrite informal CLI intentionally does **not** include the old main-worktree `informalize` sidecar-management families such as:
+The AFTK informal CLI intentionally does **not** include the old `informalize` sidecar-management families such as:
 
 - `locations`
 - `location`
 - `meta ...`
 
 The toolkit should therefore not invent tool wrappers for those old commands.
-If later rewrite-layer commands are added, they can be wrapped then.
+If later future layer commands are added, they can be wrapped then.
 
 ### 13. The one-shot CLI family does not need a shutdown surface
 
@@ -1108,17 +1108,17 @@ The informal tool family should explicitly avoid the following mistakes.
 
 ### 1. No direct parsing of Lean environments or knowledge-base files from TypeScript
 
-Use the lower-layer CLI boundary the rewrite already defines.
+Use the lower-layer CLI boundary AFTK already defines.
 
 ### 2. No reuse of the Lean-family `aftk_*` namespace for CLI-backed informal tools
 
 That namespace already means the server-backed Lean family.
 
-### 3. No reuse of the old `informalize_*` naming from the main worktree
+### 3. No reuse of the old `informalize_*` naming from the earlier implementation
 
-The rewrite public layer is `informal`, not `informalize`.
+AFTK public layer is `informal`, not `informalize`.
 
-### 4. No resurrection of old sidecar-management commands that do not exist in the rewrite CLI
+### 4. No resurrection of old sidecar-management commands that do not exist in AFTK CLI
 
 Do not invent wrappers for `locations`, `location`, or `meta ...` in this component.
 
@@ -1150,7 +1150,7 @@ Before the informal tool family can be considered in place, AFTK should reach at
 
 ## Summary
 
-The rewrite already has a compact, query-oriented informal CLI.
+AFTK already has a compact, query-oriented informal CLI.
 That makes the toolkit’s job relatively straightforward: expose the full current informal surface through a clean TypeScript tool family built on:
 
 - one-shot CLI calls,
@@ -1164,12 +1164,12 @@ The resulting v1 informal tool family should use:
 
 - `informal_*` names,
 - not the Lean-family `aftk_*` names,
-- and not the old main-worktree `informalize` naming.
+- and not the old `informalize` naming.
 
-It should preserve the rewrite’s actual semantics:
+It should preserve AFTK's actual semantics:
 
 - project-level declaration/reference/dependency queries from imported modules,
 - direct knowledge-base-backed node presentation by reference id,
 - and no second prose store or sidecar-management API.
 
-That gives the rewrite toolkit a coherent informal-layer surface that complements both the knowledge-base tools and the Lean-facing server tools without blurring their boundaries.
+That gives the AFTK toolkit a coherent informal-layer surface that complements both the knowledge-base tools and the Lean-facing server tools without blurring their boundaries.

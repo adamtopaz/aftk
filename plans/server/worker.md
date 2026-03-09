@@ -28,7 +28,7 @@ The worker should remain file-local and snapshot-local.
 
 The file-worker design should:
 
-- preserve the useful one-file query model of the main worktree
+- preserve the useful one-file query model of the earlier implementation
 - keep the v1 document model simple enough to implement reliably
 - reuse Lean core selection heuristics instead of inventing new ones
 - treat transient proof-state nodes as explicit worker-local state
@@ -83,7 +83,7 @@ The worker’s hover/goal/term-goal queries should be built on Lean core utiliti
 - `InfoTree.goalsAt?`
 - `InfoTree.termGoalAt?`
 
-This keeps the rewrite aligned with Lean’s own editor semantics.
+This keeps AFTK aligned with Lean’s own editor semantics.
 
 ### 4. Keep transient node ids opaque and immutable
 
@@ -156,7 +156,7 @@ The worker should reject zero line/column values as invalid params.
 
 ### Position filtering strategy
 
-The worker should preserve the main-worktree strategy of preferring command trees in this order:
+The worker should preserve the earlier strategy of preferring command trees in this order:
 
 1. commands whose range strictly contains the raw position
 2. commands whose range contains the position when stop-boundary inclusion is allowed
@@ -212,7 +212,7 @@ This is a convenience method, not a new semantic primitive.
 - allocate one fresh opaque id per captured state
 - return the resulting id array in stable order
 
-The implemented rewrite worker uses `GoalsAtResult.useAfter` when choosing the captured tactic state, so a cursor position that Lean core interprets as “after the tactic” loads the corresponding post-tactic state rather than always forcing the pre-tactic state.
+The implemented worker uses `GoalsAtResult.useAfter` when choosing the captured tactic state, so a cursor position that Lean core interprets as “after the tactic” loads the corresponding post-tactic state rather than always forcing the pre-tactic state.
 
 The worker should return an empty array if no tactic node can be loaded at that location.
 
@@ -227,7 +227,7 @@ A practical v1 `StateNode` should record the contexts and states needed to resum
 - `Term.Context` and `Term.State`
 - `Tactic.Context` and `Tactic.State`
 
-This preserves the main-worktree concept and keeps each node self-contained.
+This preserves the earlier concept and keeps each node self-contained.
 
 ## `get_goals`
 
@@ -352,9 +352,9 @@ To preserve that option, the worker code should keep the following concerns dist
 - lower-layer-aware hover enrichment
 - RPC handler wiring
 
-## Additional implementation findings from the main worktree
+## Additional implementation findings from the earlier implementation
 
-Research in `../aftk/AFTK/FileWorker.lean` gives the concrete one-shot implementation skeleton the rewrite can follow.
+Research in `../aftk/AFTK/FileWorker.lean` gives the concrete one-shot implementation skeleton AFTK can follow.
 
 - `getContext` currently performs:
   1. `IO.FS.readFile path`
@@ -365,7 +365,7 @@ Research in `../aftk/AFTK/FileWorker.lean` gives the concrete one-shot implement
   6. `processHeader`
   7. `IO.processCommands` from a `Command.mkState ...` with `infoState.enabled := true`
 - The worker extracts command-level query roots by traversing each `InfoTree` with `rootCommandStx?` and storing `stx.getRangeWithTrailing? (canonicalOnly := true)` in `CommandTree.range?`.
-- The current main worktree uses placeholder file name `"<AFTK>"` in `mkInputContext`; the rewrite should decide explicitly whether to preserve that or use the real file path for more accurate messages and diagnostics.
+- The earlier implementation uses placeholder file name `"<AFTK>"` in `mkInputContext`; AFTK should decide explicitly whether to preserve that or use the real file path for more accurate messages and diagnostics.
 - The current `commandTreesAt` helper uses exactly the three-tier filtering policy already captured elsewhere in this document:
   1. strict containment
   2. boundary-inclusive containment
@@ -376,13 +376,13 @@ Research in `../aftk/AFTK/FileWorker.lean` gives the concrete one-shot implement
 - Term-goal rendering currently follows Lean LSP practice closely: it instantiates the expected type, pops the binder local context when `ti.isBinder`, creates a fresh mvar with `Meta.mkFreshExprMVar`, and renders it through `Meta.ppGoal`.
 - Tactic parsing uses `Parser.runParserCategory` with parser category `tactic` in the stored node environment.
 
-Two current main-worktree quirks are especially important **not** to copy accidentally.
+Two earlier quirks are especially important **not** to copy accidentally.
 
 - `get_goals` currently calls the shared helper `runTacticM`, which allocates and stores a fresh hidden node even though `get_goals` does not return a new id.
 - `load_node` currently builds `StateNode`s from `goal.tacticInfo.goalsBefore` / `mctxBefore` unconditionally in `mkNextState`, so it does not honor `GoalsAtResult.useAfter` even when `get_plain_goal` would display the post-tactic state at the same cursor position.
-- The current worker server registers no explicit `shutdown` handler; the rewrite should add one instead of relying only on transport-level shutdown behavior.
+- The current worker server registers no explicit `shutdown` handler; AFTK should add one instead of relying only on transport-level shutdown behavior.
 
-The rewrite should make both semantic choices explicit instead of inheriting them by accident:
+AFTK should make both semantic choices explicit instead of inheriting them by accident:
 
 - `get_goals` should inspect a stored node without allocating another one
 - and `load_node` should either intentionally preserve current before-state behavior for compatibility or deliberately switch to `useAfter`-aware loading and document that change.
@@ -413,7 +413,7 @@ This component plan should count as implemented only when all of the following a
 
 ## Summary
 
-The rewrite’s file worker should remain conceptually simple and file-local:
+AFTK's file worker should remain conceptually simple and file-local:
 
 - build one semantic snapshot at startup,
 - answer Lean source-position queries from stored info trees,

@@ -364,4 +364,4 @@ Derived and rebuildable operational state lives in:
 
 Within `knowledgebase/nodes/`, each node is stored as a paired Markdown and JSON file according to the node-ID-to-path mapping defined in `plans/knowledgebase/node.md`.
 
-This gives the rewrite a storage model that is simple, explicit, git-friendly, and ready for later Lean implementation.
+This gives AFTK a storage model that is simple, explicit, git-friendly, and ready for later Lean implementation.

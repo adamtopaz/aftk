@@ -465,4 +465,4 @@ That strategy should combine:
 - regression fixtures for invalid canonical data
 - later indexing and repair tests
 
-The first implementation should establish the test harness early and then add coverage phase by phase so that the public knowledge-base library and CLI contracts remain trustworthy as the rewrite grows.
+The first implementation should establish the test harness early and then add coverage phase by phase so that the public knowledge-base library and CLI contracts remain trustworthy as AFTK grows.

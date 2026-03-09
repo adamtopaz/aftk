@@ -28,7 +28,7 @@ It is about:
 
 - runtime assumptions for the TypeScript toolkit
 - project-root discovery and working-directory policy
-- executable resolution for the rewrite’s lower-layer entrypoints
+- executable resolution for AFTK's lower-layer entrypoints
 - shared child-process helpers for long-running and one-shot commands
 - timeout and cancellation behavior
 - startup and shutdown policy
@@ -47,7 +47,7 @@ The runtime layer should:
   - long-running managed processes for `aftk_server`
   - one-shot CLI commands for `aftk knowledgebase ...` and `aftk informal ...`
 - provide shared timeout, cancellation, and termination helpers
-- preserve the useful main-worktree lazy-start managed-hub behavior while factoring it more cleanly
+- preserve the useful earlier lazy-start managed-hub behavior while factoring it more cleanly
 - keep stdout/stderr capture bounded and suitable for later machine-facing error/reporting layers
 - avoid ambient console logging from reusable toolkit code by default
 - preserve enough configurability for tests and non-default host integrations
@@ -104,7 +104,7 @@ Important runtime observations from that implementation:
 - The current toolkit writes hub stderr straight to the parent process’s stderr.
 - If no project root is found, the current helper falls back to the original start directory rather than failing early.
 
-Main consequences for the rewrite:
+Main consequences for AFTK:
 
 - AFTK should preserve the good parts of this operational model:
   - Node-compatible subprocess management,
@@ -135,7 +135,7 @@ Files studied:
 - `AFTK/Informal/Cli/Main.lean`
 - `plans/toolkit.md`
 
-Important runtime observations from the rewrite:
+Important runtime observations from AFTK:
 
 - `lakefile.lean` defines the exact lower-layer executables the runtime must know how to start:
   - `aftk_server`
@@ -163,7 +163,7 @@ Important runtime observations from the rewrite:
 - The original TypeScript scaffold reflected Bun defaults rather than the actual Node-like process model the toolkit needed.
   Concretely, `package.json` then pointed `module` at the root `index.ts`, while `tsconfig.json` still used Bun-style `module: "Preserve"` and `moduleResolution: "bundler"` defaults.
 
-Main consequences for the rewrite:
+Main consequences for AFTK:
 
 - the runtime layer must support both managed-process and one-shot-command patterns cleanly;
 - it must not assume that all lower-layer boundaries look like the server JSON-RPC protocol;
@@ -216,7 +216,7 @@ The runtime should make a clean distinction between:
 - `cwd`: the caller-provided anchor directory used for discovery
 - `projectRoot`: the resolved Lean project root used as the default working directory for lower-layer commands
 
-The main-worktree toolkit already hints at this distinction by accepting `cwd` and deriving `projectRoot`.
+The earlier toolkit already hints at this distinction by accepting `cwd` and deriving `projectRoot`.
 AFTK should make it explicit.
 
 Recommended rule:
@@ -228,7 +228,7 @@ Recommended rule:
 
 AFTK should prefer an explicit configuration error over silently using an arbitrary directory when no Lean project root can be found.
 
-So unlike the current main-worktree helper, the default runtime should:
+So unlike the earlier helper, the default runtime should:
 
 - search upward for `lakefile.toml` or `lakefile.lean`
 - if none is found and no explicit `projectRoot` was provided, throw a runtime configuration error
@@ -314,7 +314,7 @@ Trying to force both patterns into one oversized abstraction would make the runt
 
 ### 8. Default to lazy managed-hub startup, but expose explicit start capability
 
-The main-worktree toolkit’s lazy hub startup is a good default.
+The earlier toolkit’s lazy hub startup is a good default.
 AFTK should preserve that default behavior.
 
 So the runtime foundation should support:
@@ -368,10 +368,10 @@ For example:
 
 ### 12. Avoid ambient process stderr mirroring by default
 
-The main-worktree toolkit currently forwards hub stderr directly to the parent stderr stream.
+The earlier toolkit currently forwards hub stderr directly to the parent stderr stream.
 That is simple, but it is not the right default for a reusable library.
 
-The rewrite runtime should instead:
+AFTK runtime should instead:
 
 - capture stderr in bounded form by default
 - expose it for diagnostics and error reporting
@@ -381,7 +381,7 @@ Core toolkit code should not print directly to the console or parent stderr unle
 
 ### 13. Use conservative shutdown escalation
 
-The runtime should preserve the main-worktree spirit of conservative shutdown behavior:
+The runtime should preserve the earlier spirit of conservative shutdown behavior:
 
 1. ask the lower layer to stop gracefully when a graceful path exists
 2. wait only a bounded time
@@ -596,8 +596,8 @@ The runtime should make timeout policy explicit and shared.
 
 ### Default operation timeout
 
-The main-worktree toolkit already uses a `120_000ms` default request timeout.
-That is a good default baseline for the rewrite’s runtime as well.
+The earlier toolkit already uses a `120_000ms` default request timeout.
+That is a good default baseline for AFTK's runtime as well.
 
 So the runtime should begin with:
 
@@ -612,7 +612,7 @@ Individual calls may still override it when needed.
 
 ### Shutdown timeouts
 
-The main-worktree toolkit uses a shorter timeout for graceful shutdown requests.
+The earlier toolkit uses a shorter timeout for graceful shutdown requests.
 AFTK should preserve that pattern.
 
 A good v1 baseline is:
@@ -931,13 +931,13 @@ Before the runtime layer can be considered in place, AFTK should reach at least 
 
 ## Summary
 
-The rewrite toolkit needs one shared runtime foundation for all later TypeScript components.
+The AFTK toolkit needs one shared runtime foundation for all later TypeScript components.
 That foundation should be explicitly Node-compatible, centered on a resolved runtime context, and able to manage both:
 
 - a lazy, long-running `aftk_server` subprocess
 - and one-shot `lake exe aftk knowledgebase ...` / `lake exe aftk informal ...` subprocesses
 
-It should preserve the best operational ideas from the main-worktree toolkit — especially lazy start, request timeouts, and conservative shutdown — while improving them with:
+It should preserve the best operational ideas from the earlier toolkit — especially lazy start, request timeouts, and conservative shutdown — while improving them with:
 
 - clearer configuration errors,
 - reusable command/process helpers,

@@ -29,7 +29,7 @@ The hub should remain operationally central but semantically thin.
 
 The hub design should:
 
-- preserve the useful main-worktree model of one worker per open file
+- preserve the useful earlier model of one worker per open file
 - keep file identity explicit and deterministic
 - make session invalidation and cleanup rules easy to reason about
 - isolate operational lifecycle from Lean semantic query code
@@ -86,13 +86,13 @@ Its main job is:
 
 ### 4. v1 uses explicit reopen-on-change semantics
 
-The v1 hub should preserve the main-worktree operational rule:
+The v1 hub should preserve the earlier operational rule:
 
 - if the underlying file changes, the current session becomes invalid
 - subsequent file-scoped requests fail with `-32011`
 - the caller must `open` the file again to get a fresh worker
 
-The rewrite should keep its internal boundaries clean enough that a later versioned document model can replace this.
+AFTK should keep its internal boundaries clean enough that a later versioned document model can replace this.
 But reopen-on-change is the settled v1 rule.
 
 ### 5. Serialize all requests within one session
@@ -140,7 +140,7 @@ For v1, a practical stamp is:
 - modification time,
 - plus byte size.
 
-This preserves the main-worktree behavior and is easy to compute.
+This preserves the earlier behavior and is easy to compute.
 
 ## Worker session
 
@@ -226,7 +226,7 @@ Remembering the normalized alias makes stale-session lookup more robust than rel
 - replace the session
 - return `opened = true`
 
-This preserves the main-worktree meaning of `open` as both initial open and repair/reopen entrypoint.
+This preserves the earlier meaning of `open` as both initial open and repair/reopen entrypoint.
 
 ## `close`
 
@@ -364,7 +364,7 @@ To preserve that option, the hub should keep:
 
 cleanly separated from the worker’s document model.
 
-## Additional implementation findings from the main worktree
+## Additional implementation findings from the earlier implementation
 
 Research in `../aftk/AFTK/Server.lean` shows the concrete helper split that is likely worth preserving in spirit.
 
@@ -383,7 +383,7 @@ Research in `../aftk/AFTK/Server.lean` shows the concrete helper split that is l
 - `ensureSessionReady` checks liveness before freshness, and `forwardToWorker` performs dead-session cleanup after request failures if the child exited while the RPC was in flight.
 - `main` uses a `finally` block plus `drainSessions` to detach all sessions from the mutex before stopping them, which avoids cleanup racing with normal state access.
 
-The rewrite should preserve these conservative operational rules, while still keeping the deliberate improvements already documented here:
+AFTK should preserve these conservative operational rules, while still keeping the deliberate improvements already documented here:
 
 - add alias lookup rather than relying only on one canonical path string
 - add explicit per-session serialization
@@ -416,7 +416,7 @@ This component plan should count as implemented only when all of the following a
 
 ## Summary
 
-The hub in the rewrite should stay small and operationally authoritative:
+The hub in AFTK should stay small and operationally authoritative:
 
 - one worker per open file,
 - explicit file identity and freshness tracking,

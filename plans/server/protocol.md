@@ -30,7 +30,7 @@ This is the main API contract that higher layers should be able to depend on.
 
 The protocol should:
 
-- preserve the useful current main-worktree method family where practical
+- preserve the useful earlier method family where practical
 - be explicit about what is public and what is worker-internal
 - keep request and response shapes small and deterministic
 - keep path and position semantics unambiguous
@@ -116,12 +116,12 @@ All externally visible source positions should use:
 - 1-based `line`
 - 1-based `col`
 
-This matches the main worktree and the existing TypeScript tooling assumptions.
+This matches the earlier implementation and the existing TypeScript tooling assumptions.
 
 ### 5. Make stale node invalidation a named protocol error
 
-The current main-worktree worker treats unknown node ids like invalid params.
-The rewrite should improve this by giving stale-or-unknown transient node ids their own explicit server-family error code.
+The earlier worker treats unknown node ids like invalid params.
+AFTK should improve this by giving stale-or-unknown transient node ids their own explicit server-family error code.
 
 That makes worker-restart and file-change invalidation easier for callers to reason about.
 
@@ -257,7 +257,7 @@ Callers should also tolerate omission of an optional field for forward compatibi
 {"id":["node-a","node-b"]}
 ```
 
-The field name should remain `id` for compatibility with the existing main-worktree surface, even though it contains an array of node ids.
+The field name should remain `id` for compatibility with the existing earlier surface, even though it contains an array of node ids.
 
 Semantics:
 
@@ -633,7 +633,7 @@ Tests should reflect that distinction.
 
 ## Compatibility policy
 
-The public protocol should aim for main-worktree compatibility in these respects:
+The public protocol should aim for earlier-implementation compatibility in these respects:
 
 - method names
 - 1-based line/column inputs
@@ -641,11 +641,11 @@ The public protocol should aim for main-worktree compatibility in these respects
 - hub-level file invalidation errors
 - worker-local transient node semantics
 
-The rewrite may improve the protocol where it materially helps correctness, especially by making stale node invalidation explicit.
+AFTK may improve the protocol where it materially helps correctness, especially by making stale node invalidation explicit.
 
-## Additional implementation findings from the main worktree
+## Additional implementation findings from the earlier implementation
 
-The current main-worktree code in `../aftk/AFTK/Server.lean` and `../aftk/AFTK/FileWorker.lean` fixes several small compatibility details that are easy to miss during implementation.
+The earlier code in `../aftk/AFTK/Server.lean` and `../aftk/AFTK/FileWorker.lean` fixes several small compatibility details that are easy to miss during implementation.
 
 - The currently exposed result structures are named exactly `OpenResult`, `CloseResult`, `LoadNodeResult`, `GetGoalsResult`, `RunTacticResult`, `RunTacticStepsResult`, `HoverResult`, `PlainGoalResult`, `PlainTermGoalResult`, `InfoViewResult`, and `ShutdownResult`.
 - The compatibility-sensitive field names are exactly:
@@ -653,7 +653,7 @@ The current main-worktree code in `../aftk/AFTK/Server.lean` and `../aftk/AFTK/F
   - `RunTacticResult.nextId : String`
   - `ShutdownResult.stopped : Nat`
   - optional range/hover slots encoded as `range?`, `hover?`, `plainGoal?`, and `plainTermGoal?` on the Lean side.
-- Because the current main-worktree uses derived `ToJson` on structures with `Option` fields, absent optional fields should be treated as potentially omitted by the encoder rather than requiring explicit JSON `null`.
+- Because the earlier uses derived `ToJson` on structures with `Option` fields, absent optional fields should be treated as potentially omitted by the encoder rather than requiring explicit JSON `null`.
 - The current hub error helpers emit these exact messages:
   - `-32010` -> `"File is not open"`
   - `-32011` -> `"File changed; reopen required"`
@@ -667,8 +667,8 @@ The current main-worktree code in `../aftk/AFTK/Server.lean` and `../aftk/AFTK/F
   - `"failed to parse tactic: {err}"`
   - `"unknown node id: {id}"`
 
-The rewrite does not need to preserve every incidental wording forever, but these strings are the current observable surface and should be treated as the baseline compatibility target unless a documented improvement replaces them.
-The deliberate exception already settled in these plans is stale-node handling, where the rewrite should prefer dedicated error `-32013` over the current generic invalid-params behavior.
+AFTK does not need to preserve every incidental wording forever, but these strings are the current observable surface and should be treated as the baseline compatibility target unless a documented improvement replaces them.
+The deliberate exception already settled in these plans is stale-node handling, where AFTK should prefer dedicated error `-32013` over the current generic invalid-params behavior.
 
 ## Completion checklist for this plan
 
@@ -683,7 +683,7 @@ This component plan should count as implemented only when all of the following a
 
 ## Summary
 
-The v1 protocol should stay close to the main-worktree Lean-facing surface while tightening the contract where it matters:
+The v1 protocol should stay close to the earlier Lean-facing surface while tightening the contract where it matters:
 
 - public file lifecycle plus query/tactic methods on the hub,
 - file-local worker methods underneath,

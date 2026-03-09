@@ -489,7 +489,7 @@ That helps keep dependencies honest.
 
 ## Design decisions for v1
 
-The following layout decisions are recommended for the first rewrite implementation:
+The following layout decisions are recommended for the first implementation:
 
 1. Create a dedicated `AFTK/Informal/` module tree.
 2. Add `AFTK/Informal.lean` as the public library root.

@@ -21,7 +21,7 @@ It is the design target for the Lean CLI that will expose:
 - derived declaration and reference dependency views
 - knowledge-base-backed presentation rendering for referenced nodes
 
-The rewrite intentionally differs from the main-worktree `informalize` CLI in one major way:
+AFTK intentionally differs from the earlier `informalize` CLI in one major way:
 
 - the CLI should no longer manage a separate `informal/...` markdown/json sidecar store
 - instead, it should query and present references that resolve through the knowledge base
@@ -47,7 +47,7 @@ lake exe aftk informal ...
 ```
 
 The public CLI should use `informal`, not `informalize`.
-Likewise, Lean module and namespace naming for the rewrite layer should be based on `Informal`, not on the old `Informalize` module tree.
+Likewise, Lean module and namespace naming for this layer should be based on `Informal`, not on the old `Informalize` module tree.
 
 ## High-level CLI shape
 
@@ -66,7 +66,7 @@ The design should keep the CLI relatively flat in v1, because the main command g
 
 ## Query-first CLI philosophy
 
-Unlike the main-worktree `informalize` CLI, the rewrite informal CLI should be primarily read-only in v1.
+Unlike the earlier `informalize` CLI, the AFTK informal CLI should be primarily read-only in v1.
 
 ### Why
 
@@ -143,7 +143,7 @@ When multiple modules are supplied, the CLI should import them together into one
 
 ### Environment caching
 
-An implementation may cache imported environments keyed by the requested module list, as the main-worktree CLI does.
+An implementation may cache imported environments keyed by the requested module list, as the earlier CLI does.
 That is an implementation optimization, not a semantic requirement.
 
 ### Lean import implementation note
@@ -541,7 +541,7 @@ If a node is malformed, the user should fix it through the knowledge-base layer.
 
 ## Design decisions for v1
 
-The following decisions are recommended for the first rewrite implementation:
+The following decisions are recommended for the first implementation:
 
 1. Use `lake exe aftk informal ...` as the public command shape.
 2. Keep the v1 informal CLI primarily query-oriented and read-only.
@@ -564,7 +564,7 @@ These are plausible later additions, but they are not required for the first sli
 
 ## Lean 4 and current-implementation reuse findings
 
-The current main-worktree CLI already provides several useful patterns the rewrite should likely reuse:
+The earlier CLI already provides several useful patterns AFTK should likely reuse:
 
 - manual argument parsing rather than introducing a large CLI framework too early
 - repeatable `--module` imports for environment-backed queries
@@ -578,7 +578,7 @@ Core Lean adds a few concrete operational findings behind that pattern:
 - tracked-state queries specifically need `importModules ... (loadExts := true)` so that persistent environment extensions are available after import
 - `withImportModules` is intentionally not appropriate here because it always uses `loadExts := false`
 
-The rewrite should preserve the useful existing patterns where they still fit, while removing the old metadata-mutation command family and replacing sidecar-location concepts with knowledge-base-backed references and presentation.
+AFTK should preserve the useful existing patterns where they still fit, while removing the old metadata-mutation command family and replacing sidecar-location concepts with knowledge-base-backed references and presentation.
 
 ## Open questions for companion docs
 
@@ -592,7 +592,7 @@ This document intentionally leaves nearby details to companion plans:
 
 ## Summary
 
-The rewrite’s informal CLI should live at:
+AFTK's informal CLI should live at:
 
 ```text
 lake exe aftk informal ...
@@ -605,4 +605,4 @@ and should be primarily a query/readback surface over four things:
 - derived dependency views,
 - and knowledge-base-backed presentation rendering.
 
-It should require module imports for environment-backed queries, reuse the knowledge-base layer for canonical node resolution, support both text and JSON output from the start, and avoid reintroducing the old sidecar-metadata mutation model of the main-worktree `informalize` CLI.
+It should require module imports for environment-backed queries, reuse the knowledge-base layer for canonical node resolution, support both text and JSON output from the start, and avoid reintroducing the old sidecar-metadata mutation model of the earlier `informalize` CLI.

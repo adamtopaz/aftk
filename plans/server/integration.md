@@ -13,7 +13,7 @@ This document refines the overall server-layer plan in `plans/server.md` and wor
 
 ## Purpose
 
-This document defines how the server/file-worker layer should become aware of the rewrite’s lower layers without duplicating their responsibilities.
+This document defines how the server/file-worker layer should become aware of AFTK's lower layers without duplicating their responsibilities.
 It focuses especially on:
 
 - hover and info-view enrichment
@@ -29,7 +29,7 @@ Integration at this layer should:
 - reuse `AFTK.KnowledgeBase` and `AFTK.Informal` libraries instead of rebuilding their semantics inside the worker
 - avoid introducing a second canonical store or long-lived duplicate caches
 - preserve a small v1 public protocol rather than mirroring every lower-layer CLI command as RPC immediately
-- build on the lower-layer presentation work already implemented in the rewrite
+- build on the lower-layer presentation work already implemented in AFTK
 
 ## Scope and non-scope
 
@@ -85,7 +85,7 @@ It should not:
 
 ### 3. Preserve the informal layer’s existing compact hover behavior
 
-The rewrite’s informal elaborator already attaches compact presentation summaries to info trees through `docString?`/delab info.
+AFTK's informal elaborator already attaches compact presentation summaries to info trees through `docString?`/delab info.
 The server/file-worker layer should preserve and test that behavior.
 
 This is the minimum lower-layer-aware hover integration expected in v1.
@@ -298,5 +298,5 @@ This component plan should count as implemented only when all of the following a
 
 ## Summary
 
-The rewrite’s server layer should integrate with the lower layers primarily by enriching the existing Lean-facing interactive surface, especially hover.
+AFTK's server layer should integrate with the lower layers primarily by enriching the existing Lean-facing interactive surface, especially hover.
 It should reuse the already-implemented informal reference and presentation libraries, preserve compact elaboration-time hover summaries, and add richer preview-style presentation at recognized `informal[...]` sites—without turning the server into a duplicate knowledge-base service.

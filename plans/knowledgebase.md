@@ -20,7 +20,7 @@ Historical comparison and design-rationale sections below remain useful, but `do
 The knowledge base layer is the foundation of the new architecture.
 Its job is to store, organize, retrieve, and search natural-language mathematical and technical knowledge.
 
-The most important architectural commitment of the rewrite is:
+The most important architectural commitment of AFTK is:
 
 > The knowledge base is the single source of truth for natural-language knowledge.
 
@@ -28,7 +28,7 @@ Higher layers may reference, elaborate, transform, or act on that knowledge, but
 
 ## Position in the layered architecture
 
-The overall rewrite stack is:
+The overall architecture stack is:
 
 1. Knowledge base layer
 2. Informal layer
@@ -60,7 +60,7 @@ It is the system boundary for managing natural-language knowledge in a structure
 
 ### 1. Single source of truth for natural-language content
 
-Natural-language knowledge should live in exactly one place in the rewritten system: the knowledge base.
+Natural-language knowledge should live in exactly one place in the system: the knowledge base.
 
 This means, for example, that the later informal layer should refer to knowledge-base nodes rather than storing separate copies of the same prose.
 
@@ -676,7 +676,7 @@ It should be updated as design decisions are made and code lands.
 
 ## Summary
 
-The knowledge base layer is the foundational data layer of the `aftk` rewrite.
+The knowledge base layer is the foundational data layer of the `aftk` codebase.
 It owns all natural-language knowledge in the system, stores main content in Markdown, stores structured metadata in JSON, and exposes Lean-native CLI operations for creating, editing, querying, and searching that knowledge.
 
-Everything built later in the rewrite should treat this layer as the canonical source of natural-language information.
+Everything built later in AFTK should treat this layer as the canonical source of natural-language information.

@@ -61,9 +61,9 @@ The placeholder mechanism should:
 
 Those belong to companion docs.
 
-## Reference point from the main-worktree implementation
+## Reference point from the earlier implementation
 
-The current main-worktree design uses a single axiom:
+The earlier design uses a single axiom:
 
 ```lean
 axiom Informal.{u} (tag : Lean.Name) (alpha : Sort u) : alpha
@@ -82,7 +82,7 @@ or, when explicit arguments are written after `informal[...]`,
 Informal tag (A₁ → ... → Aₙ → R) a₁ ... aₙ
 ```
 
-The rewrite should preserve this overall shape unless a clearly better alternative appears.
+AFTK should preserve this overall shape unless a clearly better alternative appears.
 At present, no better alternative is identified.
 
 ## Core role of the placeholder
@@ -327,7 +327,7 @@ The node reference belongs in elaboration-time and environment-extension state, 
 
 ## Why not use `sorry`
 
-The rewrite should not model `informal[...]` as merely reusing Lean’s built-in `sorry` mechanism.
+AFTK should not model `informal[...]` as merely reusing Lean’s built-in `sorry` mechanism.
 
 ### Reasons to reject `sorry` as the primary design
 
@@ -425,14 +425,14 @@ The following alternatives should be rejected for v1:
 
 ## Lean 4 and current-implementation reuse findings
 
-The current main-worktree placeholder design is already close to the minimal design the rewrite wants.
+The earlier placeholder design is already close to the minimal design AFTK wants.
 The main reusable idea is simply:
 
 ```lean
 axiom Informal.{u} (tag : Lean.Name) (α : Sort u) : α
 ```
 
-That design has several virtues the rewrite should preserve:
+That design has several virtues AFTK should preserve:
 
 - minimal kernel surface area
 - explicit unsoundness
@@ -445,7 +445,7 @@ Core Lean reinforces this direction in two ways:
 - `Meta.mkLabeledSorry` also separates source-site identity from semantic payload by using a `Lean.Name` tag rather than baking rich metadata into the kernel term
 - `SorryLabelView.encode`/`decode?` show that `Lean.Name` is a practical carrier for source-labelled occurrence identity without making that identity the actual external reference id
 
-At present, there is no strong reason to change this shape for the rewrite.
+At present, there is no strong reason to change this shape for AFTK.
 
 ## Open questions for companion docs
 
@@ -459,7 +459,7 @@ This document intentionally leaves nearby details to companion plans:
 
 ## Summary
 
-The rewrite should use a single explicit universe-polymorphic axiom as its placeholder primitive:
+AFTK should use a single explicit universe-polymorphic axiom as its placeholder primitive:
 
 ```lean
 axiom AFTK.Informal.Informal.{u} (tag : Lean.Name) (α : Sort u) : α

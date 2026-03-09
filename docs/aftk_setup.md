@@ -179,7 +179,7 @@ The current script intentionally does **not**:
 - start pi for you
 - issue `/reload` automatically
 - install npm packages
-- rewrite toolkit runtime executable specs
+- AFTK toolkit runtime executable specs
 - perform broader environment bootstrap beyond the two generated `.pi/` files
 
 Its scope is deliberately narrow: make the current Lake workspace discover the AFTK pi extension and appended prompt safely.

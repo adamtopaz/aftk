@@ -66,14 +66,14 @@ The v1 transport design should make the following choices explicit.
 
 ### 1. Keep two JSON-RPC process boundaries
 
-The rewrite should preserve two process boundaries:
+AFTK should preserve two process boundaries:
 
 1. **public boundary:** external client ↔ `aftk_server`
 2. **internal boundary:** `aftk_server` ↔ `aftk_file_worker`
 
 This matches both:
 
-- the current main-worktree shape, and
+- the earlier shape, and
 - Lean core’s watchdog/worker architecture in spirit.
 
 ### 2. Use newline-delimited UTF-8 JSON-RPC 2.0 messages over stdio
@@ -99,18 +99,18 @@ and a typical response looks like:
 
 ### 3. Use `lean_worker` directly as the transport dependency in v1
 
-The rewrite should explicitly depend on `lean_worker` for the hub/server and file-worker transport plumbing.
+AFTK should explicitly depend on `lean_worker` for the hub/server and file-worker transport plumbing.
 That means `lean_worker` should be treated as part of the intended implementation of this layer, not as a dependency to avoid.
 
 Reasons:
 
-- the main worktree already demonstrates that `lean_worker` is a good fit for this exact hub/worker JSON-RPC process model
+- the earlier implementation already demonstrates that `lean_worker` is a good fit for this exact hub/worker JSON-RPC process model
 - it reduces implementation risk and avoids spending time rebuilding generic client/server transport machinery the project already knows how to use
 - it matches the executable/process structure higher layers already expect
-- and it lets the rewrite focus effort on protocol clarity, hub lifecycle, worker semantics, and lower-layer integration rather than on reinventing RPC infrastructure
+- and it lets AFTK focus effort on protocol clarity, hub lifecycle, worker semantics, and lower-layer integration rather than on reinventing RPC infrastructure
 
 This does **not** mean transport concerns should be scattered everywhere.
-The rewrite should still keep most transport-specific helper code collected in `AFTK.Server.Transport`, but that module should be understood as an AFTK-specific integration layer **over `lean_worker`**, not as an attempt to replace or abstract away the dependency.
+AFTK should still keep most transport-specific helper code collected in `AFTK.Server.Transport`, but that module should be understood as an AFTK-specific integration layer **over `lean_worker`**, not as an attempt to replace or abstract away the dependency.
 
 ### 4. Support only single-request envelopes in v1
 
@@ -127,7 +127,7 @@ If batch arrays are added later, they should be added within the same `lean_work
 
 ### 5. Add explicit `shutdown` handlers on both public and internal boundaries
 
-The rewrite should not rely on transport-package-specific shutdown behavior.
+AFTK should not rely on transport-package-specific shutdown behavior.
 Instead:
 
 - the hub should expose a public `shutdown` request,
@@ -251,7 +251,7 @@ Those belong above the transport layer.
 
 ### Hub process startup
 
-The rewrite’s TypeScript tools and tests should continue to be able to start the hub with:
+AFTK's TypeScript tools and tests should continue to be able to start the hub with:
 
 ```text
 lake exe aftk_server
@@ -367,10 +367,10 @@ These belong to the protocol and handler layers and should pass through the tran
 
 ## Why a direct `lean_worker` commitment is the right v1 choice
 
-Using `lean_worker` directly is the right design choice for this rewrite stage.
+Using `lean_worker` directly is the right design choice for this stage.
 It keeps the implementation aligned with:
 
-- the main-worktree operational model,
+- the earlier operational model,
 - the expected JSON-RPC-over-stdio process topology,
 - and the project’s immediate need to deliver hub lifecycle, worker semantics, and lower-layer integration rather than bespoke RPC infrastructure.
 
@@ -397,20 +397,20 @@ The transport layer should leave room for later additions such as:
 
 The v1 implementation should not block those, but it also should not implement them speculatively.
 
-## Additional implementation findings from the main worktree
+## Additional implementation findings from the earlier implementation
 
 Research in `../aftk/AFTK/Server.lean`, `../aftk/AFTK/FileWorker.lean`, `../aftk/lakefile.lean`, and `../aftk/lambda/src/aftk-tools.ts` adds the following concrete implementation notes.
 
-- The existing Lean implementation already uses the exact `lean_worker` API family the rewrite can adopt: `LeanWorker.Transport.serverTransportFromStdio`, `LeanWorker.Transport.clientTransportFromStreams`, `LeanWorker.Client.getClient`, `LeanWorker.Server.run`, and `LeanWorker.Server.HandlerRegistry.addStateful`.
+- The existing Lean implementation already uses the exact `lean_worker` API family AFTK can adopt: `LeanWorker.Transport.serverTransportFromStdio`, `LeanWorker.Transport.clientTransportFromStreams`, `LeanWorker.Client.getClient`, `LeanWorker.Server.run`, and `LeanWorker.Server.HandlerRegistry.addStateful`.
 - The hub spawns workers with `IO.Process.spawn { cmd := "lake", args := #["exe", "aftk_file_worker", path], stdin := .piped, stdout := .piped, stderr := .inherit, setsid := true }`.
 - Hub→worker RPC currently goes through `session.client.request`; the current `run_tactic_steps` implementation uses `session.client.batch` even though it submits a single `run_tactic` item per loop iteration.
 - The current hub keeps cleanup centralized through `stopSession`, `stopAllSessions`, and a `drainSessions` helper used from `finally` in `main`.
 - The TypeScript wrapper in `../aftk/lambda/src/aftk-tools.ts` writes exactly one `JSON.stringify(...) ++ "\\n"` request per call, line-buffers stdout by splitting on `"\n"`, ignores empty lines, and applies a `SIGTERM`/`SIGKILL` fallback with 1500 ms waits.
 
-One important implementation gap in the current main worktree is also worth recording.
+One important implementation gap in the earlier implementation is also worth recording.
 
 - The current worker does **not** expose an explicit internal `shutdown` handler; hub cleanup relies on `session.client.shutdown` plus process termination fallback.
-- The rewrite should keep the same `lean_worker` transport path, but add the explicit worker `shutdown` method already settled elsewhere in these plans.
+- AFTK should keep the same `lean_worker` transport path, but add the explicit worker `shutdown` method already settled elsewhere in these plans.
 
 ## Implementation guidance for the next code phase
 
@@ -438,7 +438,7 @@ This component plan should count as implemented only when all of the following a
 
 ## Summary
 
-The rewrite should keep the existing two-process-level architecture, keep JSON-RPC over stdio, and intentionally use a small restricted transport surface in v1:
+AFTK should keep the existing two-process-level architecture, keep JSON-RPC over stdio, and intentionally use a small restricted transport surface in v1:
 
 - UTF-8,
 - one JSON object per line,

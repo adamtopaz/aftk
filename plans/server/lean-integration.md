@@ -2,23 +2,23 @@
 
 ## Status
 
-Component plan and implementation-status document for how the rewrite’s server/file-worker layer should reuse Lean 4 core APIs.
+Component plan and implementation-status document for how AFTK's server/file-worker layer should reuse Lean 4 core APIs.
 This document refines the overall server-layer plan in `plans/server.md` and works together with `plans/server/transport.md`, `plans/server/protocol.md`, `plans/server/hub.md`, `plans/server/worker.md`, `plans/server/integration.md`, `plans/server/layout.md`, and `plans/server/testing.md`.
 
 ## Component implementation status
 
 - Overall status: Implemented
 - Implemented in code: Yes
-- Last updated basis: the rewrite worker now uses the documented one-shot Lean frontend path (`parseHeader`, `processHeader`, `processCommands`) together with Lean core info-tree query utilities for hover, goal, and term-goal lookup.
+- Last updated basis: the AFTK worker now uses the documented one-shot Lean frontend path (`parseHeader`, `processHeader`, `processCommands`) together with Lean core info-tree query utilities for hover, goal, and term-goal lookup.
 
 ## Purpose
 
-This document records how the rewrite should reuse Lean 4 core functionality rather than re-deriving behavior from scratch.
+This document records how AFTK should reuse Lean 4 core functionality rather than re-deriving behavior from scratch.
 It addresses three related questions:
 
 1. which Lean core APIs the worker should call directly in v1,
-2. how closely the rewrite should mirror Lean core’s own server architecture,
-3. and whether the rewrite should adopt a one-shot or incremental document model initially.
+2. how closely AFTK should mirror Lean core’s own server architecture,
+3. and whether AFTK should adopt a one-shot or incremental document model initially.
 
 ## Design goals
 
@@ -67,7 +67,7 @@ That research supports two high-level conclusions.
 
 Lean’s own language-server stack also uses a watchdog/worker split.
 So preserving a hub plus per-file worker architecture is not an AFTK-specific accident.
-It is a sound direction for the rewrite.
+It is a sound direction for AFTK.
 
 ### 2. Lean core’s full editable-document model is richer than what AFTK needs for v1
 
@@ -79,8 +79,8 @@ Lean core supports:
 - cancellation-aware request handling
 - diagnostics and progress flows
 
-Those are important reference points, but they are significantly richer than the current main-worktree AFTK worker.
-The rewrite should not import that full complexity immediately unless it materially improves the first deliverable.
+Those are important reference points, but they are significantly richer than the earlier the AFTK worker.
+AFTK should not import that full complexity immediately unless it materially improves the first deliverable.
 
 ## Settled v1 decision: one-shot worker snapshots, not incremental documents
 
@@ -93,12 +93,12 @@ The main architectural choice that needed settling is now:
 
 ### 1. It matches the current useful AFTK behavior
 
-The main-worktree server/file-worker pair already provides useful Lean semantic querying and transient tactic exploration with a one-shot worker model.
+The earlier server/file-worker pair already provides useful Lean semantic querying and transient tactic exploration with a one-shot worker model.
 That is the behavior higher layers already know how to consume.
 
-### 2. The rewrite’s bigger immediate job is lower-layer integration
+### 2. AFTK's bigger immediate job is lower-layer integration
 
-The rewrite is not just porting old server code.
+AFTK is not just porting old server code.
 It also has to integrate the server layer with the new:
 
 - knowledge-base layer
@@ -124,11 +124,11 @@ The worker can still isolate context construction and query logic so that a late
 
 ## Lean APIs the v1 worker should use directly
 
-The v1 worker should directly reuse the lower-level frontend path already proven in the main worktree.
+The v1 worker should directly reuse the lower-level frontend path already proven in the earlier implementation.
 
 ## Frontend context construction
 
-The worker should build its one-shot file snapshot using the same general stages as the main worktree:
+The worker should build its one-shot file snapshot using the same general stages as the earlier implementation:
 
 - `Parser.parseHeader`
 - `Elab.processHeader`
@@ -154,7 +154,7 @@ The worker should use Lean core query helpers for positional semantics, especial
 - `InfoTree.termGoalAt?`
 
 This is one of the strongest conclusions from the research.
-The rewrite should not invent a separate ad hoc position-selection algorithm for hover and goal queries.
+AFTK should not invent a separate ad hoc position-selection algorithm for hover and goal queries.
 
 ## Goal and term pretty-printing
 
@@ -173,15 +173,15 @@ The worker should continue to:
 - evaluate parsed tactics inside captured tactic states
 - and use Lean’s own tactic/goal machinery for post-step state inspection
 
-That preserves both correctness and compatibility with the current main-worktree semantics.
+That preserves both correctness and compatibility with the earlier semantics.
 
-## How closely the rewrite should follow Lean’s own server internals
+## How closely AFTK should follow Lean’s own server internals
 
-The rewrite should follow Lean core’s server architecture **selectively**, not wholesale.
+AFTK should follow Lean core’s server architecture **selectively**, not wholesale.
 
 ## What to copy in spirit
 
-The rewrite should copy in spirit:
+AFTK should copy in spirit:
 
 - the hub/worker split
 - reuse of info-tree query helpers
@@ -190,7 +190,7 @@ The rewrite should copy in spirit:
 
 ## What not to copy wholesale in v1
 
-The rewrite should not immediately copy wholesale:
+AFTK should not immediately copy wholesale:
 
 - the full editable-document snapshot pipeline
 - diagnostics/progress flows
@@ -198,7 +198,7 @@ The rewrite should not immediately copy wholesale:
 - the entire LSP-oriented request surface
 - or the whole Lean server module tree
 
-That would overshoot the rewrite’s current scope.
+That would overshoot AFTK's current scope.
 
 ## Recommended worker backend boundary
 
@@ -219,9 +219,9 @@ A future backend could instead be:
 
 without rewriting the rest of the worker API surface.
 
-## When the rewrite should revisit the one-shot choice
+## When AFTK should revisit the one-shot choice
 
-The rewrite should revisit the document model only if real needs arise such as:
+AFTK should revisit the document model only if real needs arise such as:
 
 - higher layers needing in-memory edits without reopening
 - a strong need for cancellation of expensive elaboration requests
@@ -232,7 +232,7 @@ Until then, reopen-on-change is the right complexity budget.
 
 ## Relationship to the informal layer’s existing info attachments
 
-The current rewrite’s informal elaborator already attaches compact presentation summaries to info trees via `DelabTermInfo.docString?`.
+The current informal elaborator in AFTK already attaches compact presentation summaries to info trees via `DelabTermInfo.docString?`.
 That is exactly the kind of Lean-native mechanism the worker should continue to leverage.
 
 This matters because it shows that lower-layer integration does not require bypassing Lean’s own info-tree model.
@@ -253,7 +253,7 @@ from `Lean.Server.Requests`.
 
 ### Incremental document processing
 
-If true edit support becomes necessary, the rewrite should study:
+If true edit support becomes necessary, AFTK should study:
 
 - `Lean.Server.Snapshots`
 - `Lean.Server.FileWorker`
@@ -275,9 +275,9 @@ But those are intentionally not part of the first server-layer implementation pl
 
 The Lean 4 core sources suggest several small implementation details that are easy to miss but directly useful.
 
-- `Lean.FileMap.rangeContainsHoverPos` in `Lean/Server/Requests.lean` handles the EOF edge case where a cursor at end-of-file should still count as inside a range ending at EOF. If the rewrite keeps one-shot command-range search helpers, it should either reuse this function or reproduce its EOF behavior explicitly.
+- `Lean.FileMap.rangeContainsHoverPos` in `Lean/Server/Requests.lean` handles the EOF edge case where a cursor at end-of-file should still count as inside a range ending at EOF. If AFTK keeps one-shot command-range search helpers, it should either reuse this function or reproduce its EOF behavior explicitly.
 - `SnapshotTree.findInfoTreeAtPos` and `findCmdDataAtPos` search snapshot trees pre-order, skip subtrees whose syntax range cannot contain the position, and fall back to the command’s elaboration info tree when no nested snapshot-specific tree is found. Even in a one-shot worker, that search strategy is a good reference for future-proof query helper design.
-- `InfoTree.hoverableInfoAtM?` in `Lean/Server/InfoUtils.lean` already bakes in several heuristics the rewrite gets “for free” by calling it directly:
+- `InfoTree.hoverableInfoAtM?` in `Lean/Server/InfoUtils.lean` already bakes in several heuristics AFTK gets “for free” by calling it directly:
   - skip auxiliary `nullKind` / `evalWithAnnotateState` nodes
   - prefer smaller enclosing ranges
   - prefer constants over variables when spans overlap
@@ -285,10 +285,10 @@ The Lean 4 core sources suggest several small implementation details that are ea
   - suppress synthetic-sorry hover
 - `InfoTree.goalsAt?` does more than “find a tactic info at a point”. It includes trailing whitespace and EOF behavior, tracks indentation, and can request post-tactic state via `useAfter` when the cursor is after a tactic and no nested tactic after the cursor should take precedence.
 - `InfoTree.termGoalAt?` includes a filter specifically to prefer the goal of the whole application in cases like `f a b`, rather than returning the goal for the identifier `f` alone.
-- `Parser.parseHeader` and `Elab.processHeader` are the correct frontend entrypoints for one-shot context construction, but the main-worktree-style command pass still needs `infoState.enabled := true` in the `Command.State` or the worker will not have the info trees that all later queries depend on.
+- `Parser.parseHeader` and `Elab.processHeader` are the correct frontend entrypoints for one-shot context construction, but the earlier-style command pass still needs `infoState.enabled := true` in the `Command.State` or the worker will not have the info trees that all later queries depend on.
 
 A smaller but still useful parity note from Lean’s request handlers is that `handleHover` applies `Hover.rewriteExamples` before returning markdown.
-The rewrite does not need to adopt every LSP formatting detail in v1, but that function is worth remembering if Lean-generated hover example formatting later looks worse than expected.
+AFTK does not need to adopt every LSP formatting detail in v1, but that function is worth remembering if Lean-generated hover example formatting later looks worse than expected.
 
 ## Implementation guidance for the next code phase
 
@@ -300,7 +300,7 @@ The first Lean-facing code for this design should likely implement:
 4. proof-state capture from goal info
 5. tactic parsing/execution against stored states
 
-Only after those basics work should the rewrite spend effort on hypothetical incremental editing support.
+Only after those basics work should AFTK spend effort on hypothetical incremental editing support.
 
 ## Completion checklist for this plan
 
@@ -314,7 +314,7 @@ This component plan should count as implemented only when all of the following a
 
 ## Summary
 
-The rewrite should treat Lean core as a guide and a toolbox, not as an all-or-nothing implementation template.
+AFTK should treat Lean core as a guide and a toolbox, not as an all-or-nothing implementation template.
 For v1, the right choice is:
 
 - preserve the hub/worker architecture,

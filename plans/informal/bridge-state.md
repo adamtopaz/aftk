@@ -15,7 +15,7 @@ This document refines the overall informal-layer plan in `plans/informal.md` and
 
 This document defines what state belongs to the informal layer, what state belongs to the knowledge base, what state belongs to Lean source itself, and what state should remain purely derived or process-local.
 
-Its main job is to prevent the rewrite from accidentally rebuilding the old architecture where the informal layer became a second natural-language store.
+Its main job is to prevent AFTK from accidentally rebuilding the old architecture where the informal layer became a second natural-language store.
 
 The most important rule is:
 
@@ -65,7 +65,7 @@ Those are covered by companion plans.
 
 ## Core ownership model
 
-The rewrite should treat the full system state as divided into four main categories.
+AFTK should treat the full system state as divided into four main categories.
 
 ### 1. Lean source canonical state
 
@@ -334,7 +334,7 @@ such as an informal-specific cache or index subdirectory.
 
 ### What should never happen
 
-The rewrite should not reintroduce a top-level authored tree like:
+AFTK should not reintroduce a top-level authored tree like:
 
 ```text
 informal/
@@ -370,7 +370,7 @@ This is a compiled bridge view of current source usage, not node-authored metada
 
 ## Important rule
 
-The rewrite should not silently conflate these two mechanisms.
+AFTK should not silently conflate these two mechanisms.
 In particular:
 
 - tracking should not automatically rewrite `leanRefs`
@@ -386,8 +386,8 @@ That is not the same thing as the node being currently tracked by the informal l
 
 ## Workflow-state boundary
 
-The old main-worktree `Informalize` metadata model mixed a fair amount of workflow state into the informal sidecar store.
-The rewrite should not reproduce that pattern.
+The old `Informalize` metadata model mixed a fair amount of workflow state into the informal sidecar store.
+AFTK should not reproduce that pattern.
 
 ## V1 rule
 
@@ -503,7 +503,7 @@ Rejected because caches should be disposable accelerators only.
 
 ## Lean 4 and current-project reuse findings
 
-The rewrite already has most of the right ingredients for this state boundary:
+AFTK already has most of the right ingredients for this state boundary:
 
 - the knowledge-base layer already owns canonical node content and metadata
 - the tracking design already keeps persistent bridge state down to declaration↔reference linkage
@@ -526,10 +526,10 @@ These are refinements, not blockers for the first implementation.
 
 ## Summary
 
-The rewrite’s informal layer should own very little persistent state of its own.
+AFTK's informal layer should own very little persistent state of its own.
 Its canonical authored ingredients are split between:
 
 - Lean source, which owns where `informal[...]` appears, and
 - the knowledge base, which owns node identity, content, metadata, and node-level relationships.
 
-The informal layer’s own persistent bridge state should be limited to declaration-level declaration↔reference linkage. Dependency indexes, reverse lookups, presentation payloads, and caches should remain derived. The rewrite should not reintroduce a separate `informal/...` store, a second metadata schema, or canonical persisted bridge-local graph data.
+The informal layer’s own persistent bridge state should be limited to declaration-level declaration↔reference linkage. Dependency indexes, reverse lookups, presentation payloads, and caches should remain derived. AFTK should not reintroduce a separate `informal/...` store, a second metadata schema, or canonical persisted bridge-local graph data.

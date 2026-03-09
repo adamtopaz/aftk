@@ -34,7 +34,7 @@ This document turns that clarification into a concrete presentation policy.
 The presentation layer should:
 
 - make `informal[...]` references intelligible at the point of use in Lean
-- preserve the main-worktree benefit that hover can surface linked informal context
+- preserve the earlier benefit that hover can surface linked informal context
 - avoid eager loading and embedding of full knowledge-base content at every elaboration site
 - derive presentation from canonical knowledge-base content rather than duplicating it
 - provide a compact summary that is cheap and reliable enough for routine hover use
@@ -64,9 +64,9 @@ The presentation layer should:
 
 Those belong to companion plans.
 
-## Reference point from the main-worktree implementation
+## Reference point from the earlier implementation
 
-The current main-worktree `Informalize` implementation does something very direct:
+The earlier `Informalize` implementation does something very direct:
 
 - elaboration resolves the informal id
 - elaboration eagerly loads the full markdown note and effective metadata
@@ -81,17 +81,17 @@ The current hover text combines:
 - the full markdown note body
 
 That design is effective and pleasant for small sidecar-backed notes.
-However, the rewrite should change the eager-loading policy because:
+However, AFTK should change the eager-loading policy because:
 
 - knowledge-base nodes are the canonical source now
 - nodes may be richer and larger than the old sidecar notes
 - the informal layer has already chosen to avoid eager full-body attachment during elaboration
 
-So the rewrite should preserve the usefulness of hover while adopting a more staged presentation model.
+So AFTK should preserve the usefulness of hover while adopting a more staged presentation model.
 
 ## Core design decision
 
-The rewrite should use a **two-tier presentation model**.
+AFTK should use a **two-tier presentation model**.
 
 ### Tier 1: compact presentation summary
 
@@ -124,7 +124,7 @@ That means presentation should be thought of as:
 - rendered for the convenience of Lean users and tools
 - reconstructible from the node id plus knowledge-base state
 
-It should not become a place where canonical content is rewritten or maintained separately.
+It should not become a place where canonical content is duplicated or maintained separately.
 
 ## Primary presentation surfaces
 
@@ -135,7 +135,7 @@ The informal layer should care about at least two presentation surfaces.
 This is the main surface.
 When the cursor or query lands on an `informal[...]` occurrence, Lean-facing tooling should be able to show at least a compact summary of the referenced node.
 
-This is the direct rewrite successor to the current main-worktree hover behavior.
+This is the direct successor to the earlier hover behavior.
 
 ### 2. Explicit query-time presentation
 
@@ -280,7 +280,7 @@ The recommended v1 policy for ordinary rich hover-like presentation is:
 
 ### Why this policy
 
-It preserves much of the convenience of the current main-worktree hover experience without turning every hover into an unbounded dump of node content.
+It preserves much of the convenience of the earlier hover experience without turning every hover into an unbounded dump of node content.
 
 ### Threshold policy
 
@@ -413,7 +413,7 @@ Richer payload construction should be deferred until a later hover/query path ex
 
 ## Lean info-tree integration
 
-The rewrite should preserve the current high-level integration strategy of attaching presentation information to Lean’s info tree.
+AFTK should preserve the current high-level integration strategy of attaching presentation information to Lean’s info tree.
 
 ### Recommended baseline
 
@@ -422,7 +422,7 @@ A practical v1 baseline is:
 - attach a `DelabTermInfo` or equivalent hoverable info leaf
 - provide at least a compact summary `docString?`
 
-This is attractive because it aligns with the current main-worktree approach and works with existing hoverable-info plumbing.
+This is attractive because it aligns with the earlier approach and works with existing hoverable-info plumbing.
 Lean core’s server-side hover path already makes this especially practical:
 
 - `Info.docString?` checks explicit `DelabTermInfo.docString?` first, and
@@ -502,7 +502,7 @@ All of these are derived from current knowledge-base state.
 
 ## Relationship to AFTK/file-worker hover
 
-The rewrite should preserve the useful current workflow where AFTK hover at an `informal[...]` term can surface linked informal context.
+AFTK should preserve the useful current workflow where AFTK hover at an `informal[...]` term can surface linked informal context.
 
 ### Recommended expectation
 
@@ -594,13 +594,13 @@ Rejected because path layout is a storage concern, not the main Lean-facing user
 
 ## Lean 4 and current-implementation reuse findings
 
-The current main-worktree implementation already demonstrates a practical baseline:
+The earlier implementation already demonstrates a practical baseline:
 
 - use `DelabTermInfo`
 - push an info leaf during elaboration
 - let ordinary hover plumbing surface the attached `docString?`
 
-The rewrite should likely reuse that baseline for compact summaries.
+AFTK should likely reuse that baseline for compact summaries.
 
 Core Lean confirms that this is not a hacky side path but the normal hover path:
 
@@ -630,7 +630,7 @@ This document intentionally leaves nearby details to companion plans:
 
 ## Summary
 
-The rewrite should use a two-tier presentation model for `informal[...]`:
+AFTK should use a two-tier presentation model for `informal[...]`:
 
 - a compact elaboration-time summary suitable for ordinary Lean hover, and
 - a richer on-demand presentation that can include body previews or full body content when query-time infrastructure supports it.

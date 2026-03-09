@@ -22,7 +22,7 @@ The historical sections below may still discuss the earlier placeholder scaffold
 
 ## Purpose
 
-This document defines how the rewrite toolkit layer should be laid out in the TypeScript source tree.
+This document defines how the toolkit layer of AFTK should be laid out in the TypeScript source tree.
 It is about:
 
 - package structure
@@ -32,7 +32,7 @@ It is about:
 - the separation between reusable toolkit code and host adapters
 - and the matching TypeScript test-tree layout
 
-The goal is to prevent the rewrite from reproducing the main-worktree situation where nearly all toolkit logic lives in one TypeScript file.
+The goal is to prevent AFTK from reproducing the earlier situation where nearly all toolkit logic lives in one TypeScript file.
 AFTK should instead begin from a clear library layout that can support:
 
 - a managed server client,
@@ -47,12 +47,12 @@ The layout should:
 
 - keep reusable toolkit library code separate from `pi`-specific adapter code
 - avoid a single oversized file as the home for runtime helpers, server client logic, schemas, and tool definitions
-- give the rewrite’s three lower-layer integration styles clear homes:
+- give AFTK's three lower-layer integration styles clear homes:
   - managed server protocol,
   - knowledge-base CLI bridge,
   - informal CLI bridge
 - make public exports deliberate and curated rather than exposing internal files accidentally
-- fit the rewrite’s broader architecture rather than inheriting the main-worktree `lambda/src` layout uncritically
+- fit AFTK's broader architecture rather than inheriting the earlier `lambda/src` layout uncritically
 - leave a natural home for cross-tool output/result normalization
 - keep TypeScript test code easy to organize without colliding confusingly with the existing Lean test tree
 - support the expected single-package workflow for both reusable library use and `pi` integration
@@ -99,10 +99,10 @@ Key layout observations:
 - The current `lambda/src/aftk-extension.ts` is a good example of the right **architectural split**:
   - shared toolkit logic below,
   - thin `pi` adapter above.
-- The main-worktree layout is still strongly shaped by the `pi` extension packaging use case.
-- The main-worktree TypeScript surface is effectively a **single tool family plus extension wrapper**, not a broader toolkit library.
+- The earlier layout is still strongly shaped by the `pi` extension packaging use case.
+- The earlier TypeScript surface is effectively a **single tool family plus extension wrapper**, not a broader toolkit library.
 
-Main consequence for the rewrite:
+Main consequence for AFTK:
 
 - we should preserve the **thin adapter over shared toolkit code** pattern,
 - but we should **not** preserve the one-large-file structure or the `lambda/src`-centric architecture as the default layout.
@@ -127,14 +127,14 @@ Key layout observations:
   - `package.json` still points `module` at the root `index.ts` and only advertises Bun-oriented scaffolding such as `@types/bun`;
   - `tsconfig.json` still uses settings like `module: "Preserve"`, `moduleResolution: "bundler"`, `allowJs`, and `jsx`, which are not meaningful signals of the intended toolkit library shape.
 - `lakefile.lean` defines the real lower-layer executables the toolkit targets, so the TypeScript package layout should be organized around those integration boundaries rather than around the placeholder Bun entrypoint.
-- The rewrite’s first three layers already have strong library/layout discipline in Lean, especially visible in `docs/architecture.md` and `plans/server/layout.md`.
-- The toolkit layer must cover more than the main-worktree server wrapper alone:
+- AFTK's first three layers already have strong library/layout discipline in Lean, especially visible in `docs/architecture.md` and `plans/server/layout.md`.
+- The toolkit layer must cover more than the earlier server wrapper alone:
   - server integration,
   - knowledge-base CLI integration,
   - informal CLI integration,
   - and host adapters.
 
-Main consequence for the rewrite:
+Main consequence for AFTK:
 
 - the toolkit should be laid out as a **real TypeScript library** under a proper `src/` tree,
 - with explicit homes for reusable runtime code, lower-layer clients, tool families, output shaping, and host adapters.
@@ -145,7 +145,7 @@ The v1 toolkit layout should make the following decisions explicit.
 
 ### 1. Use a `src/` tree as the implementation home
 
-The rewrite toolkit should live under a conventional TypeScript source root:
+The AFTK toolkit should live under a conventional TypeScript source root:
 
 ```text
 src/
@@ -155,13 +155,13 @@ not in the repository root and not under `lambda/`.
 
 Reasoning:
 
-- the rewrite toolkit is broader than a `pi` extension package,
+- The AFTK toolkit is broader than a `pi` extension package,
 - it should read as a library first,
-- and the `lambda/src` naming from the main worktree would misleadingly center the adapter rather than the toolkit.
+- and the `lambda/src` naming from the earlier implementation would misleadingly center the adapter rather than the toolkit.
 
 ### 2. Treat the package as one package with multiple entrypoints
 
-The rewrite does **not** need multiple npm packages for v1.
+AFTK does **not** need multiple npm packages for v1.
 A single package with curated entrypoints is enough.
 
 That package should expose at least:
@@ -237,7 +237,7 @@ This is important for:
 
 - testing lower-level behavior directly,
 - using the toolkit from custom TypeScript integrations without the `pi` tool abstraction,
-- and avoiding the main-worktree pattern where client and tool logic are intertwined in one file.
+- and avoiding the earlier pattern where client and tool logic are intertwined in one file.
 
 ### 8. Give output/result normalization its own home
 
@@ -319,7 +319,7 @@ tests/
 ```
 
 This is intentionally pragmatic rather than maximally granular.
-It gives the rewrite clear homes for the major toolkit responsibilities without over-fragmenting the first implementation.
+It gives AFTK clear homes for the major toolkit responsibilities without over-fragmenting the first implementation.
 
 ## Module-group responsibilities
 
@@ -362,7 +362,7 @@ It should not depend on host adapters.
 
 ## `src/toolkit/server/`
 
-This should contain the TypeScript mirror of the rewrite server protocol and the managed server client.
+This should contain the TypeScript mirror of the AFTK server protocol and the managed server client.
 It should own:
 
 - protocol types used by TypeScript code
@@ -594,7 +594,7 @@ The deeper runtime/compiler details belong in `plans/toolkit/runtime.md`, but th
 
 ## Root-file migration policy
 
-The rewrite currently has:
+AFTK currently has:
 
 - root `index.ts`
 - Bun-oriented `package.json`
@@ -615,9 +615,9 @@ So the implementation should explicitly perform this migration:
 
 The layout should explicitly avoid the following anti-patterns.
 
-### 1. No new `lambda/src` home in the rewrite
+### 1. No new `lambda/src` home in AFTK
 
-The rewrite toolkit is not just a pi extension.
+The AFTK toolkit is not just a pi extension.
 Using `lambda/src` again would blur the library/adapter boundary from the beginning.
 
 ### 2. No single giant `aftk-tools.ts` replacement file
@@ -643,7 +643,7 @@ The compatibility story should be curated exports.
 
 ### 5. No mixing TypeScript test code into Lean test namespaces
 
-The rewrite already has coherent Lean test trees.
+AFTK already has coherent Lean test trees.
 Toolkit tests should be adjacent to them, not mixed into `AFTKTest/*`.
 
 ## Initial implementation checklist for this layout
@@ -661,7 +661,7 @@ Before the toolkit implementation can sensibly proceed, the repository should re
 
 ## Summary
 
-The rewrite toolkit should be laid out as a **single TypeScript package with multiple curated entrypoints**.
+The AFTK toolkit should be laid out as a **single TypeScript package with multiple curated entrypoints**.
 Its implementation should live under a real `src/` tree, with a visible split between:
 
 - reusable toolkit core code under `src/toolkit/`
@@ -676,4 +676,4 @@ Within the toolkit core, the layout should distinguish:
 - the informal CLI bridge,
 - and the tool-family factories built on top of them.
 
-This preserves the best architectural idea from the main worktree — thin adapter over shared toolkit logic — while avoiding the one-large-file layout and broadening the toolkit into a true library for the rewrite’s multi-layer architecture.
+This preserves the best architectural idea from the earlier implementation — thin adapter over shared toolkit logic — while avoiding the one-large-file layout and broadening the toolkit into a true library for AFTK's multi-layer architecture.

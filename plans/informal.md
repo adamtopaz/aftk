@@ -35,7 +35,7 @@ It should instead provide the Lean-side machinery for:
 
 ## Position in the layered architecture
 
-The overall rewrite stack is:
+The overall architecture stack is:
 
 1. Knowledge base layer
 2. Informal layer
@@ -72,7 +72,7 @@ That implementation currently provides several behaviors worth preserving in spi
 
 However, AFTK must deliberately change one major aspect of the design:
 
-- the main worktree stores informal prose and metadata under `informal/.../*.md` and `informal/.../*.json`
+- the earlier implementation stores informal prose and metadata under `informal/.../*.md` and `informal/.../*.json`
 - AFTK must not reintroduce that duplicated storage model
 - bracketed informal references should instead resolve through `AFTK.KnowledgeBase` node ids and canonical knowledge-base storage
 
@@ -106,7 +106,7 @@ The informal layer should not define a second canonical mapping from ids to mark
 
 ### 2. Preserve the placeholder-driven Lean workflow
 
-The current main-worktree `Informalize` system is useful because `informal[...]` behaves like a typed Lean term that can stand in for unfinished proofs or definitions.
+The earlier `Informalize` system is useful because `informal[...]` behaves like a typed Lean term that can stand in for unfinished proofs or definitions.
 AFTK should preserve that workflow shape, even if the internal implementation details evolve.
 
 ### 3. Keep bridge-specific state separate from natural-language content
@@ -123,7 +123,7 @@ The informal layer should not become a second content store.
 
 ### 4. Make occurrence and dependency information queryable
 
-The main-worktree implementation is valuable not only because elaboration succeeds, but also because later tooling can ask:
+The earlier implementation is valuable not only because elaboration succeeds, but also because later tooling can ask:
 
 - which declarations contain `informal`
 - which knowledge-base nodes they reference
@@ -160,7 +160,7 @@ The following component plans should live under `plans/informal/`.
 These are the main design documents currently needed for this layer.
 
 - `plans/informal/elaboration.md` — surface syntax, supported forms, elaboration contexts, expected-type behavior, argument handling, unique-tag generation, placeholder construction, and user-facing error behavior for `informal[...]`
-- `plans/informal/references.md` — the reference/id model for bracketed informal references, validation rules, how references resolve through the knowledge-base library, and how this replaces the main-worktree `LocationId` + sidecar-path scheme
+- `plans/informal/references.md` — the reference/id model for bracketed informal references, validation rules, how references resolve through the knowledge-base library, and how this replaces the earlier `LocationId` + sidecar-path scheme
 - `plans/informal/placeholder.md` — the core placeholder mechanism (axiom or equivalent), distinctness requirements, soundness boundary, reduction/unification expectations, and future replacement/removal assumptions
 - `plans/informal/tracking.md` — persistent environment extension design, occurrence deduplication rules, import/merge behavior, declaration-level query APIs, and any derived in-memory/indexed representations needed by later tooling
 - `plans/informal/dependencies.md` — declaration-dependency semantics, node-dependency projection semantics, leaf/frontier-oriented derived views, determinism rules, and boundaries between informal-layer dependency analysis and higher-layer scaffold orchestration
@@ -423,7 +423,7 @@ The elaborator must resolve references through the knowledge-base library withou
 In implementation terms, that means:
 
 - the reusable resolver APIs should accept explicit root/context input when called directly,
-- the elaborator should use the same knowledge-base root policy as the rest of the rewrite by default,
+- the elaborator should use the same knowledge-base root policy as the rest of AFTK by default,
 - and tests should be able to run elaboration against fixture roots without mutating the repository’s canonical knowledge base.
 
 If a small shared bridge-context helper becomes necessary to keep this clean, add it as an implementation convenience without changing the ownership boundary described in `plans/informal/bridge-state.md`.
@@ -669,7 +669,7 @@ Until then, the implementation status at the top of this file should remain "Not
 
 ## Summary
 
-The informal layer is the Lean-facing bridge between the rewrite’s knowledge base and its formal Lean development.
-It should preserve the useful parts of the current main-worktree `Informalize` design—typed placeholders, occurrence tracking, dependency queries, and Lean-facing presentation—while replacing the old sidecar-backed content store with direct knowledge-base integration.
+The informal layer is the Lean-facing bridge between AFTK's knowledge base and its formal Lean development.
+It should preserve the useful parts of the earlier `Informalize` design—typed placeholders, occurrence tracking, dependency queries, and Lean-facing presentation—while replacing the old sidecar-backed content store with direct knowledge-base integration.
 
 The next step is to execute the phased implementation plan above, using the component design docs under `plans/informal/` as the detailed blueprint for each `AFTK/Informal/` module and its tests.

@@ -40,7 +40,7 @@ It is about:
 - CLI exit-code and error mapping
 - and how knowledge-base CLI results should be rendered into concise text plus structured details
 
-The goal is to expose the rewrite’s already implemented knowledge-base layer through a practical TypeScript tool surface, without bypassing the CLI boundary or mirroring every single command prematurely.
+The goal is to expose AFTK's already implemented knowledge-base layer through a practical TypeScript tool surface, without bypassing the CLI boundary or mirroring every single command prematurely.
 
 ## Design goals
 
@@ -96,20 +96,20 @@ Primary files studied:
 - `../aftk/docs/agent-playbook.md`
 - `../aftk/docs/future/autoformalization-tools.md`
 
-Important observations from the main worktree:
+Important observations from the earlier implementation:
 
-- The main worktree already treats the knowledge-base CLI as a distinct lower-layer interface alongside the Lean-facing hub tools.
-- The main worktree does **not** currently ship a dedicated TypeScript knowledge-base tool family analogous to the `aftk_*` hub tools.
+- The earlier implementation already treats the knowledge-base CLI as a distinct lower-layer interface alongside the Lean-facing hub tools.
+- The earlier implementation does **not** currently ship a dedicated TypeScript knowledge-base tool family analogous to the `aftk_*` hub tools.
 - The playbook and combined AFTK docs show that agents are already expected to combine:
   - repository-local knowledge-base operations,
   - informal/blueprint operations,
   - and Lean-facing hub tools.
 - The future roadmap emphasizes higher-level workflow integration above the current CLI surfaces rather than replacing those lower-layer boundaries.
 
-Main consequences for the rewrite:
+Main consequences for AFTK:
 
 - there is no direct existing TypeScript knowledge-base tool family to preserve for backward compatibility;
-- the rewrite therefore has more freedom to design a good first toolkit surface for knowledge-base operations;
+- AFTK therefore has more freedom to design a good first toolkit surface for knowledge-base operations;
 - but that freedom should be used conservatively, by exposing the implemented CLI thoughtfully rather than inventing a parallel knowledge-base API detached from the lower layer.
 
 ### Repository reference points
@@ -130,7 +130,7 @@ Primary files studied:
 - `plans/toolkit/output.md`
 - `plans/toolkit/runtime.md`
 
-Important rewrite observations:
+Current AFTK observations:
 
 - The public CLI is:
 
@@ -210,7 +210,7 @@ lake exe aftk knowledgebase ...
   - relationship views
   - validation reports
 
-Main consequences for the rewrite:
+Main consequences for AFTK:
 
 - the toolkit should default to `--format json` and normalize the CLI envelope into the shared toolkit result contract;
 - it should preserve the special semantic status of validation reports rather than flattening them into generic tool failures;
@@ -265,7 +265,7 @@ Reasoning:
 
 - the top-level toolkit plan already prioritizes read/query/report first;
 - mutation wrappers will need stronger fixture discipline and more nuanced testing;
-- and the rewrite does not need to block useful agent workflows on immediate mutation coverage.
+- and AFTK does not need to block useful agent workflows on immediate mutation coverage.
 
 ### 3. Use a naming convention distinct from the Lean-facing `aftk_*` family
 
@@ -1288,7 +1288,7 @@ The knowledge-base tool family should explicitly avoid the following mistakes.
 
 ### 1. No direct parsing of canonical knowledge-base files from TypeScript
 
-Use the CLI boundary the rewrite already defines.
+Use the CLI boundary AFTK already defines.
 
 ### 2. No premature mirroring of every mutation command
 
@@ -1312,7 +1312,7 @@ That would throw away useful semantic data the lower layer intentionally returns
 
 Always prefer JSON mode and structured parsing by default.
 
-### 7. No toolkit-only filters or rewritten semantics unless explicitly justified
+### 7. No toolkit-only filters or altered semantics unless explicitly justified
 
 The toolkit should be selective, but it should not quietly invent a second search/query language above the CLI.
 
@@ -1332,7 +1332,7 @@ Before the knowledge-base tool family can be considered in place, AFTK should re
 
 ## Summary
 
-The rewrite already has a substantial knowledge-base CLI.
+AFTK already has a substantial knowledge-base CLI.
 The toolkit’s job is not to bypass that layer or mirror every command immediately.
 Its v1 job is to expose the most useful knowledge-base inspection and discovery operations through a clean TypeScript tool family built on:
 
@@ -1349,4 +1349,4 @@ So the first knowledge-base tool family should be:
 - careful about preserving CLI semantics such as probe-like `status` and report-oriented validation,
 - and explicit about structured errors, warnings, root selection, and result normalization.
 
-That gives the rewrite toolkit a practical knowledge-base surface without breaking lower-layer boundaries or overcommitting too early to a much larger mutation API.
+That gives the AFTK toolkit a practical knowledge-base surface without breaking lower-layer boundaries or overcommitting too early to a much larger mutation API.

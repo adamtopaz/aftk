@@ -25,7 +25,7 @@ It explains:
 - how bracketed payloads should be parsed and validated
 - how the informal layer should represent references in Lean code
 - how references resolve through the knowledge-base library
-- how this replaces the main-worktree `LocationId` + `informal/...` sidecar-path scheme
+- how this replaces the earlier `LocationId` + `informal/...` sidecar-path scheme
 - what does and does not belong in the informal-layer reference object itself
 
 The core architectural point is simple:
@@ -56,7 +56,7 @@ The informal reference design should:
 - the validated Lean-level reference type
 - the resolved-reference type used after knowledge-base lookup
 - the relationship between informal references and `KnowledgeBase.NodeId`
-- the replacement of the main-worktree `LocationId` model
+- the replacement of the earlier `LocationId` model
 - exact-match resolution semantics through the knowledge-base library
 
 ### Out of scope
@@ -70,9 +70,9 @@ The informal reference design should:
 
 Those belong to companion design docs.
 
-## Reference point from the main-worktree design
+## Reference point from the earlier design
 
-The current main-worktree `Informalize` design uses `LocationId` values such as:
+The earlier `Informalize` design uses `LocationId` values such as:
 
 - `Foo.bar`
 - `Foo.bar.baz`
@@ -87,8 +87,8 @@ Those ids are:
   - `metadataPath`
   - `readMarkdown`
 
-That model is useful as a reference point, but it is the wrong abstraction for the rewrite.
-The rewrite’s informal layer must not define its own content-store path scheme.
+That model is useful as a reference point, but it is the wrong abstraction for AFTK.
+AFTK's informal layer must not define its own content-store path scheme.
 
 The key replacement is:
 
@@ -295,7 +295,7 @@ That prevents the informal layer from drifting away from the actual knowledge-ba
 
 ## Why not reuse `Lean.Name` or `ident`
 
-The rewrite should reject the old location-id-oriented interpretation.
+AFTK should reject the old location-id-oriented interpretation.
 
 ### Problems with `Lean.Name`
 
@@ -344,7 +344,7 @@ At a high level, resolution should:
 
 ### Recommended knowledge-base reuse points
 
-Given the current rewrite code, the most natural implementation path is to reuse existing knowledge-base APIs such as:
+Given the current codebase, the most natural implementation path is to reuse existing knowledge-base APIs such as:
 
 - `AFTK.KnowledgeBase.NodeId.ofString?`
 - `AFTK.KnowledgeBase.PathLayout.resolveRootPath`
@@ -458,7 +458,7 @@ These distinctions matter because they correspond to different user actions:
 
 ## Rejected alternatives
 
-The following designs should be rejected for the rewrite.
+The following designs should be rejected for AFTK.
 
 ### 1. Reuse `Informalize.LocationId` directly
 
@@ -483,7 +483,7 @@ Rejected because it duplicates canonical knowledge-base metadata and risks diver
 
 ## Lean 4 and current-library reuse findings
 
-The rewrite already has most of the core machinery needed for this design in the knowledge-base layer.
+AFTK already has most of the core machinery needed for this design in the knowledge-base layer.
 
 Useful reuse points include:
 
@@ -511,7 +511,7 @@ This document intentionally leaves some nearby implementation details to compani
 
 ## Summary
 
-Bracketed informal references in the rewrite should be thin, validated wrappers around `AFTK.KnowledgeBase.NodeId` values.
+Bracketed informal references in AFTK should be thin, validated wrappers around `AFTK.KnowledgeBase.NodeId` values.
 They should be parsed according to the knowledge-base node-id grammar directly, resolved by exact match through reusable knowledge-base APIs, and never treated as `Lean.Name` values or as paths into a separate `informal/...` sidecar store.
 
 This keeps the informal layer aligned with the knowledge base as the sole authority for natural-language node identity, storage, and metadata, while still giving the Lean-side bridge a clear and explicit reference model.

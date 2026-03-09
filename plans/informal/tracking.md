@@ -67,9 +67,9 @@ The tracking layer should:
 
 Those belong to companion plans.
 
-## Reference point from the main-worktree implementation
+## Reference point from the earlier implementation
 
-The current main-worktree `Informalize` implementation uses a `SimplePersistentEnvExtension` with:
+The earlier `Informalize` implementation uses a `SimplePersistentEnvExtension` with:
 
 - one input entry per successful elaborated occurrence
 - a state mapping `declName -> NameSet` of referenced locations
@@ -78,20 +78,20 @@ The current main-worktree `Informalize` implementation uses a `SimplePersistentE
   - `allInformalDeclEntries`
   - `informalDeclEntry?`
 
-That shape is still a good model for the rewrite.
+That shape is still a good model for AFTK.
 The main change is not the tracking pattern but the tracked payload:
 
 - old payload: optional `LocationId`/`Name`
 - new payload: resolved informal reference identity backed by `KnowledgeBase.NodeId`
 
-Because bare `informal` support is being removed, the rewrite can simplify the main-worktree design further:
+Because bare `informal` support is being removed, AFTK can simplify the earlier design further:
 
 - there is no longer any need to track declarations with an empty reference set
 - every tracked declaration should have at least one referenced node id
 
 ## Core design decision
 
-The rewrite should keep the same overall strategy:
+AFTK should keep the same overall strategy:
 
 - feed one entry per successful elaborated `informal[...]` site into a persistent environment extension
 - aggregate those site entries into declaration-level reference sets
@@ -221,7 +221,7 @@ If a future use case truly needs persisted per-site tags, that should be a separ
 
 ## Persistent environment extension design
 
-The rewrite should use a `SimplePersistentEnvExtension` in the same general style as the main-worktree implementation.
+AFTK should use a `SimplePersistentEnvExtension` in the same general style as the earlier implementation.
 
 ### Recommended shape
 
@@ -238,7 +238,7 @@ This is the right default because the tracking data is:
 - read frequently by later queries
 - modest in size relative to whole-project environments
 
-The current main-worktree implementation already shows that this pattern fits the problem well.
+The earlier implementation already shows that this pattern fits the problem well.
 
 ### Recommended async mode
 
@@ -473,7 +473,7 @@ Rejected because declaration-level set semantics are the intended public model.
 
 ## Lean 4 and current-implementation reuse findings
 
-The current main-worktree extension is already a strong template for the rewrite.
+The earlier extension is already a strong template for AFTK.
 The main reusable ideas are:
 
 - `SimplePersistentEnvExtension` as the persistence mechanism
@@ -488,10 +488,10 @@ Core Lean fills in a few useful details behind that template:
 - `SimplePersistentEnvExtension` is really a `PersistentEnvExtension α α (List α × σ)`, so exported entry arrays and aggregated state are intentionally separate concerns
 - `addImportedFn` receives imported entries grouped as `Array (Array α)`, which matches the union-style merge logic this design already wants
 - `toArrayFn` controls exported per-module entry materialization, but deterministic public query sorting can still remain a separate concern at read time
-- Lean’s async-mode documentation identifies `.async .mainEnv` as a particularly good fit for declaration-keyed map-like extensions, giving the rewrite a plausible future refinement path beyond `.sync`
+- Lean’s async-mode documentation identifies `.async .mainEnv` as a particularly good fit for declaration-keyed map-like extensions, giving AFTK a plausible future refinement path beyond `.sync`
 - `SimplePersistentEnvExtension.replayOfFilter` exists as a useful helper if a later async/replay-aware version of the extension needs to be introduced
 
-The rewrite should keep the overall architecture while replacing `LocationId`/`Name` payloads with `InformalReference` values backed by `KnowledgeBase.NodeId`.
+AFTK should keep the overall architecture while replacing `LocationId`/`Name` payloads with `InformalReference` values backed by `KnowledgeBase.NodeId`.
 
 ## Open questions for companion docs
 
@@ -506,8 +506,8 @@ This document intentionally leaves nearby details to companion plans:
 
 ## Summary
 
-The rewrite’s tracking layer should use a `SimplePersistentEnvExtension` that receives one entry per successful `informal[...]` elaboration site and aggregates those entries into declaration-level sets of `InformalReference` values.
+AFTK's tracking layer should use a `SimplePersistentEnvExtension` that receives one entry per successful `informal[...]` elaboration site and aggregates those entries into declaration-level sets of `InformalReference` values.
 
 The canonical public tracking surface should stay declaration-level, with reverse reference->declaration views derived on demand. The tracking state should record only stable declaration↔reference linkage, not per-site tags, not multiplicity counts, and not duplicated knowledge-base content.
 
-That preserves the best part of the current main-worktree tracking architecture while aligning it with the rewrite’s knowledge-base-backed reference model and declaration-level public API.
+That preserves the best part of the earlier tracking architecture while aligning it with AFTK's knowledge-base-backed reference model and declaration-level public API.

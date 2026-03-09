@@ -23,7 +23,7 @@ Historical sections below may still describe the earlier pre-implementation gap;
 
 ## Purpose
 
-This document defines how the rewrite toolkit layer should be tested.
+This document defines how the toolkit layer of AFTK should be tested.
 It covers:
 
 - TypeScript-side unit tests for pure helpers
@@ -37,7 +37,7 @@ It covers:
 - temporary-fixture policy for mutable scenarios
 - and how toolkit tests should fit into the repository’s broader workflows
 
-The goal is to make testing part of the toolkit architecture from the beginning instead of repeating the main-worktree pattern where the TypeScript side remained largely untested and operational behavior lived mostly in one file.
+The goal is to make testing part of the toolkit architecture from the beginning instead of repeating the earlier pattern where the TypeScript side remained largely untested and operational behavior lived mostly in one file.
 
 ## Design goals
 
@@ -90,13 +90,13 @@ Primary files studied:
 
 Important observations:
 
-- The current main-worktree package only advertises a typecheck script:
+- The earlier package only advertises a typecheck script:
   - `check: bunx tsc --noEmit`
-- There is no real TypeScript-side toolkit test suite in the main worktree.
+- There is no real TypeScript-side toolkit test suite in the earlier implementation.
 - The toolkit implementation is concentrated in one TypeScript file plus a thin pi wrapper.
 - The pi wrapper itself is simple enough that the missing coverage matters less for pure wiring than for operational behavior such as subprocess lifecycle and error mapping.
 
-Main consequences for the rewrite:
+Main consequences for AFTK:
 
 - AFTK should add a deliberate TypeScript-side test suite rather than inheriting the historical absence of one;
 - AFTK should test runtime/process behavior and normalization contracts directly;
@@ -167,7 +167,7 @@ tests/toolkit/
   - informal tracking/dependency/presentation outputs are already deterministically sorted;
   - and `informal present` preview mode already carries structured truncation metadata.
 
-Main consequences for the rewrite:
+Main consequences for AFTK:
 
 - toolkit tests should live beside the Lean suites, not inside them;
 - toolkit tests should reuse existing repository fixtures instead of creating a second duplicate fixture universe;
@@ -193,7 +193,7 @@ Important observations:
   - `extensionFactories`
 - Extension behavior centers on tool registration, commands, and lifecycle hooks such as `session_shutdown`.
 
-Main consequences for the rewrite:
+Main consequences for AFTK:
 
 - the host-adapter layer can be tested without an interactive TUI;
 - direct tool-definition execution and extension-registration spies should provide most coverage;
@@ -982,7 +982,7 @@ That means:
   - exact tool surfaces,
   - and thin pi adapter behavior.
 
-This gives the rewrite a testing story that matches its architecture:
+This gives AFTK a testing story that matches its architecture:
 
 - lower layers keep owning their deep semantics,
 - the toolkit owns the TypeScript/process/normalization boundary above them,

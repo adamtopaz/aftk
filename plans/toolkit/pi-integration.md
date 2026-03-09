@@ -38,7 +38,7 @@ It is about:
 - package/discovery conventions for pi packages
 - and which integration paths should be considered canonical vs optional
 
-The goal is to preserve the main-worktree’s best architectural instinct — shared toolkit logic below a thin pi wrapper — while broadening it into a clearer and more flexible integration story for the rewrite.
+The goal is to preserve the earlier’s best architectural instinct — shared toolkit logic below a thin pi wrapper — while broadening it into a clearer and more flexible integration story for AFTK.
 
 ## Design goals
 
@@ -51,7 +51,7 @@ The pi integration layer should:
 - preserve explicit lifecycle cleanup for managed subprocesses
 - make it easy to mount the toolkit into pi without forcing every user to re-register tools manually
 - make it equally easy to embed the toolkit into a custom SDK session without requiring the full extension runtime when it is unnecessary
-- follow current pi docs for extension/package conventions rather than only copying the main-worktree package layout
+- follow current pi docs for extension/package conventions rather than only copying the earlier package layout
 - keep package/discovery metadata clear enough for local testing, project use, and package distribution
 - expose a configuration path for selecting which toolkit families to mount
 - avoid coupling reusable toolkit modules directly to `ExtensionAPI`
@@ -89,7 +89,7 @@ Primary files studied:
 - `../aftk/package.json`
 - `../aftk/docs/aftk/README.md`
 
-Important observations from the current main-worktree integration:
+Important observations from the earlier integration:
 
 - The current pi integration is deliberately thin.
 - `aftk-extension.ts` simply:
@@ -98,12 +98,12 @@ Important observations from the current main-worktree integration:
   - registers an explicit stop command `aftk-extension-stop`
   - re-registers each tool from the shared toolset into `pi`
 - The current shared toolset already exposes pi-compatible `ToolDefinition` values directly, and the extension wrapper merely forwards their name/label/description/parameters/execute fields into `pi.registerTool(...)`.
-- The main-worktree package is already shaped as a pi package via:
+- The earlier package is already shaped as a pi package via:
   - `keywords: ["pi-package"]`
   - `pi.extensions: ["./lambda/src/aftk-extension.ts"]`
 - The current wrapper treats `session_shutdown` as the cleanup hook for the managed hub process.
 
-Main consequences for the rewrite:
+Main consequences for AFTK:
 
 - the basic split between shared toolkit logic and a thin pi wrapper is correct and should be preserved;
 - preserving an explicit stop command is reasonable;
@@ -150,13 +150,13 @@ Important pi observations:
 
   in `peerDependencies` with `"*"` for package distribution, rather than bundling them.
 
-Main consequences for the rewrite:
+Main consequences for AFTK:
 
 - AFTK should support **two** first-class pi integration modes:
   1. extension-based mounting for upstream interactive pi and extension-style SDK use
   2. direct `customTools` mounting for custom SDK sessions that only need the tools
 - AFTK should keep the extension wrapper thin and make `session_shutdown` the canonical cleanup hook there;
-- AFTK should package the pi wrapper using current pi package conventions rather than inheriting the main-worktree package shape uncritically;
+- AFTK should package the pi wrapper using current pi package conventions rather than inheriting the earlier package shape uncritically;
 - and AFTK should not require every SDK user to load the full extension runtime if all they want is toolkit tools.
 
 ### Repository reference points
@@ -171,7 +171,7 @@ Primary files studied:
 - `plans/toolkit/informal-tools.md`
 - `plans/toolkit/output.md`
 
-Important rewrite observations:
+Current AFTK observations:
 
 - The layout plan already places host adapters under:
 
@@ -186,7 +186,7 @@ src/hosts/pi/
 - The toolkit now has multiple families, not just the Lean-facing `aftk_*` tools.
 - The toolkit output contract is host-agnostic and should stay that way.
 
-Main consequences for the rewrite:
+Main consequences for AFTK:
 
 - pi integration should mount one or more toolkit families into pi, not own their behavior;
 - cleanup logic in the pi layer is mainly about managed families like the Lean/server client;
@@ -281,11 +281,11 @@ That is where the pi adapter should:
 - clear extension-owned resources
 - perform best-effort cleanup before pi exits
 
-This preserves the main-worktree pattern and matches the pi extension docs.
+This preserves the earlier pattern and matches the pi extension docs.
 
 ### 6. Preserve an explicit stop command in the pi extension path
 
-AFTK should preserve an explicit extension command analogous to the main-worktree:
+AFTK should preserve an explicit extension command analogous to the earlier:
 
 - `aftk-extension-stop`
 
@@ -339,13 +339,13 @@ If a host wants different names or descriptions, that should be an explicit high
 
 ### 10. Package metadata should follow current pi package conventions
 
-The rewrite’s pi integration should be packaged in a way that aligns with current pi docs.
+AFTK's pi integration should be packaged in a way that aligns with current pi docs.
 That means the package should conceptually include:
 
 - `keywords: ["pi-package"]`
 - a `pi.extensions` entry pointing at the thin extension entrypoint
 
-For a package intended to be loaded as a pi package, the documented pi core imports should be treated according to current pi package guidance, not merely copied from the main worktree’s package.json.
+For a package intended to be loaded as a pi package, the documented pi core imports should be treated according to current pi package guidance, not merely copied from the earlier implementation’s package.json.
 
 In practice that means AFTK should prefer current pi package conventions such as:
 
@@ -356,14 +356,14 @@ unless a later packaging-specific design note justifies a different arrangement.
 
 ### 11. Use `process.cwd()` as the extension wrapper’s default anchor for project resolution
 
-The main-worktree extension passes:
+The earlier extension passes:
 
 ```ts
 { cwd: process.cwd() }
 ```
 
 when creating the shared toolset.
-That remains the right default for the extension wrapper in the rewrite as well.
+That remains the right default for the extension wrapper in AFTK as well.
 
 The reusable runtime still owns project-root discovery from that anchor.
 The pi extension should not introduce its own extra project-root logic.
@@ -376,9 +376,9 @@ Reasons:
 
 - simpler implementation
 - immediate tool availability
-- matches the current main-worktree wrapper
+- matches the earlier wrapper
 
-The pi docs allow dynamic registration later, but the rewrite does not need that complexity for the default adapter.
+The pi docs allow dynamic registration later, but AFTK does not need that complexity for the default adapter.
 
 ### 13. SDK sessions that want extension semantics may still load the extension wrapper through `DefaultResourceLoader`
 
@@ -430,7 +430,7 @@ A good conceptual package shape is:
 }
 ```
 
-This mirrors the documented pi package approach, but with the rewrite’s new file layout.
+This mirrors the documented pi package approach, but with AFTK's new file layout.
 
 ### Local testing and discovery
 
@@ -657,7 +657,7 @@ That means:
 
 ### Core pi imports
 
-If the rewrite package imports pi core packages such as:
+If AFTK package imports pi core packages such as:
 
 - `@mariozechner/pi-coding-agent`
 - `@sinclair/typebox`
@@ -810,11 +810,11 @@ Before the pi integration layer can be considered in place, AFTK should reach at
 - a direct SDK custom-tools helper exists and does not require the extension runtime
 - cleanup is explicit and idempotent for managed families
 - the pi adapter preserves toolkit tool names, parameters, and result semantics faithfully
-- package/dependency conventions follow current pi documentation rather than only the main-worktree historical package layout
+- package/dependency conventions follow current pi documentation rather than only the earlier historical package layout
 
 ## Summary
 
-AFTK should preserve the main-worktree architectural pattern of:
+AFTK should preserve the earlier architectural pattern of:
 
 - shared toolkit logic below,
 - thin pi wrapper above.
@@ -833,4 +833,4 @@ It should:
 - offer an explicit `aftk-extension-stop` command for managed resource cleanup,
 - and follow current pi package conventions for packaging and discovery.
 
-That gives the rewrite a clean, documented, future-proof way to use the toolkit from both upstream pi and custom SDK sessions without collapsing host-specific concerns back into the toolkit core.
+That gives AFTK a clean, documented, future-proof way to use the toolkit from both upstream pi and custom SDK sessions without collapsing host-specific concerns back into the toolkit core.

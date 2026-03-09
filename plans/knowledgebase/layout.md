@@ -476,4 +476,4 @@ The knowledge-base library should live under `AFTK/KnowledgeBase/` with a clear 
 - CLI parsing/rendering/dispatch
 
 The initial implementation should favor a small number of coarse but well-bounded modules.
-That gives the rewrite a practical starting structure while preserving a clean path to finer-grained modules later if the codebase grows.
+That gives AFTK a practical starting structure while preserving a clean path to finer-grained modules later if the codebase grows.

@@ -23,7 +23,7 @@ Historical sections below may still discuss the earlier pre-implementation state
 
 ## Purpose
 
-This document defines the TypeScript client layer that talks to the rewrite’s public server process:
+This document defines the TypeScript client layer that talks to AFTK's public server process:
 
 ```text
 lake exe aftk_server
@@ -38,7 +38,7 @@ It is about:
 - request correlation and pending-request bookkeeping
 - protocol and operational error mapping
 - lifecycle behavior at the client layer
-- and compatibility expectations with the rewrite server protocol
+- and compatibility expectations with the AFTK server protocol
 
 The goal is to make the Lean-facing server boundary usable from TypeScript as a first-class library surface, rather than forcing every later tool family or host adapter to hand-roll its own JSON-RPC plumbing.
 
@@ -46,8 +46,8 @@ The goal is to make the Lean-facing server boundary usable from TypeScript as a 
 
 The server client should:
 
-- preserve strong compatibility with the current main-worktree Lean-facing method family
-- mirror the rewrite’s documented public hub protocol faithfully
+- preserve strong compatibility with the earlier Lean-facing method family
+- mirror AFTK's documented public hub protocol faithfully
 - expose a reusable client surface below any `pi`-specific tool registration
 - remain focused on the **public hub protocol**, not the internal worker protocol
 - support concurrent outstanding requests with reliable request/response correlation
@@ -67,7 +67,7 @@ The server client should:
 - request-id allocation and pending-request tracking
 - typed convenience methods for the public server method family
 - client-side error classification for protocol vs server vs process/runtime failures
-- compatibility commitments to the documented rewrite server behavior
+- compatibility commitments to the documented behavior of the AFTK server
 
 ### Out of scope
 
@@ -92,7 +92,7 @@ Primary file studied:
 
 Important client-side observations from that implementation:
 
-- The current main-worktree toolkit already contains a working managed hub client shape in `AftkHubClient`.
+- The earlier toolkit already contains a working managed hub client shape in `AftkHubClient`.
 - It starts `lake exe aftk_server` lazily and talks newline-delimited JSON-RPC over stdio.
 - It tracks pending requests by id in a map.
 - It uses monotonic numeric ids.
@@ -108,12 +108,12 @@ Important client-side observations from that implementation:
 - It currently ignores malformed non-empty stdout lines rather than treating them as protocol failure.
 - It currently mirrors hub stderr directly to the parent stderr stream.
 
-Main consequences for the rewrite:
+Main consequences for AFTK:
 
 - AFTK should preserve the overall managed-client pattern,
 - but improve it by:
   - moving it into a dedicated `server/` module area,
-  - aligning it explicitly with the rewrite protocol docs,
+  - aligning it explicitly with AFTK protocol docs,
   - tightening protocol-failure handling,
   - and building a clearer typed protocol surface below tool definitions.
 
@@ -129,9 +129,9 @@ Files studied:
 - `AFTK/Server/Main.lean`
 - `plans/toolkit/runtime.md`
 
-Important rewrite observations:
+Current AFTK observations:
 
-- The rewrite preserves the main Lean-facing public method family:
+- AFTK preserves the main Lean-facing public method family:
   - `open`
   - `close`
   - `load_node`
@@ -144,7 +144,7 @@ Important rewrite observations:
   - `run_tactic_steps`
   - `shutdown`
 - The server is the public operational boundary; the worker protocol remains internal.
-- The rewrite protocol explicitly defines public result shapes, including:
+- AFTK protocol explicitly defines public result shapes, including:
   - `OpenResult`
   - `CloseResult`
   - `LoadNodeResult`
@@ -156,7 +156,7 @@ Important rewrite observations:
   - `RunTacticResult`
   - `RunTacticStepsResult`
   - `ShutdownResult`
-- The rewrite protocol explicitly defines stable AFTK-specific error codes:
+- AFTK protocol explicitly defines stable AFTK-specific error codes:
   - `-32001` tactic failed
   - `-32010` file not open
   - `-32011` file changed; reopen required
@@ -175,11 +175,11 @@ Important rewrite observations:
 - The hub owns session lifecycle and file freshness checks; the client should not try to reconstruct or second-guess those semantics.
 - `run_tactic_steps` is a public hub convenience method and should remain first-class in the client surface.
 
-Main consequences for the rewrite:
+Main consequences for AFTK:
 
 - the client should mirror the **public hub contract** directly and should not bypass it;
 - the typed protocol definitions should be built from the documented public JSON shape, using `AFTK/Server/Protocol.lean` only as an implementation cross-check;
-- and the client error model must preserve the rewrite’s named operational error codes because those are part of the higher-layer contract.
+- and the client error model must preserve AFTK's named operational error codes because those are part of the higher-layer contract.
 
 ## Core client decisions
 
@@ -202,7 +202,7 @@ That means:
 - no worker-local method wrappers in the public client
 - no TypeScript-side assumptions about internal worker request routing
 
-This preserves the public boundary already defined by the rewrite server layer.
+This preserves the public boundary already defined by the server layer of AFTK.
 
 ### 2. Mirror the documented JSON protocol in TypeScript
 
@@ -245,8 +245,8 @@ The client should preserve the public hub method names exactly:
 
 This is important for:
 
-- parity with the rewrite server docs
-- compatibility with the current main-worktree tool family
+- parity with the AFTK server docs
+- compatibility with the earlier tool family
 - and keeping the Lean-facing toolkit surface easy to map back to the server protocol
 
 ### 4. Expose both a generic typed request API and named convenience methods
@@ -305,7 +305,7 @@ This keeps the client focused on transport/protocol responsibilities.
 ### 6. Use numeric request ids and keep them opaque to consumers
 
 The client should continue using monotonically increasing numeric JSON-RPC request ids.
-This matches the main-worktree implementation and keeps the request bookkeeping simple.
+This matches the earlier implementation and keeps the request bookkeeping simple.
 
 Consumers should not be exposed to request ids as part of the public API.
 They are a client-internal correlation mechanism.
@@ -326,7 +326,7 @@ If a response with a known pending id violates that structure, the corresponding
 
 ### 8. Treat malformed non-empty stdout as protocol failure, not ignorable noise
 
-The main-worktree implementation currently ignores malformed non-empty stdout lines.
+The earlier implementation currently ignores malformed non-empty stdout lines.
 AFTK should be stricter.
 
 Because server stdout is the protocol channel, a non-empty malformed line should be treated as a protocol-level failure.
@@ -337,7 +337,7 @@ A good v1 rule is:
 - if a completed non-empty line is not valid protocol JSON, treat the managed connection as corrupted
 - reject all pending requests and stop using that child process
 
-This is stricter than the current main-worktree behavior, but it matches the documented server transport contract and makes failures easier to detect.
+This is stricter than the earlier behavior, but it matches the documented server transport contract and makes failures easier to detect.
 
 ### 9. Tolerate late responses for already-abandoned requests
 
@@ -356,7 +356,7 @@ So the client surface should distinguish between:
 - `shutdown()` — a semantic protocol call to the hub that returns `ShutdownResult`
 - `stop(graceful?)` — lifecycle cleanup for the owned child process
 
-This mirrors the architectural split already visible in the main-worktree toolset.
+This mirrors the architectural split already visible in the earlier toolset.
 Higher layers can then choose whether they want:
 
 - a real semantic server shutdown operation,
@@ -364,7 +364,7 @@ Higher layers can then choose whether they want:
 
 ### 11. Preserve known server error codes as typed client errors
 
-The client should preserve the rewrite’s known public server error codes as first-class client-visible information.
+The client should preserve AFTK's known public server error codes as first-class client-visible information.
 At minimum, it should recognize:
 
 - `-32001` tactic failed
@@ -466,7 +466,7 @@ The protocol module should also expose a typed known-code surface, such as:
 
 plus helpers for classifying an arbitrary JSON-RPC error code into:
 
-- known AFTK server error
+- known AFTK server errors
 - standard JSON-RPC error
 - unknown server-family error
 
@@ -516,7 +516,7 @@ That child is started from the resolved runtime command spec for the hub executa
 ### Startup deduplication
 
 If multiple callers request startup concurrently, the client should deduplicate startup through one shared in-flight start promise.
-That preserves the useful main-worktree behavior and avoids racing duplicate `aftk_server` children.
+That preserves the useful earlier behavior and avoids racing duplicate `aftk_server` children.
 
 ### Pending request registry
 
@@ -617,7 +617,7 @@ This covers cases such as late replies after local timeout/cancel cleanup.
 - reject all pending requests with a protocol error
 - mark the child unusable and stop using it
 
-That is the main robustness improvement over the current main-worktree behavior.
+That is the main robustness improvement over the earlier behavior.
 
 ## Response validation policy
 
@@ -674,7 +674,7 @@ When the hub returns a valid JSON-RPC error response, the client should reject w
 - `data`
 - a classification helper or `kind`
 
-This is the TypeScript-side analogue of the current main-worktree `HubRpcError`, but aligned explicitly with the rewrite error-code set.
+This is the TypeScript-side analogue of the earlier `HubRpcError`, but aligned explicitly with AFTK error-code set.
 
 ### Recommended classification helpers
 
@@ -711,7 +711,7 @@ If graceful shutdown fails and forced termination is required, the client should
 
 The server client should preserve the following compatibility expectations.
 
-### With the rewrite server docs
+### With the AFTK server docs
 
 - method names match `docs/server/protocol.md`
 - request/result shapes match `docs/server/protocol.md`
@@ -719,7 +719,7 @@ The server client should preserve the following compatibility expectations.
 - known AFTK-specific error codes remain typed and visible
 - `run_tactic_steps` remains a first-class client method
 
-### With the main-worktree toolkit surface
+### With the earlier toolkit surface
 
 - the overall managed-hub pattern remains familiar
 - a generic `request(...)` capability still exists
@@ -727,9 +727,9 @@ The server client should preserve the following compatibility expectations.
 - graceful shutdown plus forced termination fallback remains the lifecycle model
 - server-family errors are surfaced in a dedicated error type
 
-### Intentional improvements over the main-worktree implementation
+### Intentional improvements over the earlier implementation
 
-The rewrite client should intentionally improve the current main-worktree client in at least these ways:
+AFTK client should intentionally improve the earlier client in at least these ways:
 
 - dedicated module boundaries instead of one giant file
 - explicit protocol type surface in `server/protocol.ts`
@@ -796,7 +796,7 @@ Known error codes should drive program logic, not brittle message text matching.
 
 ### 5. No blind `as T` trust of server results without at least lightweight method-aware validation
 
-Because the server and client are being rewritten together, protocol drift should fail fast in tests.
+Because the server and client are being developed together, protocol drift should fail fast in tests.
 
 ### 6. No silent protocol corruption tolerance
 
@@ -824,10 +824,10 @@ Before the server-client layer can be considered in place, AFTK should reach at 
 
 ## Summary
 
-The rewrite toolkit needs a dedicated TypeScript client for the public `aftk_server` protocol.
-That client should preserve the successful operational pattern already visible in the main worktree — managed child process, lazy startup, pending-request tracking, dedicated RPC errors — while aligning much more explicitly with the rewrite server’s documented public contract.
+The AFTK toolkit needs a dedicated TypeScript client for the public `aftk_server` protocol.
+That client should preserve the successful operational pattern already visible in the earlier implementation — managed child process, lazy startup, pending-request tracking, dedicated RPC errors — while aligning much more explicitly with the AFTK server's documented public contract.
 
-So the rewrite server-client layer should:
+So the AFTK server-client layer should:
 
 - speak only to the public hub process,
 - define explicit TypeScript protocol types and known error codes,

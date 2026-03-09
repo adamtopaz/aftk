@@ -1,6 +1,6 @@
 # Knowledge-base layer overview
 
-The knowledge-base layer is the implemented foundation of the rewrite.
+The knowledge-base layer is the implemented foundation of AFTK.
 It is responsible for canonical natural-language storage and for the filesystem-facing operations that higher layers rely on.
 
 Public entrypoints:

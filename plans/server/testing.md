@@ -90,7 +90,7 @@ Tests must therefore explicitly cover:
 
 ### 4. Test lower-layer integration against real lower-layer fixtures
 
-The server layer’s value in the rewrite is not just Lean parity.
+The server layer’s value in AFTK is not just Lean parity.
 It must also integrate with the knowledge-base and informal layers.
 That means tests should exercise hover behavior over real `informal[...]` sites backed by real fixture knowledge-base roots.
 
@@ -362,7 +362,7 @@ This mirrors the main implementation phases and reduces the risk of building a l
 
 ## Additional implementation findings from the current test harness and existing code
 
-The rewrite already has a concrete lightweight test pattern that the server layer should reuse rather than replacing.
+AFTK already has a concrete lightweight test pattern that the server layer should reuse rather than replacing.
 
 - `lakefile.toml` currently sets `testDriver = "aftk_test"`.
 - `AFTKTest.Main` aggregates subsystem test lists and exits via `AFTKTest.KnowledgeBase.runTestCases`.
@@ -382,16 +382,16 @@ Research in the current lower layers also suggests a few testing opportunities t
 
 - `AFTK.Informal.Elaborator` already attaches deterministic compact summary text via `renderSummaryText`, so ordinary hover-at-`informal[...]` tests can assert those summary lines directly.
 - `AFTK.Informal.Presentation.renderPayloadText` is intentionally deterministic and includes markers such as `[truncated]`, making it a good basis for rich-hover assertions.
-- The current main-worktree worker has two quirks worth locking down with explicit regression tests in the rewrite:
+- The earlier worker has two quirks worth locking down with explicit regression tests in AFTK:
   - `get_goals` should not allocate hidden fresh nodes
-  - and the chosen `load_node` semantics around before-state vs `useAfter` should be asserted directly once the rewrite decides them
+  - and the chosen `load_node` semantics around before-state vs `useAfter` should be asserted directly once AFTK decides them
 
 So the practical testing path is:
 
 - reuse the existing `TestCase` / `runTestCases` harness style
 - extend `AFTKTest.Main` rather than creating a second test driver
 - add subprocess helpers specialized for newline-delimited JSON-RPC
-- and write explicit regression tests for the few known main-worktree behavioral traps.
+- and write explicit regression tests for the few known earlier behavioral traps.
 
 ## Completion checklist for this plan
 

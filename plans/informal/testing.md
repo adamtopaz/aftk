@@ -459,7 +459,7 @@ Lean core already provides a practical route for these tests without requiring a
 - enable info collection via `commandState.infoState.enabled := true`,
 - and inspect the resulting `InfoTree`s.
 
-The current main-worktree file-worker already follows this pattern, so the informal suite should be able to reuse it for positive hover/info smoke coverage.
+The earlier file-worker already follows this pattern, so the informal suite should be able to reuse it for positive hover/info smoke coverage.
 
 If full hover/info introspection proves awkward initially, the presentation builders should still be tested directly and the hover integration can begin with lighter smoke coverage.
 
@@ -578,4 +578,4 @@ The informal layer should be tested with a mixed strategy:
 - derived tracking/dependency/presentation tests,
 - and end-to-end CLI integration tests.
 
-This strategy matches the actual shape of the informal layer: part reusable library, part elaboration-time integration, part derived graph/query system, and part CLI surface. It also keeps the knowledge-base-backed nature of the rewrite explicit by requiring real fixture roots and by avoiding reliance on the old sidecar-based testing assumptions of the main-worktree `Informalize` design.
+This strategy matches the actual shape of the informal layer: part reusable library, part elaboration-time integration, part derived graph/query system, and part CLI surface. It also keeps the knowledge-base-backed nature of AFTK explicit by requiring real fixture roots and by avoiding reliance on the old sidecar-based testing assumptions of the earlier `Informalize` design.

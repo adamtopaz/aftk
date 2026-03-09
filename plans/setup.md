@@ -499,7 +499,7 @@ It should **not** yet:
 - try to reload an already-running pi session
 - install npm packages
 - inject dynamic prompt text through extension hooks
-- rewrite toolkit runtime executable specs
+- AFTK toolkit runtime executable specs
 - handle broader future setup tasks
 
 ## Proposed implementation outline
