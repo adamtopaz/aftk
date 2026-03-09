@@ -1,6 +1,6 @@
 # Server / file-worker overview
 
-The server layer is the operational Lean service layer of the rewrite.
+The server layer is the operational Lean service layer of AFTK.
 It exposes long-running JSON-RPC processes for file-oriented Lean queries and transient tactic exploration.
 
 Public entrypoints:
@@ -173,7 +173,7 @@ These ids are:
 
 ## Informal-layer integration
 
-The rewrite-specific integration point is richer hover for `informal[...]` sites.
+The AFTK-specific integration point is richer hover for `informal[...]` sites.
 
 Behavior today:
 

@@ -9,7 +9,7 @@ This document refines the overall informal-layer plan in `plans/informal.md` and
 
 - Overall status: Implemented (initial v1)
 - Implemented in code: Yes
-- Last updated basis: rewrite worktree now derives declaration and reference dependency views in `AFTK.Informal.Dependencies` from Lean environment usage plus tracked declaration↔reference linkage.
+- Last updated basis: repository now derives declaration and reference dependency views in `AFTK.Informal.Dependencies` from Lean environment usage plus tracked declaration↔reference linkage.
 
 ## Purpose
 

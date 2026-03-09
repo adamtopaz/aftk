@@ -2,14 +2,24 @@
 
 ## Status
 
-Component plan and implementation-status document for testing the TypeScript toolkit layer.
-This document refines the overall toolkit-layer plan in `plans/toolkit.md` and works together with `plans/toolkit/layout.md`, `plans/toolkit/runtime.md`, `plans/toolkit/server-client.md`, `plans/toolkit/lean-tools.md`, `plans/toolkit/knowledgebase-tools.md`, `plans/toolkit/informal-tools.md`, `plans/toolkit/pi-integration.md`, and `plans/toolkit/output.md`.
+Component design/status document for testing the TypeScript toolkit layer.
+This file now records the rationale for the toolkit test strategy that exists in code and the follow-on work that may still be added later.
+
+Authoritative implementation docs live in:
+
+- `docs/toolkit/testing.md`
+- `docs/toolkit/library.md`
+- `docs/toolkit/overview.md`
 
 ## Component implementation status
 
-- Overall status: Not implemented
-- Implemented in code: No
-- Last updated basis: research against the current rewrite worktree test layout and package scaffold, the current main-worktree TypeScript package metadata and lack of a real toolkit-side test suite, the existing Lean-layer testing/docs under `AFTKTest/` and `tests/`, the implemented lower-layer entrypoints in `lakefile.toml`, `AFTK/Server/Main.lean`, `AFTK/KnowledgeBase/Cli/*`, `AFTK/KnowledgeBase/PathLayout.lean`, `AFTK/Informal/Cli/*`, `AFTK/Informal/Tracking.lean`, `AFTK/Informal/Dependencies.lean`, and `AFTK/Informal/Presentation.lean`, and the documented pi SDK/extension loading surfaces under `@mariozechner/pi-coding-agent`
+- Overall status: Implemented (initial v1), with deferred follow-ons
+- Implemented in code: Yes
+- Last updated basis: the current TypeScript-side test suite under `tests/toolkit/**`, package scripts in `package.json`, and the current runtime/server-client/tool-family implementations
+- Main deferred follow-ons: broader mutation/admin integration coverage if the toolkit surface expands, plus any future higher-level end-to-end AI-layer tests
+
+The test-strategy questions this file was written to settle are now answered by the current repository layout and scripts.
+Historical sections below may still describe the earlier pre-implementation gap; read them as design rationale only.
 
 ## Purpose
 
@@ -73,10 +83,10 @@ This testing plan is based on explicit research in both worktrees and in the pi 
 
 Primary files studied:
 
-- `/home/dev/aftk/package.json`
-- `/home/dev/aftk/tsconfig.json`
-- `/home/dev/aftk/lambda/src/aftk-extension.ts`
-- `/home/dev/aftk/lambda/src/aftk-tools.ts`
+- `../aftk/package.json`
+- `../aftk/tsconfig.json`
+- `../aftk/lambda/src/aftk-extension.ts`
+- `../aftk/lambda/src/aftk-tools.ts`
 
 Important observations:
 
@@ -88,29 +98,29 @@ Important observations:
 
 Main consequences for the rewrite:
 
-- the rewrite should add a deliberate TypeScript-side test suite rather than inheriting the historical absence of one;
-- the rewrite should test runtime/process behavior and normalization contracts directly;
-- and the rewrite should not treat typechecking alone as adequate toolkit validation.
+- AFTK should add a deliberate TypeScript-side test suite rather than inheriting the historical absence of one;
+- AFTK should test runtime/process behavior and normalization contracts directly;
+- and AFTK should not treat typechecking alone as adequate toolkit validation.
 
-### Rewrite-worktree reference points
+### Repository reference points
 
 Primary files studied:
 
-- `/home/dev/aftk_rewrite/README.md`
-- `/home/dev/aftk_rewrite/docs/architecture.md`
-- `/home/dev/aftk_rewrite/lakefile.toml`
-- `/home/dev/aftk_rewrite/package.json`
-- `/home/dev/aftk_rewrite/tsconfig.json`
-- `/home/dev/aftk_rewrite/plans/toolkit.md`
-- `/home/dev/aftk_rewrite/plans/toolkit/layout.md`
-- `/home/dev/aftk_rewrite/plans/toolkit/runtime.md`
-- `/home/dev/aftk_rewrite/plans/toolkit/server-client.md`
-- `/home/dev/aftk_rewrite/plans/toolkit/output.md`
-- `/home/dev/aftk_rewrite/plans/toolkit/lean-tools.md`
-- `/home/dev/aftk_rewrite/plans/toolkit/knowledgebase-tools.md`
-- `/home/dev/aftk_rewrite/plans/toolkit/informal-tools.md`
-- `/home/dev/aftk_rewrite/plans/toolkit/pi-integration.md`
-- `/home/dev/aftk_rewrite/plans/server/testing.md`
+- `README.md`
+- `docs/architecture.md`
+- `lakefile.lean`
+- `package.json`
+- `tsconfig.json`
+- `plans/toolkit.md`
+- `plans/toolkit/layout.md`
+- `plans/toolkit/runtime.md`
+- `plans/toolkit/server-client.md`
+- `plans/toolkit/output.md`
+- `plans/toolkit/lean-tools.md`
+- `plans/toolkit/knowledgebase-tools.md`
+- `plans/toolkit/informal-tools.md`
+- `plans/toolkit/pi-integration.md`
+- `plans/server/testing.md`
 
 Important observations:
 
@@ -126,12 +136,12 @@ lake test
   - `tests/server/fixtures/knowledgebase/`
   - `tests/informal/knowledgebase-fixtures/`
   - `AFTKTest/Informal/Fixtures/*`
-- `lakefile.toml` already fixes the exact executable names that real toolkit integration tests will target:
+- `lakefile.lean` fixes the exact executable names that real toolkit integration tests target:
   - `aftk_server`
   - `aftk`
   - `aftk_file_worker`
 - `AFTK/Server/Main.lean` currently accepts no extra CLI flags and always uses stdio transport, which keeps the server-side integration harness simple.
-- The current `package.json` and `tsconfig.json` are still Bun-style scaffolding and do not yet describe a real TypeScript test workflow.
+- The original pre-toolkit `package.json` and `tsconfig.json` were still Bun-style scaffolding and did not yet describe a real TypeScript test workflow.
   Concretely, the package still points `module` at the root `index.ts`, while `tsconfig.json` still uses Bun-oriented `module: "Preserve"` / `moduleResolution: "bundler"` defaults.
 - `plans/toolkit/layout.md` has already settled that toolkit test code belongs under:
 
@@ -216,7 +226,7 @@ It just means they should be first-class in the right place.
 
 ### 2. Add a dedicated package-level toolkit test workflow
 
-The rewrite should add explicit package scripts for toolkit validation.
+AFTK should add explicit package scripts for toolkit validation.
 A good v1 shape is:
 
 - `check` — TypeScript typecheck
@@ -936,7 +946,7 @@ Use focused text assertions unless exact formatting is truly a toolkit-owned con
 
 ## Initial implementation checklist for this testing design
 
-Before the toolkit layer can be considered well-tested, the rewrite should reach at least this baseline:
+Before the toolkit layer can be considered well-tested, AFTK should reach at least this baseline:
 
 - `tests/toolkit/` exists with subsystem-specific test directories
 - toolkit test support helpers exist for temp fixtures, subprocess execution, and normalized-result assertions
@@ -957,7 +967,7 @@ Before the toolkit layer can be considered well-tested, the rewrite should reach
 
 ## Summary
 
-The rewrite should treat toolkit testing as a first-class TypeScript concern rather than an afterthought.
+AFTK should treat toolkit testing as a first-class TypeScript concern rather than an afterthought.
 That means:
 
 - keeping Lean-layer tests under `lake test`,

@@ -2,14 +2,24 @@
 
 ## Status
 
-Component plan and implementation-status document for the runtime assumptions and shared process-management layer of the toolkit.
-This document refines the overall toolkit-layer plan in `plans/toolkit.md` and works together with `plans/toolkit/layout.md`, `plans/toolkit/server-client.md`, `plans/toolkit/lean-tools.md`, `plans/toolkit/knowledgebase-tools.md`, `plans/toolkit/informal-tools.md`, `plans/toolkit/pi-integration.md`, `plans/toolkit/output.md`, and `plans/toolkit/testing.md`.
+Component design/status document for the shared runtime and process-management layer of the toolkit.
+This file now records the rationale for the runtime model that exists in code and the follow-on operational work that may still be added later.
+
+Authoritative implementation docs live in:
+
+- `docs/toolkit/overview.md`
+- `docs/toolkit/library.md`
+- `docs/toolkit/testing.md`
 
 ## Component implementation status
 
-- Overall status: Not implemented
-- Implemented in code: No
-- Last updated basis: research against the main-worktree managed hub implementation in `/home/dev/aftk/lambda/src/aftk-tools.ts`, plus the rewrite worktree’s documented and implemented lower-layer entrypoints in `docs/server/overview.md`, `docs/server/protocol.md`, `docs/knowledgebase/cli.md`, `docs/informal/cli.md`, `lakefile.toml`, `AFTK/Server/Main.lean`, `AFTK/KnowledgeBase/PathLayout.lean`, `AFTK/KnowledgeBase/Cli/Main.lean`, and `AFTK/Informal/Cli/Main.lean`
+- Overall status: Implemented (initial v1), with deferred follow-ons
+- Implemented in code: Yes
+- Last updated basis: the runtime implementation in `src/toolkit/runtime/**`, plus the current package/test wiring in `package.json`, `tsconfig.json`, and `tests/toolkit/**`
+- Main deferred follow-ons: any future richer cancellation, additional executable override policy, or later runtime support needed by the AI/orchestration layer
+
+The runtime/process questions this file was written to settle are now answered by the current toolkit implementation.
+Historical sections below may still refer to the pre-implementation scaffold or older package assumptions; read them as design rationale only.
 
 ## Purpose
 
@@ -76,7 +86,7 @@ This runtime plan is based on explicit research in both worktrees.
 
 Primary file studied:
 
-- `/home/dev/aftk/lambda/src/aftk-tools.ts`
+- `../aftk/lambda/src/aftk-tools.ts`
 
 Important runtime observations from that implementation:
 
@@ -96,7 +106,7 @@ Important runtime observations from that implementation:
 
 Main consequences for the rewrite:
 
-- the rewrite should preserve the good parts of this operational model:
+- AFTK should preserve the good parts of this operational model:
   - Node-compatible subprocess management,
   - lazy managed hub startup,
   - explicit request timeouts,
@@ -108,7 +118,7 @@ Main consequences for the rewrite:
   - distinguishing runtime errors more cleanly,
   - and making root/executable resolution more explicit.
 
-### Rewrite-worktree runtime reference points
+### Repository runtime reference points
 
 Files studied:
 
@@ -118,7 +128,7 @@ Files studied:
 - `docs/informal/cli.md`
 - `package.json`
 - `tsconfig.json`
-- `lakefile.toml`
+- `lakefile.lean`
 - `AFTK/Server/Main.lean`
 - `AFTK/KnowledgeBase/PathLayout.lean`
 - `AFTK/KnowledgeBase/Cli/Main.lean`
@@ -127,7 +137,7 @@ Files studied:
 
 Important runtime observations from the rewrite:
 
-- `lakefile.toml` already defines the exact lower-layer executables the runtime must know how to start:
+- `lakefile.lean` defines the exact lower-layer executables the runtime must know how to start:
   - `aftk_server`
   - `aftk`
   - `aftk_file_worker`
@@ -150,8 +160,8 @@ Important runtime observations from the rewrite:
   - while `present` bypasses module import and resolves a knowledge-base root directly.
 - Both CLIs support `--format json`, but they do not use the same JSON success shape.
 - Both CLIs use documented exit codes for usage/not-found/validation/conflict-style outcomes.
-- The current TypeScript scaffold in the rewrite still reflects Bun defaults rather than the actual Node-like process model the toolkit needs.
-  Concretely, `package.json` still points `module` at the root `index.ts`, while `tsconfig.json` still uses Bun-style `module: "Preserve"` and `moduleResolution: "bundler"` defaults.
+- The original TypeScript scaffold reflected Bun defaults rather than the actual Node-like process model the toolkit needed.
+  Concretely, `package.json` then pointed `module` at the root `index.ts`, while `tsconfig.json` still used Bun-style `module: "Preserve"` and `moduleResolution: "bundler"` defaults.
 
 Main consequences for the rewrite:
 
@@ -207,7 +217,7 @@ The runtime should make a clean distinction between:
 - `projectRoot`: the resolved Lean project root used as the default working directory for lower-layer commands
 
 The main-worktree toolkit already hints at this distinction by accepting `cwd` and deriving `projectRoot`.
-The rewrite should make it explicit.
+AFTK should make it explicit.
 
 Recommended rule:
 
@@ -216,7 +226,7 @@ Recommended rule:
 
 ### 4. Fail clearly if no project root can be resolved
 
-The rewrite should prefer an explicit configuration error over silently using an arbitrary directory when no Lean project root can be found.
+AFTK should prefer an explicit configuration error over silently using an arbitrary directory when no Lean project root can be found.
 
 So unlike the current main-worktree helper, the default runtime should:
 
@@ -305,7 +315,7 @@ Trying to force both patterns into one oversized abstraction would make the runt
 ### 8. Default to lazy managed-hub startup, but expose explicit start capability
 
 The main-worktree toolkit’s lazy hub startup is a good default.
-The rewrite should preserve that default behavior.
+AFTK should preserve that default behavior.
 
 So the runtime foundation should support:
 
@@ -603,7 +613,7 @@ Individual calls may still override it when needed.
 ### Shutdown timeouts
 
 The main-worktree toolkit uses a shorter timeout for graceful shutdown requests.
-The rewrite should preserve that pattern.
+AFTK should preserve that pattern.
 
 A good v1 baseline is:
 
@@ -906,7 +916,7 @@ Silent automatic recovery would make operational behavior harder to reason about
 
 ## Initial implementation checklist for this runtime design
 
-Before the runtime layer can be considered in place, the rewrite should reach at least this baseline:
+Before the runtime layer can be considered in place, AFTK should reach at least this baseline:
 
 - a resolved runtime-context constructor exists
 - project-root discovery and validation exist as shared helpers

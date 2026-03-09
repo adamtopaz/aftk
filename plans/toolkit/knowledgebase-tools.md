@@ -2,14 +2,24 @@
 
 ## Status
 
-Component plan and implementation-status document for the knowledge-base tool family built on the rewrite knowledge-base CLI.
-This document refines the overall toolkit-layer plan in `plans/toolkit.md` and works together with `plans/toolkit/layout.md`, `plans/toolkit/runtime.md`, `plans/toolkit/server-client.md`, `plans/toolkit/lean-tools.md`, `plans/toolkit/informal-tools.md`, `plans/toolkit/pi-integration.md`, `plans/toolkit/output.md`, and `plans/toolkit/testing.md`.
+Component design/status document for the knowledge-base tool family built on the `aftk knowledgebase` CLI.
+This file now records the rationale for the tool family that exists in code and the follow-on work that may still be added later.
+
+Authoritative implementation docs live in:
+
+- `docs/toolkit/overview.md`
+- `docs/toolkit/library.md`
+- `docs/knowledgebase/cli.md`
 
 ## Component implementation status
 
-- Overall status: Not implemented
-- Implemented in code: No
-- Last updated basis: research against the rewrite knowledge-base CLI docs in `docs/knowledgebase/cli.md`, `docs/knowledgebase/overview.md`, and `plans/knowledgebase/cli.md`, plus the toolkit output/runtime plans and the current CLI implementation behavior in `AFTK/KnowledgeBase/Cli/*`, `AFTK/KnowledgeBase/PathLayout.lean`, and `AFTK/KnowledgeBase/Validation.lean`
+- Overall status: Implemented (initial v1), with deferred follow-ons
+- Implemented in code: Yes
+- Last updated basis: the current knowledge-base client/tool implementation in `src/toolkit/knowledgebase/client.ts`, `src/toolkit/tools/knowledgebase.ts`, the shared runtime/output layers, and `tests/toolkit/**`
+- Main deferred follow-ons: broader mutation/admin wrappers and any future higher-level composite helpers built on the CLI-backed surface
+
+The key design questions in this file are now answered by the implemented `knowledgebase_*` family.
+Historical sections below may still describe pre-implementation expectations; treat them as design rationale only.
 
 ## Purpose
 
@@ -76,15 +86,15 @@ Those are covered by lower-layer docs or other toolkit component docs.
 
 ## Research basis and design consequences
 
-This tool-family plan is based primarily on the current rewrite worktree, because the rewrite knowledge-base layer is already implemented and documented.
+This tool-family plan is based primarily on the current repository, because the knowledge-base layer is already implemented and documented.
 
 ### Main-worktree reference points
 
 Primary files studied:
 
-- `/home/dev/aftk/docs/aftk/README.md`
-- `/home/dev/aftk/docs/agent-playbook.md`
-- `/home/dev/aftk/docs/future/autoformalization-tools.md`
+- `../aftk/docs/aftk/README.md`
+- `../aftk/docs/agent-playbook.md`
+- `../aftk/docs/future/autoformalization-tools.md`
 
 Important observations from the main worktree:
 
@@ -102,7 +112,7 @@ Main consequences for the rewrite:
 - the rewrite therefore has more freedom to design a good first toolkit surface for knowledge-base operations;
 - but that freedom should be used conservatively, by exposing the implemented CLI thoughtfully rather than inventing a parallel knowledge-base API detached from the lower layer.
 
-### Rewrite-worktree reference points
+### Repository reference points
 
 Primary files studied:
 
@@ -1308,7 +1318,7 @@ The toolkit should be selective, but it should not quietly invent a second searc
 
 ## Initial implementation checklist for this knowledge-base tool design
 
-Before the knowledge-base tool family can be considered in place, the rewrite should reach at least this baseline:
+Before the knowledge-base tool family can be considered in place, AFTK should reach at least this baseline:
 
 - a reusable knowledge-base CLI bridge exists in TypeScript
 - the initial selected query/report tool set is implemented

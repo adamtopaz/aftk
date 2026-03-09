@@ -9,7 +9,7 @@ This document refines the overall server-layer plan in `plans/server.md` and wor
 
 - Overall status: Implemented
 - Implemented in code: Yes
-- Last updated basis: the rewrite worktree now has a one-shot per-file worker, source-position query handlers, transient tactic-state support, worker shutdown handling, and lower-layer-aware informal hover integration.
+- Last updated basis: the repository now has a one-shot per-file worker, source-position query handlers, transient tactic-state support, worker shutdown handling, and lower-layer-aware informal hover integration.
 
 ## Purpose
 
@@ -402,7 +402,7 @@ The first worker code should likely land in this order:
 
 ## Completion checklist for this plan
 
-This component plan should count as implemented only when all of the following are true in the rewrite worktree:
+This component plan should count as implemented only when all of the following are true in the repository:
 
 - the worker starts from one file path and builds one semantic snapshot
 - `get_hover`, `get_plain_goal`, `get_plain_term_goal`, `get_infoview`, and `load_node` work over real fixture files

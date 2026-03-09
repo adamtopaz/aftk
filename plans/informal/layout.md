@@ -9,7 +9,7 @@ This document refines the overall informal-layer plan in `plans/informal.md` and
 
 - Overall status: Implemented (initial v1)
 - Implemented in code: Yes
-- Last updated basis: rewrite worktree now contains the planned `AFTK/Informal/*`, `AFTK/Informal/Cli/*`, and `AFTKTest/Informal/*` module trees together with top-level executable and test-driver integration.
+- Last updated basis: repository now contains the planned `AFTK/Informal/*`, `AFTK/Informal/Cli/*`, and `AFTKTest/Informal/*` module trees together with top-level executable and test-driver integration.
 
 ## Purpose
 

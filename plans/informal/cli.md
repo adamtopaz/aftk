@@ -9,7 +9,7 @@ This document refines the overall informal-layer plan in `plans/informal.md` and
 
 - Overall status: Implemented (initial v1)
 - Implemented in code: Yes
-- Last updated basis: rewrite worktree now provides `AFTK.Informal.Cli.*`, top-level `lake exe aftk informal ...` dispatch, JSON/text rendering, and tested environment-backed and presentation-backed commands.
+- Last updated basis: repository now provides `AFTK.Informal.Cli.*`, top-level `lake exe aftk informal ...` dispatch, JSON/text rendering, and tested environment-backed and presentation-backed commands.
 
 ## Purpose
 

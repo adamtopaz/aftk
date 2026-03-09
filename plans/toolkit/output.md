@@ -2,14 +2,24 @@
 
 ## Status
 
-Component plan and implementation-status document for the cross-tool output contract of the toolkit layer.
-This document refines the overall toolkit-layer plan in `plans/toolkit.md` and works together with `plans/toolkit/layout.md`, `plans/toolkit/runtime.md`, `plans/toolkit/server-client.md`, `plans/toolkit/lean-tools.md`, `plans/toolkit/knowledgebase-tools.md`, `plans/toolkit/informal-tools.md`, `plans/toolkit/pi-integration.md`, and `plans/toolkit/testing.md`.
+Component design/status document for the cross-tool output contract of the toolkit layer.
+This file now records the rationale for the result envelope that exists in code and the follow-on work that may still be added later.
+
+Authoritative implementation docs live in:
+
+- `docs/toolkit/overview.md`
+- `docs/toolkit/library.md`
+- `docs/toolkit/testing.md`
 
 ## Component implementation status
 
-- Overall status: Not implemented
-- Implemented in code: No
-- Last updated basis: research against the main-worktree tool-result formatting in `/home/dev/aftk/lambda/src/aftk-tools.ts`, the main-worktree AFTK docs in `/home/dev/aftk/docs/aftk/README.md`, and the rewrite worktree’s lower-layer output contracts and implementations in `docs/server/protocol.md`, `docs/knowledgebase/cli.md`, `docs/informal/cli.md`, `AFTK/KnowledgeBase/Cli/Render.lean`, `AFTK/Informal/Cli/Render.lean`, and `AFTK/Informal/Presentation.lean`
+- Overall status: Implemented (initial v1), with deferred follow-ons
+- Implemented in code: Yes
+- Last updated basis: the shared output implementation in `src/toolkit/output/**`, together with the current tool families and `tests/toolkit/**`
+- Main deferred follow-ons: any future richer diagnostics surfacing or result-shape evolution driven by higher-layer needs
+
+The output-contract questions this file was written to settle are now answered by the current toolkit implementation.
+Historical sections below may still describe pre-implementation expectations; read them as design rationale only.
 
 ## Purpose
 
@@ -73,8 +83,8 @@ This output plan is based on explicit research in both worktrees.
 
 Primary files studied:
 
-- `/home/dev/aftk/lambda/src/aftk-tools.ts`
-- `/home/dev/aftk/docs/aftk/README.md`
+- `../aftk/lambda/src/aftk-tools.ts`
+- `../aftk/docs/aftk/README.md`
 
 Important output observations from the main-worktree toolkit:
 
@@ -97,7 +107,7 @@ Important output observations from the main-worktree toolkit:
 
 Main consequences for the rewrite:
 
-- the rewrite should preserve the good parts:
+- AFTK should preserve the good parts:
   - plain text plus structured details,
   - concise renderers,
   - explicit truncation,
@@ -107,7 +117,7 @@ Main consequences for the rewrite:
   - normalizing CLI-backed and server-backed results more explicitly,
   - and making stderr/diagnostics policy part of the design rather than an accident of subprocess wiring.
 
-### Rewrite-worktree reference points
+### Repository reference points
 
 Files studied:
 
@@ -874,7 +884,7 @@ Keep `result`, `error`, `warnings`, `diagnostics`, and `truncation` clearly sepa
 
 ## Initial implementation checklist for this output design
 
-Before the output layer can be considered in place, the rewrite should reach at least this baseline:
+Before the output layer can be considered in place, AFTK should reach at least this baseline:
 
 - a shared normalized success/failure details contract exists
 - host-facing tool results consistently include one text block plus structured details

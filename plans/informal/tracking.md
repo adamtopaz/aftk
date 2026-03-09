@@ -9,7 +9,7 @@ This document refines the overall informal-layer plan in `plans/informal.md` and
 
 - Overall status: Implemented (initial v1)
 - Implemented in code: Yes
-- Last updated basis: rewrite worktree now records declaration↔reference linkage through `AFTK.Informal.Tracking` using a `SimplePersistentEnvExtension` with deterministic declaration and reverse-reference query APIs.
+- Last updated basis: repository now records declaration↔reference linkage through `AFTK.Informal.Tracking` using a `SimplePersistentEnvExtension` with deterministic declaration and reverse-reference query APIs.
 
 ## Purpose
 

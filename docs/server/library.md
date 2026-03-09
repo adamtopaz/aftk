@@ -302,7 +302,7 @@ This is the implementation behind `load_node`, `get_goals`, and `run_tactic`.
 
 ### `AFTK/FileWorker/Informal.lean`
 
-This component is the rewrite-specific hover integration point.
+This component is the AFTK-specific hover integration point.
 
 Important definitions:
 

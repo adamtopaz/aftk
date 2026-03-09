@@ -1,19 +1,19 @@
 # aftk implementation docs
 
-This directory documents the parts of the rewrite worktree that are currently implemented.
+This directory documents the parts of the current `aftk` codebase that are implemented.
 The emphasis is on implementation reality: modules, executables, package entrypoints, responsibilities, boundaries, and tested behavior.
 
 ## Implemented layers
 
-The rewrite currently includes four working layers:
+The current repository includes four working layers:
 
 1. **Knowledge base** — canonical Markdown + JSON storage, validation, search, relationships, and a CLI
 2. **Informal** — `informal[...]` elaboration, declaration-level tracking, dependency views, presentation, and a CLI
 3. **Server / file worker** — standalone JSON-RPC executables for Lean queries, tactic exploration, and richer informal hover
 4. **Toolkit** — a TypeScript runtime, managed server client, CLI-backed knowledge-base/informal clients, tool families, pi adapters, and a Lake setup script
 
-The planned AI autoformalization agent layer is **not implemented yet** in this worktree.
-Its remaining high-level status is described in `docs/architecture.md`.
+The planned AI autoformalization agent layer is **not implemented yet**.
+Its remaining high-level status is described in `docs/architecture.md` and `plan.md`.
 
 ## Reading order
 
@@ -61,5 +61,10 @@ Then use the layer-specific implementation guides for component-level details.
 
 ## Relationship to `plan.md` and `plans/`
 
-The files under `plan.md` and `plans/` are architectural and design-oriented.
-The files under `docs/` describe the implementation that is actually present in this rewrite worktree today.
+Use the repository docs this way:
+
+- `docs/` describes the implementation that is actually present today
+- `plan.md` is the current roadmap and deferred-work summary
+- `plans/` contains detailed design notes, component plans, and some historical research context
+
+For the design-doc taxonomy inside `plans/`, see `plans/README.md`.

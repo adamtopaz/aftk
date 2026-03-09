@@ -2,28 +2,44 @@
 
 ## Status
 
-Overall plan for the fourth layer of the `aftk` rewrite.
-This document is intentionally architectural and serves as the top-level plan for the toolkit layer.
-Detailed subdesigns should live in component plan files under `plans/toolkit/`.
+Overall design/status document for the fourth layer of `aftk`.
+This file now serves two purposes:
+
+- it records the current implementation status of the toolkit layer
+- it preserves the higher-level design rationale behind that implementation
+
+Authoritative implementation docs for the landed toolkit live under:
+
+- `docs/toolkit/overview.md`
+- `docs/toolkit/library.md`
+- `docs/toolkit/testing.md`
+- `docs/aftk_setup.md`
 
 ## Plan implementation status
 
-- Overall status: Not implemented
-- Fully implemented: No
-- Last updated basis: research against the main-worktree toolkit implementation in `/home/dev/aftk/lambda/src/aftk-tools.ts` and `/home/dev/aftk/lambda/src/aftk-extension.ts`, the main-worktree docs in `/home/dev/aftk/docs/aftk/README.md`, `/home/dev/aftk/README.md`, `/home/dev/aftk/docs/agent-playbook.md`, and `/home/dev/aftk/docs/future/autoformalization-tools.md`, the rewrite overview in `plan.md`, the toolkit component plans under `plans/toolkit/*.md`, and the current rewrite implementation in `AFTK/Server/*`, `AFTK/KnowledgeBase/*`, `AFTK/Informal/*`, `lakefile.toml`, `package.json`, and `tsconfig.json`
+- Overall status: Implemented (initial v1), with deferred follow-ons
+- Fully implemented: Yes, for the current v1 baseline
+- Last updated basis: the current toolkit implementation in `src/index.ts`, `src/toolkit/**`, `src/hosts/pi/**`, `tests/toolkit/**`, `package.json`, and `lakefile.lean`
+- Main deferred follow-ons: broader mutation/admin coverage, possible composite helpers, and the later AI autoformalization layer above the toolkit
 
-This section is the single place for tracking whether the toolkit-layer plan has been fully implemented.
-It should be updated whenever the implementation meaningfully changes.
+This section is the single place for tracking the current status of the toolkit-layer plan.
+The historical research sections below were useful while the layer was being built, but they should now be read as design background rather than as statements about the current codebase.
 
-A practical definition of fully implemented for this plan is:
+The practical definition of “implemented” for this plan is now satisfied by the current repository:
 
-- the rewrite worktree contains a real TypeScript toolkit package rather than the current placeholder `index.ts`
-- the toolkit exposes reusable non-pi-specific library code for talking to the rewrite’s lower layers
-- the Lean-facing tool family exists with strong compatibility to the current main-worktree `aftk_*` hub tools where that still makes sense
-- the toolkit exposes at least an initial selected surface for the rewrite’s knowledge-base and informal layers rather than remaining server-only
-- the pi-specific integration surface is a thin adapter over reusable toolkit code rather than the owner of the implementation
-- process lifecycle, error behavior, output shaping, and lower-layer integration are covered by appropriate TypeScript tests
-- the implementation and usage are documented clearly enough for the later AI-agent layer to build on them directly
+- a real TypeScript toolkit package exists under `src/`
+- reusable non-pi-specific library code exists for talking to the lower layers
+- the Lean-facing `aftk_*` family exists
+- query-first knowledge-base and informal tool families exist
+- pi integration is a thin adapter over reusable toolkit code
+- process lifecycle, output shaping, and lower-layer integration are covered by dedicated TypeScript tests
+- the implementation is documented clearly enough for future higher-layer work to build on it directly
+
+## Historical note
+
+Some research sections below still describe the earlier pre-implementation scaffold, including Bun-era placeholder files and the period before the toolkit was landed.
+Treat those sections as historical design rationale only.
+Current implementation behavior is documented in `docs/toolkit/**` and `docs/aftk_setup.md`.
 
 ## Purpose
 
@@ -37,7 +53,7 @@ In the rewrite, the lower layers now include:
 - and the server/file-worker layer.
 
 So the toolkit layer should not be understood as “just the old AFTK hub wrapper, rewritten in TypeScript.”
-It should preserve the useful parts of that current wrapper while expanding to the broader layered architecture now present in this worktree.
+It should preserve the useful parts of that current wrapper while expanding to the broader layered architecture now present in AFTK.
 
 Concretely, the toolkit layer should provide:
 
@@ -57,7 +73,7 @@ The overall rewrite stack is:
 5. AI autoformalization agent layer
 
 The toolkit layer sits directly above the first three implemented Lean layers.
-It is the first place where the rewrite should deliberately package those lower-layer capabilities for everyday machine use.
+It is the first place where AFTK should deliberately package those lower-layer capabilities for everyday machine use.
 
 That means its role is different from the lower layers:
 
@@ -76,17 +92,17 @@ The most relevant files are listed here so later component docs can refer back t
 
 Primary implementation files studied:
 
-- `/home/dev/aftk/lambda/src/aftk-tools.ts`
-- `/home/dev/aftk/lambda/src/aftk-extension.ts`
+- `../aftk/lambda/src/aftk-tools.ts`
+- `../aftk/lambda/src/aftk-extension.ts`
 
 Primary docs studied:
 
-- `/home/dev/aftk/docs/aftk/README.md`
-- `/home/dev/aftk/README.md`
-- `/home/dev/aftk/docs/agent-playbook.md`
-- `/home/dev/aftk/docs/future/autoformalization-tools.md`
-- `/home/dev/aftk/package.json`
-- `/home/dev/aftk/tsconfig.json`
+- `../aftk/docs/aftk/README.md`
+- `../aftk/README.md`
+- `../aftk/docs/agent-playbook.md`
+- `../aftk/docs/future/autoformalization-tools.md`
+- `../aftk/package.json`
+- `../aftk/tsconfig.json`
 
 Key findings from that implementation:
 
@@ -124,7 +140,7 @@ Key findings from that implementation:
   - and broader scaffold/knowledge integration.
 - The current toolkit appears to have **no dedicated TypeScript test suite** in the repository.
 
-### Rewrite-worktree reference points
+### Pre-toolkit repository reference points
 
 Primary rewrite docs and plans studied:
 
@@ -144,7 +160,7 @@ Primary rewrite TypeScript/package files studied:
 - `index.ts`
 - `package.json`
 - `tsconfig.json`
-- `lakefile.toml`
+- `lakefile.lean`
 
 Primary rewrite implementation files studied:
 
@@ -161,7 +177,7 @@ Primary rewrite implementation files studied:
 - `AFTK/Informal/Dependencies.lean`
 - `AFTK/Informal/Presentation.lean`
 
-Key findings from the current rewrite worktree:
+Key findings from the repository state before the toolkit landed:
 
 - The first three layers are already implemented in Lean and documented.
 - The server layer deliberately remains Lean-centric in v1:
@@ -177,12 +193,11 @@ Key findings from the current rewrite worktree:
 - The two lower-layer CLIs do **not** expose identical output conventions today:
   - the knowledge-base CLI uses a stable envelope-oriented JSON style,
   - while the informal CLI currently uses command-shaped JSON.
-- There is currently **no actual toolkit implementation** in the rewrite:
-  - `index.ts` is only `console.log("Hello via Bun!")`,
-  - `package.json` still points `module` at that root file and only carries Bun-oriented scaffolding such as `@types/bun`,
-  - `tsconfig.json` still uses Bun-style defaults such as `module: "Preserve"` and `moduleResolution: "bundler"`,
-  - and `docs/architecture.md` explicitly marks the toolkit layer as not implemented.
-- `lakefile.toml` already defines the lower-layer executables the toolkit will target:
+- At the time of the original research, there was **no actual toolkit implementation** yet:
+  - the repository still had a Bun-style placeholder at the root,
+  - `package.json` and `tsconfig.json` still reflected scaffold defaults rather than the final toolkit package shape,
+  - and `docs/architecture.md` still marked the toolkit layer as not implemented.
+- `lakefile.lean` defines the lower-layer executables the toolkit targets:
   - `aftk`
   - `aftk_server`
   - `aftk_file_worker`
@@ -195,8 +210,8 @@ Key findings from the current rewrite worktree:
   - `relationships.related`
 - `AFTK/Informal/Cli/Render.lean` success JSON is command-shaped around a `data` field and adds fields such as `modules`, `target`, `mode`, and `bodyMode` depending on the command.
 - `AFTK/Informal/Tracking.lean`, `AFTK/Informal/Dependencies.lean`, and `AFTK/Informal/Presentation.lean` already sort declarations, references, dependency rows/leaves, tags, authors, relationship lines, and Lean-ref lines deterministically; rich `present` output also carries explicit body-preview truncation metadata.
-- The current TypeScript placeholder setup is Bun-flavored, but the main-worktree implementation and `pi` integration are Node-oriented.
-  This needs an explicit design decision rather than accidental drift.
+- The pre-implementation TypeScript scaffold was Bun-flavored, while the main-worktree implementation and `pi` integration were Node-oriented.
+  Resolving that mismatch was one of the key design decisions that led to the current Node-compatible toolkit runtime.
 
 ### Immediate architectural conclusion from the research
 
@@ -298,7 +313,7 @@ The main-worktree toolkit already returns both:
 - human-readable text content, and
 - structured `details`.
 
-The rewrite should preserve this pattern and strengthen it.
+AFTK should preserve this pattern and strengthen it.
 Text should stay concise and helpful, but the more important machine-facing contract should be the structured detail payloads and typed error information.
 
 ### 7. Keep outputs bounded and explicit
@@ -314,7 +329,7 @@ So it should preserve and generalize the bounded-output discipline already visib
 ### 8. Keep process lifecycle behavior conservative and testable
 
 The main-worktree toolkit’s startup/shutdown discipline is worth preserving in spirit.
-The rewrite should likewise make explicit decisions about:
+AFTK should likewise make explicit decisions about:
 
 - lazy versus eager hub startup,
 - child-process ownership,
@@ -460,7 +475,7 @@ As the component plans are written, the toolkit layer should preserve the follow
 - do not blindly copy the current main-worktree one-file implementation wholesale; rewrite it with clearer module boundaries
 - make timeouts, cancellation, truncation, and shutdown policy explicit in code and docs
 - add real subprocess tests before declaring the layer stable
-- continue following the rewrite policy of selective borrowing from `/home/dev/aftk` rather than wholesale file copying
+- continue following the rewrite policy of selective borrowing from `../aftk` rather than wholesale file copying
 
 ## Design clarifications resolved so far
 
@@ -473,7 +488,7 @@ The following overview-level design points are now considered settled enough to 
 - Structured result payloads should be treated as the stronger compatibility contract than free-form text rendering.
 - Lazy managed-hub startup remains a good default baseline unless the runtime design finds a compelling reason to change it.
 - The toolkit should assume a Node-compatible runtime model unless later component work proves a different assumption is necessary.
-- The current Bun-style placeholder package setup in this worktree should be treated as scaffolding to replace, not as a settled design signal.
+- The earlier Bun-style placeholder package setup should be treated as scaffolding that was replaced, not as a lasting design signal.
 
 ## Remaining coordination work before implementation starts in earnest
 
@@ -493,7 +508,7 @@ They are implementation-shaping questions, not architectural uncertainty about t
 ## Detailed phased implementation plan
 
 Implementation should proceed bottom-up from shared runtime/process code to lower-layer clients, then to tool families, and only after that to host-specific adapters.
-The main-worktree toolkit is still the best behavioral reference for the Lean-facing server surface, but the rewrite must broaden beyond that server-only scope because the first three layers now already expose more than one public boundary.
+The main-worktree toolkit is still the best behavioral reference for the Lean-facing server surface, but AFTK must broaden beyond that server-only scope because the first three layers now already expose more than one public boundary.
 
 ### Phase dependency and landing overview
 
@@ -518,7 +533,7 @@ Recommended landing discipline:
 
 Objective:
 
-- remove the accidental Bun-playground shape from the rewrite worktree
+- remove the accidental Bun-playground shape from the current repository
 - create the filesystem and package structure that all later phases depend on
 - make the library/core-vs-host split visible before behavior accumulates
 
@@ -862,7 +877,7 @@ Implementation work items:
 
 1. **Informal CLI client**
    - implement `src/toolkit/informal/client.ts`
-   - build command constructors for the full current rewrite informal CLI surface
+   - build command constructors for the full current repository informal CLI surface
    - parse command-shaped success JSON centered on `data`, with command-specific fields such as `modules`, `target`, `mode`, and `bodyMode`
    - parse structured failure JSON with `ok: false`, `error`, `command?`, and `format`
 
@@ -1069,7 +1084,7 @@ then the relevant plan file should be updated in the same phase rather than lett
 
 ## Completion checklist for this plan
 
-The toolkit layer overview in this file should count as implemented only when all of the following are true in the rewrite worktree:
+The toolkit layer overview in this file should count as implemented only when all of the following are true in the current repository:
 
 - the placeholder root TypeScript setup has been replaced by a real toolkit package/module structure
 - reusable runtime/process-management code exists below host adapters
@@ -1094,11 +1109,11 @@ Research against the main worktree shows a valuable reference design:
 - a shared Lean-facing toolset,
 - and a thin `pi` adapter.
 
-Research against the current rewrite shows the necessary expansion:
+Research against the current repository shows the necessary expansion:
 
 - the server layer is now only one of several lower-layer boundaries,
 - the knowledge-base and informal layers already expose real CLIs,
-- and the worktree currently has no toolkit implementation at all beyond placeholders.
+- and the original pre-implementation repository state had no toolkit implementation beyond placeholders.
 
 So the rewrite toolkit should preserve the useful main-worktree Lean-tool surface while growing into a broader, well-factored TypeScript library that:
 

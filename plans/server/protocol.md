@@ -9,7 +9,7 @@ This document refines the overall server-layer plan in `plans/server.md` and wor
 
 - Overall status: Implemented
 - Implemented in code: Yes
-- Last updated basis: the rewrite worktree now has a shared `AFTK.Server.Protocol` module, public and worker-local request/response types, and tested error-code behavior.
+- Last updated basis: the repository now has a shared `AFTK.Server.Protocol` module, public and worker-local request/response types, and tested error-code behavior.
 
 ## Purpose
 
@@ -672,7 +672,7 @@ The deliberate exception already settled in these plans is stale-node handling, 
 
 ## Completion checklist for this plan
 
-This component plan should count as implemented only when all of the following are true in the rewrite worktree:
+This component plan should count as implemented only when all of the following are true in the repository:
 
 - a shared protocol module defines the settled request/response types
 - the public hub methods listed above are implemented with the documented method names

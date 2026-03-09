@@ -2,14 +2,23 @@
 
 ## Status
 
-Component plan and implementation-status document for the TypeScript package and module layout of the toolkit layer.
-This document refines the overall toolkit-layer plan in `plans/toolkit.md` and works together with `plans/toolkit/runtime.md`, `plans/toolkit/server-client.md`, `plans/toolkit/lean-tools.md`, `plans/toolkit/knowledgebase-tools.md`, `plans/toolkit/informal-tools.md`, `plans/toolkit/pi-integration.md`, `plans/toolkit/output.md`, and `plans/toolkit/testing.md`.
+Component design/status document for the TypeScript package and module layout of the toolkit layer.
+This file now mainly records the rationale for the layout that exists in code and the follow-on work that remains possible.
+
+Authoritative implementation docs live in:
+
+- `docs/toolkit/overview.md`
+- `docs/toolkit/library.md`
 
 ## Component implementation status
 
-- Overall status: Not implemented
-- Implemented in code: No
-- Last updated basis: research against the current main-worktree TypeScript toolkit layout in `/home/dev/aftk/lambda/src/aftk-tools.ts` and `/home/dev/aftk/lambda/src/aftk-extension.ts`, plus the current rewrite worktree placeholder TypeScript scaffold in `index.ts`, `package.json`, and `tsconfig.json`
+- Overall status: Implemented (initial v1), with deferred follow-ons
+- Implemented in code: Yes
+- Last updated basis: the current toolkit package layout in `src/index.ts`, `src/toolkit/**`, `src/hosts/pi/**`, `index.ts`, `package.json`, `tsconfig.json`, and `tests/toolkit/**`
+- Main deferred follow-ons: any future composite-tool area or additional host adapters beyond the current package structure
+
+The layout questions this file was written to settle are now answered in the repository.
+The historical sections below may still discuss the earlier placeholder scaffold; read those as design background rather than as current-state descriptions.
 
 ## Purpose
 
@@ -24,7 +33,7 @@ It is about:
 - and the matching TypeScript test-tree layout
 
 The goal is to prevent the rewrite from reproducing the main-worktree situation where nearly all toolkit logic lives in one TypeScript file.
-The rewrite should instead begin from a clear library layout that can support:
+AFTK should instead begin from a clear library layout that can support:
 
 - a managed server client,
 - CLI-backed knowledge-base and informal integrations,
@@ -52,7 +61,7 @@ The layout should:
 
 ### In scope
 
-- TypeScript source-tree layout under the rewrite worktree
+- TypeScript source-tree layout in the repository
 - package-root entrypoint policy
 - public export policy
 - recommended submodule groupings for runtime, server, lower-layer CLI bridges, tool families, and host adapters
@@ -78,11 +87,11 @@ This layout plan is based on explicit research in both worktrees.
 
 Files studied:
 
-- `/home/dev/aftk/lambda/src/aftk-tools.ts`
-- `/home/dev/aftk/lambda/src/aftk-extension.ts`
-- `/home/dev/aftk/package.json`
-- `/home/dev/aftk/tsconfig.json`
-- `/home/dev/aftk/docs/aftk/README.md`
+- `../aftk/lambda/src/aftk-tools.ts`
+- `../aftk/lambda/src/aftk-extension.ts`
+- `../aftk/package.json`
+- `../aftk/tsconfig.json`
+- `../aftk/docs/aftk/README.md`
 
 Key layout observations:
 
@@ -98,26 +107,26 @@ Main consequence for the rewrite:
 - we should preserve the **thin adapter over shared toolkit code** pattern,
 - but we should **not** preserve the one-large-file structure or the `lambda/src`-centric architecture as the default layout.
 
-### Rewrite-worktree reference points
+### Repository reference points
 
 Files studied:
 
-- `/home/dev/aftk_rewrite/index.ts`
-- `/home/dev/aftk_rewrite/package.json`
-- `/home/dev/aftk_rewrite/tsconfig.json`
-- `/home/dev/aftk_rewrite/docs/architecture.md`
-- `/home/dev/aftk_rewrite/plans/toolkit.md`
-- `/home/dev/aftk_rewrite/plans/server/layout.md`
+- `index.ts`
+- `package.json`
+- `tsconfig.json`
+- `docs/architecture.md`
+- `plans/toolkit.md`
+- `plans/server/layout.md`
 
 Key layout observations:
 
-- The rewrite currently has no toolkit structure at all.
-- The current root `index.ts` is only a Bun-style placeholder.
-- The current `package.json` and `tsconfig.json` still signal scaffold defaults rather than deliberate toolkit architecture.
+- At the time of the original research, the repository had no toolkit structure at all.
+- The original repository-root `index.ts` was only a Bun-style placeholder.
+- At that stage, `package.json` and `tsconfig.json` still signaled scaffold defaults rather than deliberate toolkit architecture.
   Concretely:
   - `package.json` still points `module` at the root `index.ts` and only advertises Bun-oriented scaffolding such as `@types/bun`;
   - `tsconfig.json` still uses settings like `module: "Preserve"`, `moduleResolution: "bundler"`, `allowJs`, and `jsx`, which are not meaningful signals of the intended toolkit library shape.
-- `lakefile.toml` already defines the real lower-layer executables the toolkit will target, so the TypeScript package layout should be organized around those integration boundaries rather than around the placeholder Bun entrypoint.
+- `lakefile.lean` defines the real lower-layer executables the toolkit targets, so the TypeScript package layout should be organized around those integration boundaries rather than around the placeholder Bun entrypoint.
 - The rewrite’s first three layers already have strong library/layout discipline in Lean, especially visible in `docs/architecture.md` and `plans/server/layout.md`.
 - The toolkit layer must cover more than the main-worktree server wrapper alone:
   - server integration,

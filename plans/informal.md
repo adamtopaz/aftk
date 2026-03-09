@@ -2,27 +2,18 @@
 
 ## Status
 
-Overall plan for the second layer of the `aftk` rewrite.
-This document is intentionally architectural and serves as the top-level plan for the informal layer.
-Detailed subdesigns should live in component plan files under `plans/informal/`.
+Overall design/status document for the second layer of `aftk`.
+This file now mainly records the rationale and follow-on roadmap for an implemented layer.
+Detailed subdesigns live under `plans/informal/`, while current implementation behavior is documented under `docs/informal/`.
 
 ## Plan implementation status
 
 - Overall status: Implemented (initial v1)
-- Fully implemented: Yes
-- Last updated basis: rewrite worktree now contains the initial `AFTK.Informal` library, `lake exe aftk informal ...` CLI, knowledge-base-backed elaboration/tracking/presentation support, and an integrated informal-layer test suite.
+- Fully implemented: Yes, for the current v1 baseline
+- Last updated basis: the implemented `AFTK.Informal` library, `lake exe aftk informal ...` CLI, knowledge-base-backed elaboration/tracking/presentation support, and the integrated informal-layer test suite
 
-This section is the single place for tracking whether the informal layer plan has been fully implemented.
-It should be updated whenever the implementation meaningfully changes.
-
-A practical definition of fully implemented for this plan is:
-
-- `informal[...]` elaboration exists in the rewrite worktree
-- bracketed informal references resolve through the knowledge-base layer rather than a separate `informal/` sidecar store
-- occurrence tracking and query APIs exist for Lean declarations that use `informal[...]`
-- the layer exposes an initial `lake exe aftk informal ...` CLI surface
-- the layer provides Lean-facing presentation support for referenced knowledge-base content
-- the library and CLI behavior are covered by appropriate tests
+This section is the authoritative status summary for this layer.
+Historical comparison sections below remain useful as design rationale, but `docs/informal/**` is the source of truth for current implementation behavior.
 
 ## Purpose
 
@@ -56,19 +47,19 @@ The informal layer is the first layer above the knowledge base.
 It depends on stable knowledge-base node identities and knowledge-base read/query operations.
 Higher layers should rely on the informal layer for Lean-facing informal/formal bridging rather than reimplementing that logic themselves.
 
-## Relationship to the main-branch worktree
+## Relationship to the earlier implementation
 
-The current main-branch worktree at `/home/dev/aftk` contains the reference implementation we should study before writing the rewrite.
+The earlier implementation in `../aftk` remains a useful reference point for design comparison and historical context.
 The most relevant existing files are:
 
-- `/home/dev/aftk/Informalize/Elaborator.lean`
-- `/home/dev/aftk/Informalize/Axiom.lean`
-- `/home/dev/aftk/Informalize/Extension.lean`
-- `/home/dev/aftk/Informalize/Location.lean`
-- `/home/dev/aftk/Informalize/Metadata.lean`
-- `/home/dev/aftk/Informalize/Cli.lean`
-- `/home/dev/aftk/docs/informalize/README.md`
-- `/home/dev/aftk/docs/informalize/IdReference.md`
+- `../aftk/Informalize/Elaborator.lean`
+- `../aftk/Informalize/Axiom.lean`
+- `../aftk/Informalize/Extension.lean`
+- `../aftk/Informalize/Location.lean`
+- `../aftk/Informalize/Metadata.lean`
+- `../aftk/Informalize/Cli.lean`
+- `../aftk/docs/informalize/README.md`
+- `../aftk/docs/informalize/IdReference.md`
 
 That implementation currently provides several behaviors worth preserving in spirit:
 
@@ -79,13 +70,13 @@ That implementation currently provides several behaviors worth preserving in spi
 - hover/info support that surfaces linked informal content in Lean tooling
 - a CLI for querying tracked occurrences and related bridge state
 
-However, the rewrite must deliberately change one major aspect of the design:
+However, AFTK must deliberately change one major aspect of the design:
 
 - the main worktree stores informal prose and metadata under `informal/.../*.md` and `informal/.../*.json`
-- the rewrite must not reintroduce that duplicated storage model
+- AFTK must not reintroduce that duplicated storage model
 - bracketed informal references should instead resolve through `AFTK.KnowledgeBase` node ids and canonical knowledge-base storage
 
-In other words, the rewrite should borrow the useful elaboration/tracking/tooling ideas from `Informalize`, while replacing its sidecar-backed content store with knowledge-base-backed resolution.
+In other words, AFTK should borrow the useful elaboration/tracking/tooling ideas from `Informalize`, while replacing its sidecar-backed content store with knowledge-base-backed resolution.
 
 ## Core responsibilities
 
@@ -116,7 +107,7 @@ The informal layer should not define a second canonical mapping from ids to mark
 ### 2. Preserve the placeholder-driven Lean workflow
 
 The current main-worktree `Informalize` system is useful because `informal[...]` behaves like a typed Lean term that can stand in for unfinished proofs or definitions.
-The rewrite should preserve that workflow shape, even if the internal implementation details evolve.
+AFTK should preserve that workflow shape, even if the internal implementation details evolve.
 
 ### 3. Keep bridge-specific state separate from natural-language content
 
@@ -139,7 +130,7 @@ The main-worktree implementation is valuable not only because elaboration succee
 - what tracked declarations depend on which others
 - what node-to-node views can be derived from those declaration dependencies
 
-The rewrite should preserve that queryability.
+AFTK should preserve that queryability.
 
 ### 5. Keep the reusable library separate from the CLI
 
@@ -253,7 +244,7 @@ The following initial design questions are now considered settled for this layer
 
 The component plan suite under `plans/informal/` is now in place.
 So the main remaining task is not architectural discovery, but disciplined implementation sequencing.
-The informal layer should be built in a phased way that follows the dependency structure settled in the component docs and matches the current rewrite codebase, which already has:
+The informal layer should be built in a phased way that follows the dependency structure settled in the component docs and matches the current repository codebase, which already has:
 
 - the `AFTK.KnowledgeBase` library,
 - a working knowledge-base CLI split under `AFTK/KnowledgeBase/Cli/*`,
@@ -579,7 +570,7 @@ Add end-to-end tests for:
 
 #### Phase-5 deliverable
 
-At the end of this phase, the rewrite should expose the first complete `lake exe aftk informal ...` CLI backed by reusable library APIs rather than ad hoc duplicated logic.
+At the end of this phase, AFTK should expose the first complete `lake exe aftk informal ...` CLI backed by reusable library APIs rather than ad hoc duplicated logic.
 
 ### Phase 6 — finalize the test tree and package-level integration
 
@@ -661,7 +652,7 @@ Each phase above should land together with the direct tests and fixtures that pr
 
 ## Completion checklist for this plan
 
-The informal layer overview in this file should count as implemented only when all of the following are true in the rewrite worktree:
+The informal layer overview in this file should count as implemented only when all of the following are true in the current repository:
 
 - `AFTK/Informal/*` exists with the module structure described in `plans/informal/layout.md`
 - bracketed `informal[...]` elaboration exists and bare `informal` does not

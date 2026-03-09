@@ -9,7 +9,7 @@ This document refines the overall server-layer plan in `plans/server.md` and wor
 
 - Overall status: Implemented
 - Implemented in code: Yes
-- Last updated basis: the rewrite worktree now has `AFTKTest/Server/*`, checked-in server fixtures, direct worker/hub tests, and subprocess end-to-end coverage integrated into `lake test`.
+- Last updated basis: the repository now has `AFTKTest/Server/*`, checked-in server fixtures, direct worker/hub tests, and subprocess end-to-end coverage integrated into `lake test`.
 
 ## Purpose
 
@@ -395,7 +395,7 @@ So the practical testing path is:
 
 ## Completion checklist for this plan
 
-This component plan should count as implemented only when all of the following are true in the rewrite worktree:
+This component plan should count as implemented only when all of the following are true in the repository:
 
 - `AFTKTest/Server/*` exists with at least protocol, worker, hub, and process coverage
 - `lake test` runs the server-layer suite together with the existing lower-layer suites

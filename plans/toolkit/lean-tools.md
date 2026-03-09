@@ -2,14 +2,24 @@
 
 ## Status
 
-Component plan and implementation-status document for the Lean-facing tool family built on the rewrite server client.
-This document refines the overall toolkit-layer plan in `plans/toolkit.md` and works together with `plans/toolkit/layout.md`, `plans/toolkit/runtime.md`, `plans/toolkit/server-client.md`, `plans/toolkit/knowledgebase-tools.md`, `plans/toolkit/informal-tools.md`, `plans/toolkit/pi-integration.md`, `plans/toolkit/output.md`, and `plans/toolkit/testing.md`.
+Component design/status document for the Lean-facing `aftk_*` tool family built on the public server client.
+This file now records the rationale for the tool family that exists in code and the follow-on work that may still be added later.
+
+Authoritative implementation docs live in:
+
+- `docs/toolkit/overview.md`
+- `docs/toolkit/library.md`
+- `docs/toolkit/testing.md`
 
 ## Component implementation status
 
-- Overall status: Not implemented
-- Implemented in code: No
-- Last updated basis: research against the main-worktree Lean-facing TypeScript tools in `/home/dev/aftk/lambda/src/aftk-tools.ts`, the main-worktree docs in `/home/dev/aftk/docs/aftk/README.md`, `/home/dev/aftk/docs/agent-playbook.md`, and `/home/dev/aftk/docs/future/autoformalization-tools.md`, plus the rewrite server protocol in `docs/server/protocol.md`, `AFTK/Server/Protocol.lean`, and the toolkit server-client/output plans
+- Overall status: Implemented (initial v1), with deferred follow-ons
+- Implemented in code: Yes
+- Last updated basis: the current Lean-tool implementation in `src/toolkit/tools/lean.ts`, the server client in `src/toolkit/server/**`, the shared output/runtime layers, and `tests/toolkit/**`
+- Main deferred follow-ons: any future additions driven by new server methods, structured diagnostics, or richer tactic/proof-exploration surfaces
+
+The core Lean-tool design questions in this file are now answered by the implemented `aftk_*` family.
+Historical sections below may still describe pre-implementation expectations; read them as rationale rather than as current-state descriptions.
 
 ## Purpose
 
@@ -73,10 +83,10 @@ This tool-family plan is based on explicit research in both worktrees.
 
 Primary files studied:
 
-- `/home/dev/aftk/lambda/src/aftk-tools.ts`
-- `/home/dev/aftk/docs/aftk/README.md`
-- `/home/dev/aftk/docs/agent-playbook.md`
-- `/home/dev/aftk/docs/future/autoformalization-tools.md`
+- `../aftk/lambda/src/aftk-tools.ts`
+- `../aftk/docs/aftk/README.md`
+- `../aftk/docs/agent-playbook.md`
+- `../aftk/docs/future/autoformalization-tools.md`
 
 Important observations from the current main-worktree tool family:
 
@@ -124,7 +134,7 @@ Important observations from the current main-worktree tool family:
 
 Main consequences for the rewrite:
 
-- the rewrite should preserve the existing `aftk_*` family in v1;
+- AFTK should preserve the existing `aftk_*` family in v1;
 - it should preserve the explicit session-oriented workflow rather than auto-hiding `open` / `reopen`;
 - it should preserve the useful text renderers in spirit;
 - but it should improve the family by:
@@ -132,7 +142,7 @@ Main consequences for the rewrite:
   - defining clearer result and error envelopes,
   - and making tool-level responsibilities more explicit than they are in the current one-file implementation.
 
-### Rewrite-worktree reference points
+### Repository reference points
 
 Files studied:
 
@@ -168,7 +178,7 @@ The v1 Lean-tools design should make the following choices explicit.
 
 ### 1. Preserve the existing `aftk_*` Lean-facing tool names
 
-The rewrite should preserve the current Lean-facing tool names exactly:
+AFTK should preserve the current Lean-facing tool names exactly:
 
 - `aftk_open`
 - `aftk_close`
@@ -278,7 +288,7 @@ So each Lean tool should return:
 ### 9. Improve error text while preserving structured error details
 
 The main-worktree toolkit currently formats most server errors generically.
-The rewrite should improve the text layer by rendering known server errors more actionably.
+AFTK should improve the text layer by rendering known server errors more actionably.
 
 For example, failure text should distinguish cases like:
 
@@ -924,7 +934,7 @@ Failures should identify at least:
 ### Known server-error rendering rules
 
 The following known server errors deserve specific, actionable text.
-In the current rewrite protocol, their `error.data` payloads are simple strings, so the Lean tool family may safely treat them as concise path/id/message context when present.
+In the current repository protocol, their `error.data` payloads are simple strings, so the Lean tool family may safely treat them as concise path/id/message context when present.
 
 #### File not open (`-32010`)
 
@@ -1096,7 +1106,7 @@ That namespace is valuable precisely because it already means “Lean-facing ser
 
 ## Initial implementation checklist for this Lean tool design
 
-Before the Lean tool family can be considered in place, the rewrite should reach at least this baseline:
+Before the Lean tool family can be considered in place, AFTK should reach at least this baseline:
 
 - a dedicated Lean-tools factory exists on top of the server client
 - the full existing `aftk_*` tool set is implemented
@@ -1111,7 +1121,7 @@ Before the Lean tool family can be considered in place, the rewrite should reach
 
 ## Summary
 
-The rewrite should preserve the existing `aftk_*` Lean-facing tool family as the practical migration target from the main worktree.
+AFTK should preserve the existing `aftk_*` Lean-facing tool family as the practical migration target from the main worktree.
 Those tools should remain a thin but useful semantic layer over the public `aftk_server` protocol:
 
 - explicit file lifecycle,
@@ -1119,7 +1129,7 @@ Those tools should remain a thin but useful semantic layer over the public `aftk
 - transient node inspection,
 - and tactic exploration.
 
-The rewrite should keep the successful parts of the current tool family:
+AFTK should keep the successful parts of the current tool family:
 
 - stable names,
 - simple path normalization,

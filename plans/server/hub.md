@@ -9,7 +9,7 @@ This document refines the overall server-layer plan in `plans/server.md` and wor
 
 - Overall status: Implemented
 - Implemented in code: Yes
-- Last updated basis: the rewrite worktree now has a hub/session implementation with per-file workers, canonical/alias path lookup, reopen-on-change invalidation, worker-unavailable cleanup, and hub-level `run_tactic_steps` orchestration.
+- Last updated basis: the repository now has a hub/session implementation with per-file workers, canonical/alias path lookup, reopen-on-change invalidation, worker-unavailable cleanup, and hub-level `run_tactic_steps` orchestration.
 
 ## Purpose
 
@@ -404,7 +404,7 @@ Only after that should the full semantic method family be wired through.
 
 ## Completion checklist for this plan
 
-This component plan should count as implemented only when all of the following are true in the rewrite worktree:
+This component plan should count as implemented only when all of the following are true in the repository:
 
 - the hub manages one worker session per open file
 - file identity resolution is explicit and tested

@@ -9,7 +9,7 @@ This document refines the overall informal-layer plan in `plans/informal.md` and
 
 - Overall status: Implemented (initial v1)
 - Implemented in code: Yes
-- Last updated basis: rewrite worktree now implements declaration→reference bridge state through `AFTK.Informal.Tracking` and keeps richer bridge views derived rather than persisted.
+- Last updated basis: repository now implements declaration→reference bridge state through `AFTK.Informal.Tracking` and keeps richer bridge views derived rather than persisted.
 
 ## Purpose
 

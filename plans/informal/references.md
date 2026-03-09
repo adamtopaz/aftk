@@ -9,7 +9,7 @@ This document refines the overall informal-layer plan in `plans/informal.md` and
 
 - Overall status: Implemented (initial v1)
 - Implemented in code: Yes
-- Last updated basis: rewrite worktree now implements `InformalReference`, `ResolvedInformalReference`, and exact knowledge-base-backed resolution helpers in `AFTK.Informal.References`.
+- Last updated basis: repository now implements `InformalReference`, `ResolvedInformalReference`, and exact knowledge-base-backed resolution helpers in `AFTK.Informal.References`.
 
 ## Purpose
 

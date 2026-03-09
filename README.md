@@ -1,15 +1,15 @@
 # aftk
 
-This repository is the rewrite worktree for `aftk`.
+This repository is the current `aftk` codebase.
 
-The rewrite now has the first four planned layers implemented:
+The first four planned layers are implemented:
 
 1. **Knowledge base**
 2. **Informal bridge layer**
 3. **Server / file-worker layer**
 4. **TypeScript toolkit / pi integration layer**
 
-The planned AI autoformalization agent layer is **not implemented yet** in this worktree.
+The planned AI autoformalization agent layer is **not implemented yet**.
 
 ## What exists today
 
@@ -219,9 +219,10 @@ More detailed references:
   - `docs/toolkit/testing.md`
   - `docs/aftk_setup.md`
 
-Architectural and design documents remain under:
+Roadmap and design documents remain under:
 
-- `plan.md`
+- `plan.md` — current roadmap and deferred work
+- `plans/README.md` — how to read the detailed design docs under `plans/`
 - `plans/knowledgebase*.md`
 - `plans/informal*.md`
 - `plans/server*.md`
@@ -237,4 +238,4 @@ A few important things are still intentionally deferred:
 - broader toolkit mutation/admin coverage for the knowledge-base and informal CLIs
 - the AI autoformalization agent layer
 
-So the current rewrite is best understood as a solid Lean-core-plus-toolkit foundation for the larger architecture, not yet the complete planned stack.
+So the current repository is best understood as a solid Lean-core-plus-toolkit foundation for the larger architecture, not yet the complete planned stack.

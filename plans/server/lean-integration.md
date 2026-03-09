@@ -304,7 +304,7 @@ Only after those basics work should the rewrite spend effort on hypothetical inc
 
 ## Completion checklist for this plan
 
-This component plan should count as implemented only when all of the following are true in the rewrite worktree:
+This component plan should count as implemented only when all of the following are true in the repository:
 
 - the worker reuses the documented Lean frontend and info-tree query path in v1
 - the worker’s v1 document model is one-shot startup elaboration with reopen-on-change handled by the hub

@@ -1,11 +1,11 @@
 # Implemented architecture
 
-This document describes the current implementation state of the rewrite worktree.
+This document describes the current implementation state of the `aftk` codebase.
 It is intentionally implementation-facing: it focuses on what is in code now, which files own which responsibilities, and where the current boundaries are.
 
 ## Current status
 
-The rewrite plan describes five layers:
+The architecture is organized into five layers:
 
 1. Knowledge base
 2. Informal
@@ -15,6 +15,9 @@ The rewrite plan describes five layers:
 
 Today, the first four layers are implemented.
 The fifth layer — AI-agent orchestration — is still future work.
+
+For the current roadmap, see `plan.md`.
+For detailed layer-by-layer design notes, see `plans/README.md`.
 
 ## Layer summary
 
@@ -151,7 +154,7 @@ Main code components:
 Current implementation status:
 
 - not implemented yet
-- there is no agent runtime, orchestration layer, or model-facing autoformalization code in this worktree today
+- there is no agent runtime, orchestration layer, or model-facing autoformalization code in the repository today
 
 ## What is canonical, and where
 

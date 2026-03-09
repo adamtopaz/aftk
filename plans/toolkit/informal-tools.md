@@ -2,14 +2,24 @@
 
 ## Status
 
-Component plan and implementation-status document for the informal tool family built on the rewrite informal CLI.
-This document refines the overall toolkit-layer plan in `plans/toolkit.md` and works together with `plans/toolkit/layout.md`, `plans/toolkit/runtime.md`, `plans/toolkit/server-client.md`, `plans/toolkit/lean-tools.md`, `plans/toolkit/knowledgebase-tools.md`, `plans/toolkit/pi-integration.md`, `plans/toolkit/output.md`, and `plans/toolkit/testing.md`.
+Component design/status document for the informal tool family built on the `aftk informal` CLI.
+This file now records the rationale for the tool family that exists in code and the follow-on work that may still be added later.
+
+Authoritative implementation docs live in:
+
+- `docs/toolkit/overview.md`
+- `docs/toolkit/library.md`
+- `docs/informal/cli.md`
 
 ## Component implementation status
 
-- Overall status: Not implemented
-- Implemented in code: No
-- Last updated basis: research against the rewrite informal CLI docs in `docs/informal/cli.md`, `docs/informal/overview.md`, and `plans/informal/cli.md`, the current CLI implementation behavior in `AFTK/Informal/Cli/*`, `AFTK/Informal/Tracking.lean`, `AFTK/Informal/Dependencies.lean`, `AFTK/Informal/Presentation.lean`, and the toolkit output/runtime/knowledge-base plans
+- Overall status: Implemented (initial v1), with deferred follow-ons
+- Implemented in code: Yes
+- Last updated basis: the current informal client/tool implementation in `src/toolkit/informal/client.ts`, `src/toolkit/tools/informal.ts`, the shared runtime/output layers, and `tests/toolkit/**`
+- Main deferred follow-ons: any future expansion if the informal CLI surface grows or if higher-level composite helpers become worth adding
+
+The key design questions in this file are now answered by the implemented `informal_*` family.
+Historical sections below may still describe pre-implementation expectations; treat them as design rationale only.
 
 ## Purpose
 
@@ -36,7 +46,7 @@ The goal is to expose the rewrite’s already implemented informal layer through
 The informal tool family should:
 
 - build directly on the documented informal CLI rather than on hidden environment or file parsing from TypeScript
-- expose the current rewrite informal CLI surface cleanly, because it is already modest and query-oriented
+- expose the current informal CLI surface cleanly, because it is already modest and query-oriented
 - remain clearly separate from both:
   - the Lean-facing server-backed `aftk_*` tool family,
   - and the knowledge-base CLI-backed `knowledgebase_*` tool family
@@ -71,15 +81,15 @@ Those are covered by lower-layer docs or other toolkit component docs.
 
 ## Research basis and design consequences
 
-This tool-family plan is based primarily on the current rewrite worktree, because the rewrite informal layer is already implemented and documented.
+This tool-family plan is based primarily on the current repository, because the informal layer is already implemented and documented.
 
 ### Main-worktree reference points
 
 Primary files studied:
 
-- `/home/dev/aftk/docs/informalize/README.md`
-- `/home/dev/aftk/docs/agent-playbook.md`
-- `/home/dev/aftk/docs/future/autoformalization-tools.md`
+- `../aftk/docs/informalize/README.md`
+- `../aftk/docs/agent-playbook.md`
+- `../aftk/docs/future/autoformalization-tools.md`
 
 Important observations from the main worktree:
 
@@ -101,7 +111,7 @@ Main consequences for the rewrite:
 - the rewrite toolkit should wrap the rewrite’s current `informal` CLI, not resurrect old `informalize meta` or `location` command families;
 - and the toolkit should avoid occupying the `aftk_informal_*` namespace in v1, because that namespace is a better fit for possible future hub-backed informal additions.
 
-### Rewrite-worktree reference points
+### Repository reference points
 
 Primary files studied:
 
@@ -215,7 +225,7 @@ That preserves lower-layer ownership of:
 - dependency semantics,
 - and knowledge-base-backed presentation logic.
 
-### 2. Wrap the full current rewrite informal CLI surface in v1
+### 2. Wrap the full current informal CLI surface in v1
 
 Unlike the knowledge-base CLI, the rewrite informal CLI is already relatively small and entirely query/presentation oriented.
 So the initial toolkit surface can and should wrap the full current command set:
@@ -1126,10 +1136,10 @@ They solve related but distinct problems.
 
 ## Initial implementation checklist for this informal tool design
 
-Before the informal tool family can be considered in place, the rewrite should reach at least this baseline:
+Before the informal tool family can be considered in place, AFTK should reach at least this baseline:
 
 - a reusable informal CLI bridge exists in TypeScript
-- the full current rewrite informal CLI surface is wrapped
+- the full current informal CLI surface is wrapped
 - environment-backed tools require non-empty `modules`
 - `informal_present` exposes `mode` and `body` cleanly, with the compact/body validation rule
 - all informal tools invoke the CLI in JSON mode by default

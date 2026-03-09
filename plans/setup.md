@@ -2,12 +2,29 @@
 
 ## Status
 
-This document is a research-backed plan for adding a Lake setup script runnable as:
+This file now serves as a design/status note for the implemented `aftk_setup` Lake script.
+The current implementation is documented in `docs/aftk_setup.md`; the research sections below are preserved mainly as rationale for the choices now reflected in `lakefile.lean`.
 
-- `lake run aftk_setup` inside `aftk` itself, and
-- `lake run aftk_setup` inside a Lake workspace that depends on `aftk`.
+## Implementation status
 
-Nothing in this file is implemented yet.
+- Overall status: Implemented
+- Implemented in code: Yes
+- Last updated basis: the current setup-script implementation in `lakefile.lean`, the pi host-adapter code in `src/hosts/pi/**`, `package.json`, and `docs/aftk_setup.md`
+- Main deferred follow-ons: optional flags such as `--check` or `--force`, any future package-distribution hardening, and any broader setup tasks beyond the current `.pi/` resources
+
+The current repository already supports:
+
+- `lake run aftk_setup` inside `aftk` itself
+- `lake run aftk_setup` inside a Lake workspace that depends on `aftk`
+- generation of `.pi/extensions/aftk-toolkit.ts`
+- generation of `.pi/APPEND_SYSTEM.md`
+- conservative overwrite behavior for script-managed files
+
+## Historical note
+
+The research sections below were written before the setup script was implemented.
+Where they discuss migration from `lakefile.toml`, missing setup support, or design alternatives, treat them as historical context only.
+Current behavior is documented in `docs/aftk_setup.md` and implemented in `lakefile.lean`.
 
 ## Goal
 
@@ -45,8 +62,8 @@ The important constraint is that this must work both when `aftk` is the root pac
 
 ### Main-worktree workflow docs studied
 
-- `/home/dev/aftk/docs/agent-playbook.md`
-- `/home/dev/aftk/docs/future/autoformalization-tools.md`
+- `../aftk/docs/agent-playbook.md`
+- `../aftk/docs/future/autoformalization-tools.md`
 
 ### Lake / Lean source files studied
 

@@ -9,7 +9,7 @@ This document refines the overall server-layer plan in `plans/server.md` and wor
 
 - Overall status: Implemented
 - Implemented in code: Yes
-- Last updated basis: the rewrite worktree now has the documented server/file-worker module tree, standalone executables, and server test-tree wiring.
+- Last updated basis: the repository now has the documented server/file-worker module tree, standalone executables, and server test-tree wiring.
 
 ## Purpose
 
@@ -34,7 +34,7 @@ The layout should:
 - leave an obvious home for lower-layer integration helpers
 - align with the phased implementation plan in `plans/server.md`
 - make process-level and direct-library testing straightforward
-- fit naturally into the existing `AFTK` / `AFTKTest` structure of the rewrite worktree
+- fit naturally into the existing `AFTK` / `AFTKTest` structure of the repository
 
 ## Scope and non-scope
 
@@ -401,13 +401,13 @@ For example:
 
 ## Additional implementation findings from the current repository layout
 
-The current main worktree and rewrite worktree layouts give a few concrete constraints for implementation.
+The current main worktree and repository layouts give a few concrete constraints for implementation.
 
 - In the main worktree, `../aftk/lakefile.lean` currently builds the server executables directly from single-file roots:
   - `aftk_server` uses root `AFTK.Server`
   - `aftk_file_worker` uses root `AFTK.FileWorker`
 - That layout works, but it also means the current `AFTK/Server.lean` and `AFTK/FileWorker.lean` each mix protocol types, handlers, subprocess wiring, and executable entrypoint logic in one file. The rewrite should keep the documented split into library modules plus thin `Main` modules specifically to avoid recreating that compression.
-- In the rewrite worktree, `lakefile.toml` already uses:
+- In the repository, `lakefile.toml` already uses:
   - `testDriver = "aftk_test"`
   - `root = "AFTKTest.Main"`
 - The existing test suites are aggregated by extending `AFTKTest.Main`, not by creating separate standalone test drivers for each subsystem.
@@ -421,7 +421,7 @@ These concrete layout facts make the rewrite plan more explicit:
 
 ## Completion checklist for this plan
 
-This component plan should count as implemented only when all of the following are true in the rewrite worktree:
+This component plan should count as implemented only when all of the following are true in the repository:
 
 - the module tree above or an explicitly documented close equivalent exists
 - reusable server and worker library roots exist separately from executable roots

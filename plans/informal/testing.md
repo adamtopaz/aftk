@@ -9,7 +9,7 @@ This document refines the overall informal-layer plan in `plans/informal.md` and
 
 - Overall status: Implemented (initial v1)
 - Implemented in code: Yes
-- Last updated basis: rewrite worktree now contains an `AFTKTest/Informal/*` suite, successful elaboration fixtures, compile-fail subprocess fixtures, fixture knowledge-base roots, and CLI integration coverage under `lake test`.
+- Last updated basis: repository now contains an `AFTKTest/Informal/*` suite, successful elaboration fixtures, compile-fail subprocess fixtures, fixture knowledge-base roots, and CLI integration coverage under `lake test`.
 
 ## Purpose
 

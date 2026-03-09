@@ -9,7 +9,7 @@ This document refines the overall server-layer plan in `plans/server.md` and wor
 
 - Overall status: Implemented
 - Implemented in code: Yes
-- Last updated basis: the rewrite worktree now depends on `lean_worker`, has an `AFTK.Server.Transport` integration module, and ships standalone `aftk_server` / `aftk_file_worker` executables over newline-delimited JSON-RPC on stdio.
+- Last updated basis: the repository now depends on `lean_worker`, has an `AFTK.Server.Transport` integration module, and ships standalone `aftk_server` / `aftk_file_worker` executables over newline-delimited JSON-RPC on stdio.
 
 ## Purpose
 
@@ -31,7 +31,7 @@ The transport layer should:
 
 - preserve the overall hub/server plus per-file worker process topology
 - use a small, explicit, machine-facing protocol boundary
-- remain simple enough for a first implementation in this rewrite worktree
+- remain simple enough for a first implementation in this repository
 - use `lean_worker` directly as the transport dependency for JSON-RPC client/server plumbing
 - keep deeper hub and worker semantic logic from being cluttered by repeated transport boilerplate
 - make graceful shutdown and forced termination behavior explicit
@@ -426,7 +426,7 @@ Only after that `lean_worker`-based transport skeleton exists should the hub and
 
 ## Completion checklist for this plan
 
-This component plan should count as implemented only when all of the following are true in the rewrite worktree:
+This component plan should count as implemented only when all of the following are true in the repository:
 
 - `lakefile.toml` declares the `lean_worker` dependency used by this layer
 - an `AFTK.Server.Transport` integration module exists and is used by both hub and worker executables

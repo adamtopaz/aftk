@@ -9,7 +9,7 @@ This document refines the overall informal-layer plan in `plans/informal.md` and
 
 - Overall status: Implemented (initial v1)
 - Implemented in code: Yes
-- Last updated basis: rewrite worktree now implements compact and rich presentation builders/renderers in `AFTK.Informal.Presentation` and attaches compact summaries to info trees during elaboration.
+- Last updated basis: repository now implements compact and rich presentation builders/renderers in `AFTK.Informal.Presentation` and attaches compact summaries to info trees during elaboration.
 
 ## Purpose
 

@@ -287,7 +287,7 @@ That gives immediate value while preserving clear ownership boundaries.
 
 ## Completion checklist for this plan
 
-This component plan should count as implemented only when all of the following are true in the rewrite worktree:
+This component plan should count as implemented only when all of the following are true in the repository:
 
 - the server layer reuses lower-layer library APIs rather than direct ad hoc file reads
 - hover over ordinary Lean sites continues to work through the normal Lean query path

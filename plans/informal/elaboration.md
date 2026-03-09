@@ -9,7 +9,7 @@ This document refines the overall informal-layer plan in `plans/informal.md` and
 
 - Overall status: Implemented (initial v1)
 - Implemented in code: Yes
-- Last updated basis: rewrite worktree now elaborates bracketed `informal[...]` references against the knowledge base, attaches compact hover summaries, and records successful declaration-level occurrences.
+- Last updated basis: repository now elaborates bracketed `informal[...]` references against the knowledge base, attaches compact hover summaries, and records successful declaration-level occurrences.
 
 ## Purpose
 
@@ -64,7 +64,7 @@ Those are covered by the companion component plans.
 
 ## Reference point from the main-worktree implementation
 
-The current main-worktree elaborator in `/home/dev/aftk/Informalize/Elaborator.lean` provides the behavior we are intentionally learning from.
+The current main-worktree elaborator in `../aftk/Informalize/Elaborator.lean` provides the behavior we are intentionally learning from.
 Its key properties are:
 
 - syntax forms:

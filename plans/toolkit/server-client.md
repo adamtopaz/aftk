@@ -2,14 +2,24 @@
 
 ## Status
 
-Component plan and implementation-status document for the TypeScript client for the rewrite server protocol.
-This document refines the overall toolkit-layer plan in `plans/toolkit.md` and works together with `plans/toolkit/layout.md`, `plans/toolkit/runtime.md`, `plans/toolkit/lean-tools.md`, `plans/toolkit/knowledgebase-tools.md`, `plans/toolkit/informal-tools.md`, `plans/toolkit/pi-integration.md`, `plans/toolkit/output.md`, and `plans/toolkit/testing.md`.
+Component design/status document for the TypeScript client for the public `aftk_server` protocol.
+This file now records the rationale for the client that exists in code and the follow-on work that may still be added later.
+
+Authoritative implementation docs live in:
+
+- `docs/toolkit/overview.md`
+- `docs/toolkit/library.md`
+- `docs/server/protocol.md`
 
 ## Component implementation status
 
-- Overall status: Not implemented
-- Implemented in code: No
-- Last updated basis: research against the main-worktree managed hub client in `/home/dev/aftk/lambda/src/aftk-tools.ts`, plus the rewrite server protocol and lifecycle docs in `docs/server/protocol.md`, `docs/server/overview.md`, `plans/server/protocol.md`, `plans/server/hub.md`, `AFTK/Server/Protocol.lean`, and `AFTK/Server/Main.lean`
+- Overall status: Implemented (initial v1), with deferred follow-ons
+- Implemented in code: Yes
+- Last updated basis: the current server-client implementation in `src/toolkit/server/**`, together with the runtime/output layers and `tests/toolkit/**`
+- Main deferred follow-ons: any future structured-result expansion, richer diagnostics integration, or later protocol growth in the Lean server layer
+
+The main client-design questions this file was written to settle are now answered by the codebase.
+Historical sections below may still discuss the earlier pre-implementation state; treat them as design background only.
 
 ## Purpose
 
@@ -78,7 +88,7 @@ This client plan is based on explicit research in both worktrees.
 
 Primary file studied:
 
-- `/home/dev/aftk/lambda/src/aftk-tools.ts`
+- `../aftk/lambda/src/aftk-tools.ts`
 
 Important client-side observations from that implementation:
 
@@ -100,14 +110,14 @@ Important client-side observations from that implementation:
 
 Main consequences for the rewrite:
 
-- the rewrite should preserve the overall managed-client pattern,
+- AFTK should preserve the overall managed-client pattern,
 - but improve it by:
   - moving it into a dedicated `server/` module area,
   - aligning it explicitly with the rewrite protocol docs,
   - tightening protocol-failure handling,
   - and building a clearer typed protocol surface below tool definitions.
 
-### Rewrite-worktree reference points
+### Repository reference points
 
 Files studied:
 
@@ -317,7 +327,7 @@ If a response with a known pending id violates that structure, the corresponding
 ### 8. Treat malformed non-empty stdout as protocol failure, not ignorable noise
 
 The main-worktree implementation currently ignores malformed non-empty stdout lines.
-The rewrite should be stricter.
+AFTK should be stricter.
 
 Because server stdout is the protocol channel, a non-empty malformed line should be treated as a protocol-level failure.
 A good v1 rule is:
@@ -798,7 +808,7 @@ If the managed hub dies and later restarts, the client may lazily start a fresh 
 
 ## Initial implementation checklist for this server-client design
 
-Before the server-client layer can be considered in place, the rewrite should reach at least this baseline:
+Before the server-client layer can be considered in place, AFTK should reach at least this baseline:
 
 - public TypeScript protocol types exist for the documented hub method family
 - known AFTK server error codes are represented explicitly in TypeScript

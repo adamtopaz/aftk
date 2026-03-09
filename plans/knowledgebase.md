@@ -2,28 +2,18 @@
 
 ## Status
 
-Overall plan for the first layer of the `aftk` rewrite.
-This document is intentionally architectural and serves as the top-level plan for the knowledge base layer.
-Detailed subdesigns should live in component plan files under `plans/knowledgebase/`.
+Overall design/status document for the first layer of `aftk`.
+This file now mainly records the rationale and follow-on roadmap for a largely implemented layer.
+Detailed subdesigns live under `plans/knowledgebase/`, while current implementation behavior is documented under `docs/knowledgebase/`.
 
 ## Plan implementation status
 
-- Overall status: Partially implemented, with the core v1 knowledgebase layer landed in code
+- Overall status: Partially implemented, with the core v1 knowledge-base layer landed in code
 - Fully implemented: No
-- Last updated basis: implemented types, storage, serialization, CLI, validation, search, relationship traversal, `lake test` driver, and initial implementation docs; repair and indexing remain deferred with no dedicated code currently landed
+- Last updated basis: implemented types, storage, serialization, CLI, validation, search, relationship traversal, `lake test` coverage, and implementation docs under `docs/knowledgebase/`; indexing and repair remain deferred
 
-This section is the single place for tracking whether the knowledge base layer plan has been fully implemented.
-It should be updated whenever the implementation meaningfully changes.
-
-A practical definition of fully implemented for this plan is:
-
-- the knowledge base layer exists in code
-- the initial `lake exe aftk knowledgebase ...` CLI surface exists
-- core node and metadata operations are implemented
-- relationship-aware metadata is supported
-- basic validation and discovery functionality is implemented
-- the core library and CLI behavior are covered by appropriate tests
-- the remaining items in the implementation-progress checklist are either complete or intentionally deferred with notes
+This section is the authoritative status summary for this layer.
+Historical comparison and design-rationale sections below remain useful, but `docs/knowledgebase/**` is the source of truth for current implementation behavior.
 
 ## Purpose
 

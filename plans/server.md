@@ -2,28 +2,18 @@
 
 ## Status
 
-Overall plan for the third layer of the `aftk` rewrite.
-This document is intentionally architectural and serves as the top-level plan for the server and file-worker layer.
-Detailed subdesigns should live in component plan files under `plans/server/`.
+Overall design/status document for the third layer of `aftk`.
+This file now mainly records the rationale and follow-on roadmap for an implemented layer.
+Detailed subdesigns live under `plans/server/`, while current implementation behavior is documented under `docs/server/`.
 
 ## Plan implementation status
 
-- Overall status: Implemented in the rewrite worktree
-- Fully implemented: Yes
-- Last updated basis: the rewrite worktree now contains reusable `AFTK.Server` / `AFTK.FileWorker` module trees, standalone `aftk_server` and `aftk_file_worker` executables, lower-layer-aware hover integration, and a server-layer test suite wired into `lake test`
+- Overall status: Implemented (initial v1)
+- Fully implemented: Yes, for the current v1 baseline
+- Last updated basis: the implemented `AFTK.Server` / `AFTK.FileWorker` module trees, standalone executables, lower-layer-aware hover integration, and server-layer test coverage integrated into `lake test`
 
-This section is the single place for tracking whether the server/file-worker layer plan has been fully implemented.
-It should be updated whenever the implementation meaningfully changes.
-
-A practical definition of fully implemented for this plan is:
-
-- reusable Lean library modules for the hub/server and file-worker exist in the rewrite worktree
-- standalone executables exist for the server and file-worker, or an explicitly settled equivalent compatibility surface exists
-- the hub manages per-file worker lifecycle and request forwarding
-- the current Lean-facing semantic query surface exists in the rewrite worktree
-- transient tactic exploration exists in the rewrite worktree
-- the layer integrates appropriately with the knowledge-base and informal layers rather than behaving as a Lean-only island
-- the protocol, lifecycle behavior, and major failure cases are covered by appropriate tests
+This section is the authoritative status summary for this layer.
+Historical comparison sections below remain useful as design rationale, but `docs/server/**` is the source of truth for current implementation behavior.
 
 ## Purpose
 
@@ -37,8 +27,8 @@ Its job is to provide long-running process-backed services for:
 - lower-layer-aware presentation and lookup behavior,
 - and stable machine-facing interfaces that higher layers can build on.
 
-In the main-branch worktree, this role is currently filled by `aftk_server` and `aftk_file_worker`.
-The rewrite should preserve the useful parts of that design while adapting it to the new layered architecture, where the server layer is expected to understand not only Lean files, but also the knowledge-base and informal layers that now sit below it.
+In the earlier implementation, this role is filled by `aftk_server` and `aftk_file_worker`.
+AFTK should preserve the useful parts of that design while adapting it to the current layered architecture, where the server layer is expected to understand not only Lean files, but also the knowledge-base and informal layers that now sit below it.
 
 ## Position in the layered architecture
 
@@ -53,22 +43,22 @@ The overall rewrite stack is:
 The server/file-worker layer depends directly on the first two layers.
 Higher layers should depend on it for long-running interactive behavior instead of reimplementing file management, Lean semantic queries, or transient proof-state exploration themselves.
 
-## Relationship to the main-branch worktree
+## Relationship to the earlier implementation
 
-The main-branch worktree at `/home/dev/aftk` contains the reference implementation this layer should study before the rewrite implementation begins.
+The earlier implementation in `../aftk` remains a useful reference point for design comparison and historical context.
 The most relevant files are:
 
-- `/home/dev/aftk/AFTK/Server.lean`
-- `/home/dev/aftk/AFTK/FileWorker.lean`
-- `/home/dev/aftk/lambda/src/aftk-tools.ts`
-- `/home/dev/aftk/docs/aftk/README.md`
-- `/home/dev/aftk/README.md`
-- `/home/dev/aftk/lakefile.lean`
+- `../aftk/AFTK/Server.lean`
+- `../aftk/AFTK/FileWorker.lean`
+- `../aftk/lambda/src/aftk-tools.ts`
+- `../aftk/docs/aftk/README.md`
+- `../aftk/README.md`
+- `../aftk/lakefile.lean`
 
 ### Main-worktree behavior worth preserving in spirit
 
 Research against those files shows that the current server/file-worker layer has a clear and useful shape.
-The rewrite should preserve the following ideas unless there is a specific architectural reason to change them.
+AFTK should preserve the following ideas unless there is a specific architectural reason to change them.
 
 - A separate hub/server process manages one file worker per open Lean file.
 - Worker sessions are keyed by canonicalized file paths.
@@ -96,7 +86,7 @@ The rewrite should preserve the following ideas unless there is a specific archi
 
 ### Main-worktree implementation findings
 
-Research against `/home/dev/aftk/AFTK/Server.lean` and `/home/dev/aftk/AFTK/FileWorker.lean` also shows more detailed implementation decisions that should directly inform the rewrite design.
+Research against `../aftk/AFTK/Server.lean` and `../aftk/AFTK/FileWorker.lean` also shows more detailed implementation decisions that should directly inform the rewrite design.
 
 #### Hub/server side
 
@@ -140,7 +130,7 @@ That means the current worker is conceptually:
 
 ### Main-worktree limitations to revisit deliberately
 
-The rewrite should not blindly port every current limitation.
+AFTK should not blindly port every current limitation.
 The most important limitations to revisit deliberately are:
 
 - the worker currently reads the file from disk once instead of handling in-memory versioned edits,
@@ -159,7 +149,7 @@ Research against the Lean 4 v4.28.0 sources bundled under:
 /home/dev/.elan/toolchains/leanprover--lean4---v4.28.0/src/lean
 ```
 
-shows that the rewrite should study Lean core’s own server implementation carefully rather than treating the current main-worktree code as the only reference.
+shows that AFTK should study Lean core’s own server implementation carefully rather than treating the current main-worktree code as the only reference.
 
 The most relevant Lean core files are:
 
@@ -192,7 +182,7 @@ That strongly supports preserving a hub/worker split in the rewrite rather than 
 - and cancellation-aware request handling.
 
 This is an important design reference because the main-worktree `AFTK.FileWorker` currently uses a simpler one-shot file load.
-The rewrite should explicitly decide whether v1 remains reopen-on-change or whether it adopts some version of Lean core’s editable-document model.
+AFTK should explicitly decide whether v1 remains reopen-on-change or whether it adopts some version of Lean core’s editable-document model.
 
 #### 3. Lean core already encodes the right hover/goal heuristics
 
@@ -203,7 +193,7 @@ The rewrite should explicitly decide whether v1 remains reopen-on-change or whet
 - `InfoTree.termGoalAt?`
 
 The current main-worktree file worker already uses these utilities directly.
-The rewrite should continue to do so, or otherwise mirror their behavior intentionally, rather than inventing new ad hoc heuristics for hover and goal lookup.
+AFTK should continue to do so, or otherwise mirror their behavior intentionally, rather than inventing new ad hoc heuristics for hover and goal lookup.
 
 #### 4. Lean core request handling is a strong model for future incremental behavior
 
@@ -231,7 +221,7 @@ The research above suggests the following for the rewrite.
   - a main-worktree-style one-shot file snapshot, and
   - a Lean-core-style versioned incremental snapshot model.
 - Transport concerns should be separated from semantic worker logic as much as practical.
-- The rewrite should preserve today’s useful public behaviors first, while still borrowing architectural ideas from Lean core where they improve future extensibility.
+- AFTK should preserve today’s useful public behaviors first, while still borrowing architectural ideas from Lean core where they improve future extensibility.
 
 ## Core responsibilities
 
@@ -253,7 +243,7 @@ As this layer is designed in detail, it should preserve the following commitment
 
 ### 1. Preserve a hub/worker split
 
-The rewrite should keep a distinct hub/server process and per-file worker model unless a later design document gives a compelling reason to change it.
+AFTK should keep a distinct hub/server process and per-file worker model unless a later design document gives a compelling reason to change it.
 Both the current AFTK implementation and Lean core’s server architecture support this direction.
 
 ### 2. Keep reusable library code separate from executable entrypoints
@@ -265,7 +255,7 @@ That is especially important because later layers and tests may need to reuse se
 ### 3. Preserve the current Lean-facing public method family where practical
 
 The current hub methods are already consumed by the TypeScript tool layer in the main worktree.
-So the rewrite should treat that method family as an important compatibility target, especially for:
+So AFTK should treat that method family as an important compatibility target, especially for:
 
 - `open` / `close` / `shutdown`
 - `load_node`
@@ -305,7 +295,7 @@ It should not introduce a second store for knowledge-base content, informal meta
 
 ### 7. Reuse Lean core query heuristics where possible
 
-The rewrite should continue to rely on Lean core’s `InfoTree`, `FileMap`, and `Lean.Server.InfoUtils` behavior for hover and goal lookup unless there is a specific reason not to.
+AFTK should continue to rely on Lean core’s `InfoTree`, `FileMap`, and `Lean.Server.InfoUtils` behavior for hover and goal lookup unless there is a specific reason not to.
 This keeps the server layer aligned with Lean’s own editor semantics.
 
 ### 8. Keep the protocol and error model stable and explicit
@@ -316,7 +306,7 @@ So request/response shapes, error codes, and invalidation behavior should be tre
 ### 9. Start from the simplest viable operational model, but leave room for richer editing support
 
 A main-worktree-style reopen-on-change worker model may still be the right v1 implementation choice.
-If so, the rewrite should still structure its internals so that a later move toward Lean-core-style editable documents and request cancellation does not require a total rewrite.
+If so, AFTK should still structure its internals so that a later move toward Lean-core-style editable documents and request cancellation does not require a total rewrite.
 
 ## Conceptual model
 
@@ -342,7 +332,7 @@ They are:
 - `plans/server/protocol.md` — the public method surface, request/response types, JSON encoding rules, compatibility targets from the main worktree, line/column conventions, error-code policy, and which behaviors are part of the stable contract
 - `plans/server/hub.md` — hub/server responsibilities, path canonicalization, session registry design, worker spawn/restart/stop behavior, file-freshness checks, request forwarding, per-session serialization, and cleanup semantics
 - `plans/server/worker.md` — file-worker responsibilities, one-file context model, command/info-tree lookup behavior, source-position query semantics, proof-state-node semantics, tactic execution behavior, and worker-local invalidation rules
-- `plans/server/lean-integration.md` — how the worker should reuse Lean 4 core APIs such as `parseHeader`, `processHeader`, snapshot/query utilities, and `InfoUtils`; the settled v1 choice between one-shot file loading and incremental editable-document models; and how closely the rewrite should follow Lean core server architecture internally
+- `plans/server/lean-integration.md` — how the worker should reuse Lean 4 core APIs such as `parseHeader`, `processHeader`, snapshot/query utilities, and `InfoUtils`; the settled v1 choice between one-shot file loading and incremental editable-document models; and how closely AFTK should follow Lean core server architecture internally
 - `plans/server/integration.md` — how this layer should integrate with the knowledge-base and informal layers, including hover/presentation enrichment, whether any first-class server methods should expose lower-layer functionality directly, and what lower-layer state must remain non-duplicated
 - `plans/server/layout.md` — Lean module and namespace layout, dependency boundaries between reusable server/file-worker code and executable wrappers, expected executable names such as `aftk_server` and `aftk_file_worker`, and the test-tree split for this layer
 - `plans/server/testing.md` — unit, subprocess, and end-to-end process testing strategy; fixture Lean files; protocol golden tests; file-change and restart cases; and how this layer should fit into `lake test`
@@ -408,13 +398,13 @@ As the component plans are written, this layer should preserve the following con
 - study Lean core server internals before inventing new query or lifecycle mechanisms from scratch
 - implement reusable library modules first and keep executable wrappers thin
 - add process-level tests rather than relying only on pure unit tests
-- continue following the rewrite policy of selective borrowing from `/home/dev/aftk` rather than wholesale file copying
+- continue following the rewrite policy of selective borrowing from `../aftk` rather than wholesale file copying
 
 ## Design clarifications resolved so far
 
 The following design points are now considered settled at the overview level and are documented in the component plans under `plans/server/`.
 
-- The rewrite should preserve a hub/server plus per-file worker split.
+- AFTK should preserve a hub/server plus per-file worker split.
 - The current Lean-facing method family should be treated as an important compatibility target.
 - External source-position APIs should continue to use 1-based `line`/`col` coordinates.
 - Transient proof-state handles should remain worker-local and non-persistent.
@@ -863,7 +853,7 @@ Exit criteria:
 
 ## Completion checklist for this plan
 
-The server/file-worker layer overview in this file should count as implemented only when all of the following are true in the rewrite worktree:
+The server/file-worker layer overview in this file should count as implemented only when all of the following are true in the current repository:
 
 - reusable `AFTK.Server` and `AFTK.FileWorker` module trees exist with the structure settled in `plans/server/layout.md`
 - executable targets exist for the server and file worker, or a deliberately settled equivalent compatibility surface exists
