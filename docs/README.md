@@ -1,7 +1,8 @@
-# aftk implementation docs
+# aftk docs
 
-This directory documents the parts of the current `aftk` codebase that are implemented.
-The emphasis is on implementation reality: modules, executables, package entrypoints, responsibilities, boundaries, and tested behavior.
+This directory is the main home for repository documentation.
+Most files here document the implementation that exists today: modules, executables, package entrypoints, responsibilities, boundaries, and tested behavior.
+`docs/roadmap.md` is the project-level roadmap document for overall vision and deferred work.
 
 ## Implemented layers
 
@@ -13,13 +14,14 @@ The current repository includes four working layers:
 4. **Toolkit** — a TypeScript runtime, managed server client, CLI-backed knowledge-base/informal clients, tool families, pi adapters, and a Lake setup script
 
 The planned AI autoformalization agent layer is **not implemented yet**.
-Its remaining high-level status is described in `docs/architecture.md` and `plan.md`.
+Its remaining high-level status is described in `docs/architecture.md` and `docs/roadmap.md`.
 
 ## Reading order
 
-If you want the shortest path to understanding the implementation, read these first:
+If you want the shortest path to understanding the repository, read these first:
 
 - `docs/architecture.md`
+- `docs/roadmap.md`
 - `docs/knowledgebase/overview.md`
 - `docs/informal/overview.md`
 - `docs/server/overview.md`
@@ -59,12 +61,10 @@ Then use the layer-specific implementation guides for component-level details.
 
 - `docs/aftk_setup.md` — `lake run aftk_setup`, generated `.pi/` files, discovery model, and overwrite policy
 
-## Relationship to `plan.md` and `plans/`
+## Project-level docs
 
-Use the repository docs this way:
+Use the main repository docs this way:
 
-- `docs/` describes the implementation that is actually present today
-- `plan.md` is the current roadmap and deferred-work summary
-- `plans/` contains detailed design notes, component plans, and some historical research context
-
-For the design-doc taxonomy inside `plans/`, see `plans/README.md`.
+- `docs/architecture.md` — the implemented architecture and current system boundaries
+- `docs/roadmap.md` — the project-level vision, long-term direction, and intentionally deferred work
+- layer docs under `docs/**` — current behavior and code structure for each implemented area

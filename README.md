@@ -182,18 +182,18 @@ src/
   toolkit/
   hosts/pi/
 docs/
-plans/
 tests/
   toolkit/
 ```
 
 ## Documentation
 
-Implementation-facing docs live under `docs/`.
+Repository documentation lives under `docs/`.
 Recommended entry points:
 
 - `docs/README.md`
 - `docs/architecture.md`
+- `docs/roadmap.md`
 - `docs/knowledgebase/overview.md`
 - `docs/informal/overview.md`
 - `docs/server/overview.md`
@@ -219,14 +219,9 @@ More detailed references:
   - `docs/toolkit/testing.md`
   - `docs/aftk_setup.md`
 
-Roadmap and design documents remain under:
+Project-level vision and deferred work live in:
 
-- `plan.md` — current roadmap and deferred work
-- `plans/README.md` — how to read the detailed design docs under `plans/`
-- `plans/knowledgebase*.md`
-- `plans/informal*.md`
-- `plans/server*.md`
-- `plans/toolkit*.md`
+- `docs/roadmap.md` — project vision, long-term architecture, and main deferred work
 
 ## Current implementation boundaries
 

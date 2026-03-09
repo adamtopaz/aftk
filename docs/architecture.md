@@ -16,8 +16,7 @@ The architecture is organized into five layers:
 Today, the first four layers are implemented.
 The fifth layer — AI-agent orchestration — is still future work.
 
-For the current roadmap, see `plan.md`.
-For detailed layer-by-layer design notes, see `plans/README.md`.
+For the project-level vision and roadmap, see `docs/roadmap.md`.
 
 ## Layer summary
 
@@ -31,7 +30,7 @@ For detailed layer-by-layer design notes, see `plans/README.md`.
 
 ## High-level dependency shape
 
-The implemented stack is layered the way the top-level plan intends:
+The implemented stack is layered the way the broader project vision intends:
 
 ```text
 AFTK.KnowledgeBase
