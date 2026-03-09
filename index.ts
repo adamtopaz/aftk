@@ -1,1 +1,2 @@
-console.log("Hello via Bun!");
+// Transitional compatibility shim.
+export * from "./src/index.ts";

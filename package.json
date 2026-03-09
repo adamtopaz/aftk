@@ -1,12 +1,28 @@
 {
-  "name": "aftk_rewrite",
-  "module": "index.ts",
-  "type": "module",
+  "name": "aftk-toolkit",
   "private": true,
-  "devDependencies": {
-    "@types/bun": "latest"
+  "type": "module",
+  "keywords": ["pi-package"],
+  "exports": {
+    ".": "./src/index.ts",
+    "./pi": "./src/hosts/pi/index.ts",
+    "./pi-extension": "./src/hosts/pi/extension.ts"
+  },
+  "pi": {
+    "extensions": ["./src/hosts/pi/extension.ts"]
+  },
+  "scripts": {
+    "check": "tsc --noEmit",
+    "test:toolkit:unit": "node --experimental-strip-types --test \"tests/toolkit/**/*.unit.test.ts\"",
+    "test:toolkit:integration": "node --experimental-strip-types --test \"tests/toolkit/**/*.integration.test.ts\"",
+    "test:toolkit": "npm run test:toolkit:unit && npm run test:toolkit:integration",
+    "test:all": "lake test && npm run test:toolkit"
   },
   "peerDependencies": {
-    "typescript": "^5"
+    "@mariozechner/pi-coding-agent": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.0",
+    "typescript": "^5.0.0"
   }
 }
