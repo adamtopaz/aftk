@@ -3,9 +3,9 @@ requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "aftk-autoformalization"
+name = "aftk"
 version = "0.1.0"
-description = "Async Python client for the AFTK Lean server"
+description = "Python package for AFTK"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -13,4 +13,4 @@ dependencies = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["aftk_client*"]
+include = ["aftk*", "aftk_client*"]
