@@ -63,7 +63,7 @@ Those can be added later if the basic framework proves out.
 Store task state under the framework state root:
 
 ```text
-.framework/
+.aftk/
   tasks/
     state.json
     events.jsonl
@@ -71,7 +71,7 @@ Store task state under the framework state root:
       <attempt-id>.json
 ```
 
-Here `.framework/` is generated runtime state in the project workspace, not the Python package directory `aftk/`.
+Here `.aftk/` is generated runtime state in the project workspace, not the Python package directory `aftk/`.
 
 Recommended meaning:
 
@@ -229,7 +229,7 @@ TaskAttempt
 ```
 
 This keeps the task record compact while preserving per-attempt provenance.
-The detailed logs themselves can live under `.framework/runs/`, while the attempt record keeps pointers and rollups.
+The detailed logs themselves can live under `.aftk/runs/`, while the attempt record keeps pointers and rollups.
 
 ### Graph snapshot model
 

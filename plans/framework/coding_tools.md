@@ -36,7 +36,7 @@ The coding-tool policy for v1 should be:
 - **initializer and orchestrator do not get coding tools**
 - all coding tools are sandboxed to the project root
 - writes are blocked outside the project root
-- framework-owned state under `.framework/` is not editable through worker coding tools
+- framework-owned state under `.aftk/` is not editable through worker coding tools
 - all command executions and file edits are logged
 
 This keeps the planner/executor boundary explicit.
@@ -61,7 +61,7 @@ The first version does not need to provide:
 - arbitrary host-wide shell access
 - network access through command execution
 - writing outside the project root
-- direct mutation of `.framework/` state by workers
+- direct mutation of `.aftk/` state by workers
 - file deletion or large-scale refactors driven by generic shell commands
 - a full IDE/editor abstraction
 
@@ -160,7 +160,7 @@ Not allowed:
 
 - direct task-graph mutation
 - writes outside the project root
-- writes to `.framework/`
+- writes to `.aftk/`
 
 ## Path and sandbox model
 
@@ -172,7 +172,7 @@ Recommended rules:
 - normalize and resolve paths before use
 - reject any path that escapes the project root
 - reject symlink-based escapes
-- reserve `.framework/` from worker mutation
+- reserve `.aftk/` from worker mutation
 - consider `.git/`, `.lake/build/`, and similar generated directories read-only or excluded from ordinary search by default
 
 This should be enforced in deterministic Python code, not left to prompt instructions.
@@ -337,7 +337,7 @@ Recommended log contents:
 A practical layout is:
 
 ```text
-.framework/
+.aftk/
   runs/
     <run-id>/
       result.json
@@ -404,7 +404,7 @@ Test:
 - path normalization
 - root-escape rejection
 - symlink-escape rejection
-- `.framework/` write rejection
+- `.aftk/` write rejection
 
 ### 2. Search tests
 
@@ -461,7 +461,7 @@ Use a fixture Lean project and test:
 
 ### Phase 3: logging and runner integration
 
-- persist coding-action logs under `.framework/runs/`
+- persist coding-action logs under `.aftk/runs/`
 - integrate coding-action logs with the broader tool-call log format used by the framework
 - wire worker toolsets through the runner
 - ensure initializer and orchestrator do not receive coding tools

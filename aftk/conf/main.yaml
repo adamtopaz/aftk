@@ -1,0 +1,18 @@
+project_root: .
+entrypoint_path: entrypoint.md
+sources_dir: sources
+state_dir: .aftk
+max_iterations: 100
+pricing_overrides_path: null
+output: json
+models:
+  initializer: null
+  orchestrator: null
+  worker: null
+
+hydra:
+  run:
+    dir: .
+  output_subdir: null
+  job:
+    chdir: false

@@ -10,12 +10,14 @@ The architecture is organized into four layers:
 1. Knowledge base
 2. Informal
 3. Server / file worker
-4. AI autoformalization agents
+4. Experimental AI autoformalization framework
 
-Today, the first three layers are implemented.
-The fourth layer — AI-agent orchestration — is still future work.
+Today, all four layers exist in the repository.
+The first three Lean/toolkit layers are the more mature foundation.
+The fourth layer is implemented in Python under `aftk/`, but it is still early and experimental.
 
-For the project-level vision and roadmap, see `docs/roadmap.md`.
+For the project-level vision and remaining follow-on work, see `docs/roadmap.md`.
+For the framework implementation plan that shaped the current Python layer, see `plans/framework.md` and `plans/framework/*.md`.
 
 ## Layer summary
 
@@ -24,7 +26,7 @@ For the project-level vision and roadmap, see `docs/roadmap.md`.
 | Knowledge base | Implemented | `lake exe aftk knowledgebase ...`, `import AFTK.KnowledgeBase` | `AFTK/KnowledgeBase*.lean`, `AFTK/KnowledgeBase/**` |
 | Informal | Implemented | `lake exe aftk informal ...`, `import AFTK.Informal` | `AFTK/Informal*.lean`, `AFTK/Informal/**` |
 | Server / file worker | Implemented | `lake exe aftk_server`, `lake exe aftk_file_worker <path>`, `import AFTK.Server`, `import AFTK.FileWorker` | `AFTK/Server*.lean`, `AFTK/Server/**`, `AFTK/FileWorker*.lean`, `AFTK/FileWorker/**` |
-| AI agents | Not implemented | none yet | no agent-layer orchestration code yet |
+| Experimental framework | Implemented, experimental | `uv run aftk-inspect <project-root>`, `from aftk.runner import FrameworkRunner` | `aftk/**`, `aftk_client/**` |
 
 ## High-level dependency shape
 
@@ -36,6 +38,10 @@ AFTK.KnowledgeBase
 AFTK.Informal
         ↓
 AFTK.Server / AFTK.FileWorker
+        ↓
+aftk_client
+        ↓
+aftk framework (.aftk state, agents, runner, inspection)
 ```
 
 More concretely:
@@ -43,6 +49,8 @@ More concretely:
 - `AFTK.KnowledgeBase` owns canonical natural-language storage and filesystem semantics.
 - `AFTK.Informal` resolves `informal[...]` references through the knowledge base and tracks which Lean declarations use them.
 - `AFTK.Server` and `AFTK.FileWorker` expose a long-running JSON-RPC service for Lean queries and tactic exploration, and reuse the informal layer for richer hover at `informal[...]` sites.
+- `aftk_client` provides async Python wrappers over the implemented server/toolkit surface.
+- `aftk/` adds deterministic project snapshots, a persistent task graph, worker coding tools, `pydantic-ai` agents, run telemetry, cost rollups, and operator inspection on top of the lower layers.
 
 ## Layer-to-component index
 
@@ -119,12 +127,28 @@ Main code components:
 | Worker handlers | `AFTK/FileWorker/Handlers.lean` | Worker RPC method table |
 | Worker main | `AFTK/FileWorker/Main.lean` | `aftk_file_worker` executable bootstrap |
 
-### 4. AI-agent layer
+### 4. Experimental AI autoformalization framework
 
-Current implementation status:
+Main docs:
 
-- not implemented yet
-- there is no agent runtime, orchestration layer, or model-facing autoformalization code in the repository today
+- `docs/roadmap.md`
+- `plans/framework.md`
+- `plans/framework/tasks.md`
+- `plans/framework/system.md`
+- `plans/framework/coding_tools.md`
+
+Main code components:
+
+| Component | Code | Role |
+| --- | --- | --- |
+| Packaging bridge | `aftk/__init__.py`, `pyproject.toml` | Top-level Python package and transitional re-export of `aftk_client` |
+| Toolkit client | `aftk_client/client.py`, `aftk_client/models.py`, `aftk_client/errors.py` | Async Python surface over the implemented server/toolkit APIs |
+| Shared config and project snapshot | `aftk/config.py`, `aftk/project.py` | Discover project roots, entrypoints, sources, and persist `.aftk/project/snapshot.json` |
+| Task system | `aftk/tasks/models.py`, `aftk/tasks/store.py`, `aftk/tasks/service.py` | Persistent task DAG, attempts, events, readiness, and restart recovery under `.aftk/tasks/` |
+| Coding services | `aftk/coding/*` | Sandboxed project search, file reads/edits, command execution, and coding action logging |
+| Run telemetry and costs | `aftk/storage/*` | Run records, LLM/tool call logs, usage summaries, pricing, and rollups under `.aftk/runs/` |
+| Agents and tool wrappers | `aftk/agents/*` | Typed deps, structured outputs, role-scoped toolsets, and initializer/orchestrator/worker services |
+| Runner and inspection | `aftk/runner.py`, `aftk/inspection.py`, `aftk/inspection_cli.py` | End-to-end runner loop plus operator-facing inspection reports and CLI |
 
 ## What is canonical, and where
 
@@ -138,9 +162,17 @@ Canonical prose lives only in the knowledge base:
 
 The informal layer does **not** introduce a second prose store.
 
+### Canonical framework control state
+
+Within the experimental framework layer, the canonical project-control state is the task graph snapshot under:
+
+- `.aftk/tasks/state.json`
+
+The surrounding `.aftk/` files are supporting snapshots, immutable attempt records, and audit/telemetry artifacts around that explicit task state.
+
 ### Derived or transient data
 
-The current implementation has three important kinds of non-canonical state:
+The current implementation has four important kinds of non-canonical state:
 
 1. **Knowledge-base internal directories** under `knowledgebase/.aftk/`
    - reserved for internal/derived data
@@ -153,6 +185,10 @@ The current implementation has three important kinds of non-canonical state:
    - opaque ids like `node-0`, `node-1`, ...
    - session-local and non-persistent
    - invalidated by worker restart or file reopen
+4. **Framework runtime state** under `.aftk/`
+   - `.aftk/project/` stores deterministic project snapshots
+   - `.aftk/tasks/` stores the task graph, event log, and immutable attempts
+   - `.aftk/runs/` stores run records, message logs, LLM/tool-call logs, usage/cost summaries, and coding-action logs
 
 ## Executables and user-facing commands
 
@@ -183,6 +219,17 @@ lake exe aftk_file_worker <path>
 `aftk_server` is the public JSON-RPC hub.
 `aftk_file_worker` is the internal per-file worker executable spawned by the hub.
 
+### Python inspection CLI
+
+The framework layer currently exposes an operator-facing inspection CLI:
+
+```text
+uv run aftk-inspect <project-root>
+```
+
+`aftk-inspect` renders text or JSON reports over `.aftk/` state.
+The framework runner itself is currently library-first via `aftk.runner.FrameworkRunner` rather than a stable top-level user CLI.
+
 ## Top-level code roots
 
 These are the highest-level code files to read first:
@@ -195,11 +242,18 @@ These are the highest-level code files to read first:
 - `AFTK/FileWorker.lean` — file-worker public root
 - `AFTK/Server/Main.lean` — hub executable main
 - `AFTK/FileWorker/Main.lean` — worker executable main
+- `aftk/__init__.py` — top-level Python package bridge
+- `aftk/config.py` — shared framework config and path models
+- `aftk/project.py` — deterministic project snapshot builder
+- `aftk/runner.py` — initializer/orchestrator/worker runner loop
+- `aftk/inspection.py` — operator-facing inspection service
+- `aftk_client/client.py` — Python toolkit client
+- `pyproject.toml` — Python packaging and `aftk-inspect` script registration
 - `lakefile.lean` — Lake package config and executable definitions
 
 ## Testing structure
 
-The repository currently has one test track.
+The repository currently has two main test tracks.
 
 ### Lean-layer tests
 
@@ -209,25 +263,44 @@ Run with:
 lake test
 ```
 
-That driver runs three suite executables:
+That driver runs the Lean test suites under `AFTKTest/`.
+These tests use checked-in fixtures under `tests/`.
 
-- `aftk_knowledgebase_test`
-- `aftk_informal_test`
-- `aftk_server_test`
+### Python client and framework tests
 
-These tests live under `AFTKTest/` and use checked-in fixtures under `tests/`.
+Run with:
+
+```text
+uv run python -m unittest discover -s tests/python -v
+```
+
+These tests cover:
+
+- `aftk_client` integration and transport models
+- framework config and project snapshot discovery
+- persistent task-graph invariants and recovery
+- coding-tool sandboxing and command execution
+- agent model/dependency/tool wiring
+- initializer/orchestrator/worker runner integration
+- run telemetry, cost rollups, and inspection surfaces
+
+They live under `tests/python/` and use fixtures under `tests/` and `tests/framework/`.
 
 ## Important current limitations
 
 These are deliberate or current implementation boundaries:
 
-- Knowledge-base **repair** and **indexing** are still design-only.
+- Knowledge-base **repair** and **indexing** are still incomplete follow-on work.
 - The informal layer is read/query oriented; it does not mutate knowledge-base content.
 - `informal[...]` uses an explicit unsound placeholder axiom for gradual formalization.
 - The server uses a **one-shot file snapshot** model.
   It does not support in-memory versioned edits.
 - File changes invalidate workers by file stamp and require reopen.
-- The AI autoformalization agent layer is not implemented yet.
+- The framework layer is early and experimental.
+  It does not yet present a stable end-user runner CLI.
+- The current framework runner is single-process and sequential.
+  It intentionally relies on explicit persistent task state rather than distributed orchestration.
+- Prompt quality, model selection, and operator UX for the framework are still evolving.
 
 ## Practical mental model
 
@@ -236,6 +309,7 @@ A good short mental model of the current codebase is:
 - the **knowledge base** is the source of truth for prose,
 - the **informal layer** turns knowledge-base node ids into Lean placeholders plus trackable declaration metadata,
 - the **server layer** exposes Lean/editor-style queries over real files while enriching `informal[...]` hovers through the lower layers,
-- and higher-level automation remains future work rather than a currently implemented layer.
+- `aftk_client` brings that lower-layer surface into Python,
+- and the experimental `aftk/` framework persists `.aftk/` state and runs an initializer/orchestrator/worker loop on top of it.
 
 If you keep those boundaries in mind, the current implementation becomes much easier to navigate.

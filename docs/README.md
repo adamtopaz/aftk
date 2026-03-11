@@ -3,17 +3,19 @@
 This directory is the main home for repository documentation.
 Most files here document the implementation that exists today: modules, executables, responsibilities, boundaries, and tested behavior.
 `docs/roadmap.md` is the project-level roadmap document for overall vision and deferred work.
+For the experimental Python framework layer, the design docs in `plans/framework.md` and `plans/framework/*.md` are also useful references.
 
 ## Implemented layers
 
-The current repository includes three working layers:
+The current repository includes four working layers, though the fourth is still experimental:
 
 1. **Knowledge base** — canonical Markdown + JSON storage, validation, search, relationships, and a CLI
 2. **Informal** — `informal[...]` elaboration, declaration-level tracking, dependency views, presentation, and a CLI
 3. **Server / file worker** — standalone JSON-RPC executables for Lean queries, tactic exploration, and richer informal hover
+4. **Python framework** — persistent `.aftk/` project state, `pydantic-ai` initializer/orchestrator/worker runtime, worker coding tools, usage/cost rollups, and `aftk-inspect`
 
-The planned AI autoformalization layer is **not implemented yet**.
-Its remaining high-level status is described in `docs/architecture.md` and `docs/roadmap.md`.
+The framework layer is implemented but still evolving.
+Use `docs/architecture.md`, `docs/roadmap.md`, and `plans/framework.md` together when you need the current implementation plus the intended direction.
 
 ## Reading order
 
@@ -21,6 +23,8 @@ If you want the shortest path to understanding the repository, read these first:
 
 - `docs/architecture.md`
 - `docs/roadmap.md`
+- `docs/framework/overview.md`
+- `plans/framework.md`
 - `docs/knowledgebase/overview.md`
 - `docs/informal/overview.md`
 - `docs/server/overview.md`
@@ -49,10 +53,16 @@ Then use the layer-specific implementation guides for component-level details.
 - `docs/server/protocol.md` — JSON-RPC method surface, result shapes, and error codes
 - `docs/server/testing.md` — direct worker tests, hub tests, and end-to-end process coverage
 
+## Framework docs
+
+- `docs/framework/overview.md` — project requirements, Python runner usage, `.aftk/` state layout, and inspection workflow
+- `docs/framework/library.md` — module-by-module guide to the Python framework APIs and main services
+
 ## Project-level docs
 
 Use the main repository docs this way:
 
 - `docs/architecture.md` — the implemented architecture and current system boundaries
 - `docs/roadmap.md` — the project-level vision, long-term direction, and intentionally deferred work
+- `plans/framework.md` and `plans/framework/*.md` — framework design intent, implementation phases, and detailed subsystem plans
 - layer docs under `docs/**` — current behavior and code structure for each implemented area

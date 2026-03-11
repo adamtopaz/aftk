@@ -128,7 +128,7 @@ Notes:
 
 We will also need to update packaging so the repository installs the harmonized `aftk/` package, not just `aftk_client`.
 The current `aftk_client/` package is an existing toolkit-facing Python surface and should either be re-exported from or migrated into `aftk/` as packaging is harmonized.
-Separately, `.framework/` is the generated runtime-state directory inside a project workspace.
+Separately, `.aftk/` is the generated runtime-state directory inside a project workspace.
 
 ## Core configuration model
 
@@ -218,7 +218,7 @@ ProjectSnapshot
   generated_state_dir: str
 ```
 
-This is built deterministically by Python code and persisted under `.framework/project/`.
+This is built deterministically by Python code and persisted under `.aftk/project/`.
 The initializer and orchestrator should consume this snapshot rather than re-scanning the entire project through prompt text every time.
 
 ## Agent outputs
@@ -496,7 +496,7 @@ For every initializer, orchestrator, and worker run, persist at least:
 A practical per-run layout is:
 
 ```text
-.framework/
+.aftk/
   runs/
     <run-id>/
       result.json

@@ -77,13 +77,13 @@ From the user's point of view, the workflow should be:
 The framework should keep its own generated state in a dedicated directory inside the project root, for example:
 
 ```text
-.framework/
+.aftk/
   project/
   tasks/
   runs/
 ```
 
-The leading dot is intentional: `.framework/` is generated runtime state inside a project, while `aftk/` is the Python package for the framework component.
+The leading dot is intentional: `.aftk/` is generated runtime state inside a project, while `aftk/` is the Python package for the framework component.
 
 At a high level:
 
@@ -370,7 +370,7 @@ Exit criteria:
 Scope:
 
 - implement the Pydantic task models
-- implement task persistence under `.framework/tasks/`
+- implement task persistence under `.aftk/tasks/`
 - implement graph validation, readiness computation, claiming, attempts, and recovery
 - add unit tests for task invariants and persistence
 
@@ -385,7 +385,7 @@ Exit criteria:
 Scope:
 
 - implement deterministic project scanning
-- build and persist the project snapshot under `.framework/project/`
+- build and persist the project snapshot under `.aftk/project/`
 - define the shared config and path models used by the runner and agents
 - ensure the framework can discover `entrypoint.md`, `sources/`, and Lean project context consistently
 
@@ -401,12 +401,12 @@ Scope:
 - implement deterministic coding services under `aftk/coding/`
 - implement project-root sandboxing for reads, writes, search, and commands
 - implement worker-facing pydantic-ai tool wrappers for search, file reads, edits, and commands such as `lake build`
-- add logging for coding actions under `.framework/runs/`
+- add logging for coding actions under `.aftk/runs/`
 
 Exit criteria:
 
 - worker coding tools can search files, edit code, and run `lake build`
-- writes outside the project root and writes into `.framework/` are rejected
+- writes outside the project root and writes into `.aftk/` are rejected
 - coding actions are auditable
 
 ### Phase 5: observability and cost-tracking infrastructure
@@ -414,7 +414,7 @@ Exit criteria:
 Scope:
 
 - define run-log models for agent runs, individual LLM calls, and individual tool calls
-- persist detailed run logs under `.framework/runs/`
+- persist detailed run logs under `.aftk/runs/`
 - implement usage rollups and cost rollups by run, task attempt, agent role, model, and project
 - add configurable cost estimation based on model usage and a pricing table or override mechanism
 
@@ -477,7 +477,7 @@ Scope:
 - add fixture projects for initialization and edit/build workflows
 - add integration tests for task flow, worker edits, `lake build`, and logging/cost rollups
 - add end-to-end tests with mocked or controlled models and real toolkit interactions where appropriate
-- improve inspection of `.framework/` state, run logs, and cost summaries
+- improve inspection of `.aftk/` state, run logs, and cost summaries
 
 Exit criteria:
 
