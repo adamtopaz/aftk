@@ -5,16 +5,15 @@ It is intentionally implementation-facing: it focuses on what is in code now, wh
 
 ## Current status
 
-The architecture is organized into five layers:
+The architecture is organized into four layers:
 
 1. Knowledge base
 2. Informal
 3. Server / file worker
-4. Toolkit
-5. AI autoformalization agents
+4. AI autoformalization agents
 
-Today, the first four layers are implemented.
-The fifth layer — AI-agent orchestration — is still future work.
+Today, the first three layers are implemented.
+The fourth layer — AI-agent orchestration — is still future work.
 
 For the project-level vision and roadmap, see `docs/roadmap.md`.
 
@@ -25,7 +24,6 @@ For the project-level vision and roadmap, see `docs/roadmap.md`.
 | Knowledge base | Implemented | `lake exe aftk knowledgebase ...`, `import AFTK.KnowledgeBase` | `AFTK/KnowledgeBase*.lean`, `AFTK/KnowledgeBase/**` |
 | Informal | Implemented | `lake exe aftk informal ...`, `import AFTK.Informal` | `AFTK/Informal*.lean`, `AFTK/Informal/**` |
 | Server / file worker | Implemented | `lake exe aftk_server`, `lake exe aftk_file_worker <path>`, `import AFTK.Server`, `import AFTK.FileWorker` | `AFTK/Server*.lean`, `AFTK/Server/**`, `AFTK/FileWorker*.lean`, `AFTK/FileWorker/**` |
-| Toolkit | Implemented | `src/index.ts`, package exports `./pi` and `./pi-extension`, `lake run aftk_setup` | `src/index.ts`, `src/toolkit/**`, `src/hosts/pi/**`, `tests/toolkit/**`, `package.json`, `lakefile.lean` |
 | AI agents | Not implemented | none yet | no agent-layer orchestration code yet |
 
 ## High-level dependency shape
@@ -38,8 +36,6 @@ AFTK.KnowledgeBase
 AFTK.Informal
         ↓
 AFTK.Server / AFTK.FileWorker
-        ↓
-TypeScript toolkit (`src/toolkit/**`, `src/hosts/pi/**`)
 ```
 
 More concretely:
@@ -47,7 +43,6 @@ More concretely:
 - `AFTK.KnowledgeBase` owns canonical natural-language storage and filesystem semantics.
 - `AFTK.Informal` resolves `informal[...]` references through the knowledge base and tracks which Lean declarations use them.
 - `AFTK.Server` and `AFTK.FileWorker` expose a long-running JSON-RPC service for Lean queries and tactic exploration, and reuse the informal layer for richer hover at `informal[...]` sites.
-- the toolkit layer packages those lower-layer services into reusable TypeScript clients, normalized tool results, agent-facing tool families, and thin pi integration helpers.
 
 ## Layer-to-component index
 
@@ -124,31 +119,7 @@ Main code components:
 | Worker handlers | `AFTK/FileWorker/Handlers.lean` | Worker RPC method table |
 | Worker main | `AFTK/FileWorker/Main.lean` | `aftk_file_worker` executable bootstrap |
 
-### 4. Toolkit layer
-
-Main docs:
-
-- `docs/toolkit/overview.md`
-- `docs/toolkit/library.md`
-- `docs/toolkit/testing.md`
-- `docs/aftk_setup.md`
-
-Main code components:
-
-| Component | Code | Role |
-| --- | --- | --- |
-| Public package root | `src/index.ts` | Curated TypeScript export surface |
-| Compatibility shim | `index.ts` | Transitional re-export of `src/index.ts` |
-| Runtime | `src/toolkit/runtime/*` | Project-root discovery, executable resolution, subprocess helpers, runtime errors |
-| Output | `src/toolkit/output/*` | Normalized tool results, truncation, diagnostics, shared render helpers |
-| Server protocol/client | `src/toolkit/server/*` | TypeScript mirror of the public hub protocol and managed `aftk_server` client |
-| Knowledge-base client | `src/toolkit/knowledgebase/client.ts` | JSON CLI bridge for `aftk knowledgebase ...` |
-| Informal client | `src/toolkit/informal/client.ts` | JSON CLI bridge for `aftk informal ...` |
-| Tool definitions | `src/toolkit/tools/*` | Lean/server-backed, knowledge-base, informal, and aggregate tool families |
-| Pi adapters | `src/hosts/pi/*` | Thin direct-SDK and extension-style mounting helpers |
-| Setup script | `lakefile.lean` | `aftk_setup` Lake script for project-local pi integration |
-
-### 5. AI-agent layer
+### 4. AI-agent layer
 
 Current implementation status:
 
@@ -166,12 +137,10 @@ Canonical prose lives only in the knowledge base:
 - storage manifest: `knowledgebase/manifest.json`
 
 The informal layer does **not** introduce a second prose store.
-The toolkit also does **not** introduce one.
-It only wraps the lower-layer public interfaces.
 
 ### Derived or transient data
 
-The current implementation has four important kinds of non-canonical state:
+The current implementation has three important kinds of non-canonical state:
 
 1. **Knowledge-base internal directories** under `knowledgebase/.aftk/`
    - reserved for internal/derived data
@@ -184,13 +153,8 @@ The current implementation has four important kinds of non-canonical state:
    - opaque ids like `node-0`, `node-1`, ...
    - session-local and non-persistent
    - invalidated by worker restart or file reopen
-4. **Toolkit runtime state** inside the Node process
-   - managed hub child-process ownership
-   - pending JSON-RPC requests keyed by numeric ids
-   - bounded stdout/stderr capture and diagnostics
-   - not persisted across process restart
 
-## Executables, package entrypoints, and user-facing commands
+## Executables and user-facing commands
 
 ### Unified Lean CLI
 
@@ -219,32 +183,6 @@ lake exe aftk_file_worker <path>
 `aftk_server` is the public JSON-RPC hub.
 `aftk_file_worker` is the internal per-file worker executable spawned by the hub.
 
-### Toolkit package entrypoints
-
-The TypeScript package exposes these main entrypoints:
-
-- `src/index.ts` via package export `.`
-- `src/hosts/pi/index.ts` via package export `./pi`
-- `src/hosts/pi/extension.ts` via package export `./pi-extension`
-
-There is no separate standalone toolkit executable.
-The toolkit talks to the lower layers through:
-
-- `aftk_server`
-- `aftk knowledgebase ...`
-- `aftk informal ...`
-
-### Lake setup script
-
-The repository also exposes a Lake script:
-
-```text
-lake run aftk_setup
-```
-
-This script writes project-local pi integration files under `.pi/`.
-See `docs/aftk_setup.md`.
-
 ## Top-level code roots
 
 These are the highest-level code files to read first:
@@ -257,14 +195,11 @@ These are the highest-level code files to read first:
 - `AFTK/FileWorker.lean` — file-worker public root
 - `AFTK/Server/Main.lean` — hub executable main
 - `AFTK/FileWorker/Main.lean` — worker executable main
-- `src/index.ts` — toolkit public package root
-- `src/hosts/pi/index.ts` — pi mounting helpers
-- `src/hosts/pi/extension.ts` — default pi extension entrypoint
-- `lakefile.lean` — Lake package config plus `aftk_setup`
+- `lakefile.lean` — Lake package config and executable definitions
 
 ## Testing structure
 
-The repository now has two test tracks.
+The repository currently has one test track.
 
 ### Lean-layer tests
 
@@ -282,30 +217,6 @@ That driver runs three suite executables:
 
 These tests live under `AFTKTest/` and use checked-in fixtures under `tests/`.
 
-### Toolkit tests
-
-Run with:
-
-```text
-npm run test:toolkit
-```
-
-Or run everything together with:
-
-```text
-npm run test:all
-```
-
-The toolkit tests live under `tests/toolkit/` and cover:
-
-- runtime helpers
-- output truncation
-- managed server-client behavior
-- Lean/server-backed tool definitions
-- knowledge-base CLI-backed tools
-- informal CLI-backed tools
-- pi adapter registration and cleanup wiring
-
 ## Important current limitations
 
 These are deliberate or current implementation boundaries:
@@ -316,10 +227,6 @@ These are deliberate or current implementation boundaries:
 - The server uses a **one-shot file snapshot** model.
   It does not support in-memory versioned edits.
 - File changes invalidate workers by file stamp and require reopen.
-- The toolkit is query/presentation first for the knowledge-base and informal CLIs.
-  It does not yet wrap the full mutation/admin surface.
-- Toolkit request cancellation is local waiting cancellation only.
-  It does not remotely cancel an already-sent hub request.
 - The AI autoformalization agent layer is not implemented yet.
 
 ## Practical mental model
@@ -329,6 +236,6 @@ A good short mental model of the current codebase is:
 - the **knowledge base** is the source of truth for prose,
 - the **informal layer** turns knowledge-base node ids into Lean placeholders plus trackable declaration metadata,
 - the **server layer** exposes Lean/editor-style queries over real files while enriching `informal[...]` hovers through the lower layers,
-- and the **toolkit layer** packages those lower-layer services into stable Node- and agent-facing clients, tools, and pi integration helpers.
+- and higher-level automation remains future work rather than a currently implemented layer.
 
 If you keep those boundaries in mind, the current implementation becomes much easier to navigate.

@@ -1,19 +1,18 @@
 # aftk docs
 
 This directory is the main home for repository documentation.
-Most files here document the implementation that exists today: modules, executables, package entrypoints, responsibilities, boundaries, and tested behavior.
+Most files here document the implementation that exists today: modules, executables, responsibilities, boundaries, and tested behavior.
 `docs/roadmap.md` is the project-level roadmap document for overall vision and deferred work.
 
 ## Implemented layers
 
-The current repository includes four working layers:
+The current repository includes three working layers:
 
 1. **Knowledge base** — canonical Markdown + JSON storage, validation, search, relationships, and a CLI
 2. **Informal** — `informal[...]` elaboration, declaration-level tracking, dependency views, presentation, and a CLI
 3. **Server / file worker** — standalone JSON-RPC executables for Lean queries, tactic exploration, and richer informal hover
-4. **Toolkit** — a TypeScript runtime, managed server client, CLI-backed knowledge-base/informal clients, tool families, pi adapters, and a Lake setup script
 
-The planned AI autoformalization agent layer is **not implemented yet**.
+The planned AI autoformalization layer is **not implemented yet**.
 Its remaining high-level status is described in `docs/architecture.md` and `docs/roadmap.md`.
 
 ## Reading order
@@ -25,7 +24,6 @@ If you want the shortest path to understanding the repository, read these first:
 - `docs/knowledgebase/overview.md`
 - `docs/informal/overview.md`
 - `docs/server/overview.md`
-- `docs/toolkit/overview.md`
 
 Then use the layer-specific implementation guides for component-level details.
 
@@ -50,16 +48,6 @@ Then use the layer-specific implementation guides for component-level details.
 - `docs/server/library.md` — component-by-component implementation guide with code pointers
 - `docs/server/protocol.md` — JSON-RPC method surface, result shapes, and error codes
 - `docs/server/testing.md` — direct worker tests, hub tests, and end-to-end process coverage
-
-## Toolkit docs
-
-- `docs/toolkit/overview.md` — layer scope, runtime model, tool families, result contract, and pi integration surface
-- `docs/toolkit/library.md` — component-by-component implementation guide with code pointers
-- `docs/toolkit/testing.md` — package scripts, test layout, fixtures, and current TypeScript-side coverage
-
-## Setup / integration docs
-
-- `docs/aftk_setup.md` — `lake run aftk_setup`, generated `.pi/` files, discovery model, and overwrite policy
 
 ## Project-level docs
 

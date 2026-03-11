@@ -1,3 +1,10 @@
 .envrc
 /.lake
-node_modules
+/.pi
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.python-version
