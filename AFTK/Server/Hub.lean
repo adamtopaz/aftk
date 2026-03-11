@@ -15,6 +15,8 @@ open LeanWorker.JsonRpc
 open Std.Internal.IO.Async
 open AFTK.Server.Protocol
 open AFTK.Server.Transport
+open AFTK.KnowledgeBase
+open AFTK.Informal
 
 structure FileIdentity where
   normalizedPath : System.FilePath
@@ -41,6 +43,7 @@ structure State where
 
 structure Context where
   state : Std.Mutex State
+  knowledgeBaseLock : Std.Mutex Unit
 
 abbrev HubM := LeanWorker.Server.StatelessHandlerM Context
 
@@ -374,6 +377,91 @@ private def fromIOResult (action : IO (Except JsonRpc.Error α)) : HubM α := do
   | .ok (.ok value) =>
       pure value
 
+private def rootPathOf? (root? : Option String) : Option System.FilePath :=
+  root?.map System.FilePath.mk
+
+private def withKnowledgeBaseLockIO (ctx : Context) (action : IO (Except JsonRpc.Error α)) : IO (Except JsonRpc.Error α) :=
+  ctx.knowledgeBaseLock.atomically action
+
+private def runDomainEIO
+    (ctx : Context)
+    (layer : String)
+    (action : KBIO α)
+    (useLock : Bool := true) : IO (Except JsonRpc.Error α) := do
+  let run := do
+    match ← action.toIO' with
+    | .ok value => pure <| .ok value
+    | .error err => pure <| .error <| knowledgeBaseError layer err
+  if useLock then
+    withKnowledgeBaseLockIO ctx run
+  else
+    run
+
+private def runDomainIO
+    (ctx : Context)
+    (layer : String)
+    (action : IO (Except KnowledgeBaseError α))
+    (useLock : Bool := false) : IO (Except JsonRpc.Error α) := do
+  let run := do
+    match ← action.toBaseIO with
+    | .error err => pure <| .error <| internalError (toString err)
+    | .ok (.ok value) => pure <| .ok value
+    | .ok (.error err) => pure <| .error <| knowledgeBaseError layer err
+  if useLock then
+    withKnowledgeBaseLockIO ctx run
+  else
+    run
+
+private def mapExcept (f : α → β) : Except ε α → Except ε β
+  | .ok value => .ok (f value)
+  | .error err => .error err
+
+private def nameString (name : Name) : String :=
+  toString name
+
+private def informalDeclDtoOf (entry : InformalDeclEntry) : InformalDeclDto :=
+  {
+    declName := nameString entry.declName
+    refs := entry.refs
+    refCount := entry.refs.size
+  }
+
+private def informalRefDtoOf (entry : InformalReferenceEntry) : InformalRefDto :=
+  {
+    ref := entry.ref
+    declNames := entry.declNames.map nameString
+    declCount := entry.declNames.size
+  }
+
+private def informalDeclDependencyDtoOf (entry : InformalDeclDependencyEntry) : InformalDeclDependencyDto :=
+  {
+    declName := nameString entry.declName
+    dependencies := entry.dependencies.map nameString
+  }
+
+private def informalRefDependencyDtoOf (entry : InformalReferenceDependencyEntry) : InformalRefDependencyDto :=
+  {
+    ref := entry.ref
+    dependencies := entry.dependencies
+  }
+
+private def parseModuleNamesHub (modules : Array String) : HubM (Array Name) := do
+  if modules.isEmpty then
+    throw <| invalidParamsError "modules must be non-empty"
+  match AFTK.Informal.Service.parseModuleNames modules with
+  | .ok parsed => pure parsed
+  | .error err => throw <| knowledgeBaseError "informal" err
+
+private def parseDeclNameHub (raw : String) : HubM Name := do
+  match AFTK.Informal.Service.parseDeclName raw with
+  | .ok name => pure name
+  | .error err => throw <| knowledgeBaseError "informal" err
+
+private def decodeMetadataReplacement (json : Json) : HubM NodeMetadata := do
+  match AFTK.KnowledgeBase.Serialization.parseNodeMetadataJson json with
+  | .ok metadata => pure metadata
+  | .error err => throw <| invalidParamsError s!"invalid metadata payload: {err}"
+
 
 def openFile : LeanWorker.Server.StatelessHandler Context OpenParam OpenResult := fun param => do
   let some ⟨path⟩ := param
@@ -445,12 +533,287 @@ def runTacticSteps : LeanWorker.Server.StatelessHandler Context RunTacticStepsPa
   fromIOResult <| runTacticStepsIO ctx path id tactics
 
 
+def knowledgeBaseInit : LeanWorker.Server.StatelessHandler Context KnowledgeBaseRootParam KnowledgeBaseStoragePaths := fun param => do
+  let some ⟨root?⟩ := param
+    | throw <| invalidParamsError "params object required"
+  let ctx ← read
+  fromIOResult <| runDomainEIO ctx "knowledgebase" <| AFTK.KnowledgeBase.Service.init (rootPathOf? root?)
+
+
+def knowledgeBaseStatus : LeanWorker.Server.StatelessHandler Context KnowledgeBaseRootParam KnowledgeBaseStatusResult := fun param => do
+  let some ⟨root?⟩ := param
+    | throw <| invalidParamsError "params object required"
+  let ctx ← read
+  fromIOResult <| runDomainEIO ctx "knowledgebase" <| AFTK.KnowledgeBase.Service.status (rootPathOf? root?)
+
+
+def knowledgeBaseList : LeanWorker.Server.StatelessHandler Context KnowledgeBaseListParam KnowledgeBaseListResult := fun param => do
+  let some ⟨root?, prefix?, kind?, status?, tag?⟩ := param
+    | throw <| invalidParamsError "params object required"
+  let ctx ← read
+  fromIOResult <| runDomainEIO ctx "knowledgebase" do
+    let nodes ← AFTK.KnowledgeBase.Service.list (rootPathOf? root?) prefix? kind? status? tag?
+    pure { nodes }
+
+
+def knowledgeBaseShow : LeanWorker.Server.StatelessHandler Context KnowledgeBaseNodeParam StoredNode := fun param => do
+  let some ⟨root?, id⟩ := param
+    | throw <| invalidParamsError "params object required"
+  let ctx ← read
+  fromIOResult <| runDomainEIO ctx "knowledgebase" <| AFTK.KnowledgeBase.Service.showNode id (rootPathOf? root?)
+
+
+def knowledgeBaseGetBody : LeanWorker.Server.StatelessHandler Context KnowledgeBaseNodeParam KnowledgeBaseBodyResult := fun param => do
+  let some ⟨root?, id⟩ := param
+    | throw <| invalidParamsError "params object required"
+  let ctx ← read
+  fromIOResult <| runDomainEIO ctx "knowledgebase" do
+    let body ← AFTK.KnowledgeBase.Service.getBody id (rootPathOf? root?)
+    pure { id, body }
+
+
+def knowledgeBaseGetMetadata : LeanWorker.Server.StatelessHandler Context KnowledgeBaseNodeParam NodeMetadata := fun param => do
+  let some ⟨root?, id⟩ := param
+    | throw <| invalidParamsError "params object required"
+  let ctx ← read
+  fromIOResult <| runDomainEIO ctx "knowledgebase" <| AFTK.KnowledgeBase.Service.getMetadata id (rootPathOf? root?)
+
+
+def knowledgeBaseGetPaths : LeanWorker.Server.StatelessHandler Context KnowledgeBaseNodeParam KnowledgeBasePathsResult := fun param => do
+  let some ⟨root?, id⟩ := param
+    | throw <| invalidParamsError "params object required"
+  let ctx ← read
+  fromIOResult <| runDomainEIO ctx "knowledgebase" do
+    let paths ← AFTK.KnowledgeBase.Service.getPaths id (rootPathOf? root?)
+    pure { id, paths }
+
+
+def knowledgeBaseCreate : LeanWorker.Server.StatelessHandler Context KnowledgeBaseCreateParam StoredNode := fun param => do
+  let some ⟨root?, id, title, body?, kind?, status?, summary?, tags?, authors?⟩ := param
+    | throw <| invalidParamsError "params object required"
+  let ctx ← read
+  fromIOResult <| runDomainEIO ctx "knowledgebase" <|
+    AFTK.KnowledgeBase.Service.create id title
+      (body?.getD "")
+      (kind?.getD .note)
+      (status?.getD .draft)
+      summary?
+      (tags?.getD #[])
+      (authors?.getD #[])
+      (rootPathOf? root?)
+
+
+def knowledgeBaseRename : LeanWorker.Server.StatelessHandler Context KnowledgeBaseRenameParam KnowledgeBaseRenameResult := fun param => do
+  let some ⟨root?, oldId, newId⟩ := param
+    | throw <| invalidParamsError "params object required"
+  let ctx ← read
+  fromIOResult <| runDomainEIO ctx "knowledgebase" do
+    let stored ← AFTK.KnowledgeBase.Service.rename oldId newId (rootPathOf? root?)
+    pure { oldId, stored }
+
+
+def knowledgeBaseDelete : LeanWorker.Server.StatelessHandler Context KnowledgeBaseNodeParam KnowledgeBaseDeleteResult := fun param => do
+  let some ⟨root?, id⟩ := param
+    | throw <| invalidParamsError "params object required"
+  let ctx ← read
+  fromIOResult <| runDomainEIO ctx "knowledgebase" do
+    AFTK.KnowledgeBase.Service.delete id (rootPathOf? root?)
+    pure { id, deleted := true }
+
+
+def knowledgeBaseSetBody : LeanWorker.Server.StatelessHandler Context KnowledgeBaseSetBodyParam StoredNode := fun param => do
+  let some ⟨root?, id, body⟩ := param
+    | throw <| invalidParamsError "params object required"
+  let ctx ← read
+  fromIOResult <| runDomainEIO ctx "knowledgebase" <| AFTK.KnowledgeBase.Service.setBody id body (rootPathOf? root?)
+
+
+def knowledgeBaseReplaceMetadata : LeanWorker.Server.StatelessHandler Context KnowledgeBaseReplaceMetadataParam StoredNode := fun param => do
+  let some ⟨root?, id, metadataJson⟩ := param
+    | throw <| invalidParamsError "params object required"
+  let metadata ← decodeMetadataReplacement metadataJson
+  let ctx ← read
+  fromIOResult <| runDomainEIO ctx "knowledgebase" <| AFTK.KnowledgeBase.Service.replaceMetadata id metadata (rootPathOf? root?)
+
+
+def knowledgeBaseValidateMetadata : LeanWorker.Server.StatelessHandler Context KnowledgeBaseNodeParam Validation.ValidationReport := fun param => do
+  let some ⟨root?, id⟩ := param
+    | throw <| invalidParamsError "params object required"
+  let ctx ← read
+  fromIOResult <| runDomainEIO ctx "knowledgebase" <| AFTK.KnowledgeBase.Service.validateMetadata id (rootPathOf? root?)
+
+
+def knowledgeBaseValidateStorage : LeanWorker.Server.StatelessHandler Context KnowledgeBaseRootParam Validation.ValidationReport := fun param => do
+  let some ⟨root?⟩ := param
+    | throw <| invalidParamsError "params object required"
+  let ctx ← read
+  fromIOResult <| runDomainEIO ctx "knowledgebase" <| AFTK.KnowledgeBase.Service.validateStorage (rootPathOf? root?)
+
+
+def knowledgeBaseValidateNode : LeanWorker.Server.StatelessHandler Context KnowledgeBaseNodeParam Validation.ValidationReport := fun param => do
+  let some ⟨root?, id⟩ := param
+    | throw <| invalidParamsError "params object required"
+  let ctx ← read
+  fromIOResult <| runDomainEIO ctx "knowledgebase" <| AFTK.KnowledgeBase.Service.validateNode id (rootPathOf? root?)
+
+
+def knowledgeBaseValidateAll : LeanWorker.Server.StatelessHandler Context KnowledgeBaseRootParam Validation.ValidationReport := fun param => do
+  let some ⟨root?⟩ := param
+    | throw <| invalidParamsError "params object required"
+  let ctx ← read
+  fromIOResult <| runDomainEIO ctx "knowledgebase" <| AFTK.KnowledgeBase.Service.validateAll (rootPathOf? root?)
+
+
+def knowledgeBaseSearchText : LeanWorker.Server.StatelessHandler Context KnowledgeBaseSearchTextParam Search.SearchResult := fun param => do
+  let some ⟨root?, query, limit?⟩ := param
+    | throw <| invalidParamsError "params object required"
+  let ctx ← read
+  fromIOResult <| runDomainEIO ctx "knowledgebase" <| AFTK.KnowledgeBase.Service.searchText query limit? (rootPathOf? root?)
+
+
+def knowledgeBaseSearchTag : LeanWorker.Server.StatelessHandler Context KnowledgeBaseSearchTagParam Search.SearchResult := fun param => do
+  let some ⟨root?, tag, limit?⟩ := param
+    | throw <| invalidParamsError "params object required"
+  let ctx ← read
+  fromIOResult <| runDomainEIO ctx "knowledgebase" <| AFTK.KnowledgeBase.Service.searchTag tag limit? (rootPathOf? root?)
+
+
+def knowledgeBaseRelationshipsOutgoing : LeanWorker.Server.StatelessHandler Context KnowledgeBaseNodeParam KnowledgeBaseOutgoingRelationshipsResult := fun param => do
+  let some ⟨root?, id⟩ := param
+    | throw <| invalidParamsError "params object required"
+  let ctx ← read
+  fromIOResult <| runDomainEIO ctx "knowledgebase" do
+    let relationships ← AFTK.KnowledgeBase.Service.outgoingRelationships id (rootPathOf? root?)
+    pure { id, relationships }
+
+
+def knowledgeBaseRelationshipsIncoming : LeanWorker.Server.StatelessHandler Context KnowledgeBaseNodeParam KnowledgeBaseIncomingRelationshipsResult := fun param => do
+  let some ⟨root?, id⟩ := param
+    | throw <| invalidParamsError "params object required"
+  let ctx ← read
+  fromIOResult <| runDomainEIO ctx "knowledgebase" do
+    let relationships ← AFTK.KnowledgeBase.Service.incomingRelationships id (rootPathOf? root?)
+    pure { id, relationships }
+
+
+def knowledgeBaseRelationshipsRelated : LeanWorker.Server.StatelessHandler Context KnowledgeBaseNodeParam Search.RelatedRelationships := fun param => do
+  let some ⟨root?, id⟩ := param
+    | throw <| invalidParamsError "params object required"
+  let ctx ← read
+  fromIOResult <| runDomainEIO ctx "knowledgebase" <| AFTK.KnowledgeBase.Service.relatedRelationships id (rootPathOf? root?)
+
+
+unsafe def informalStatus : LeanWorker.Server.StatelessHandler Context InformalModulesParam InformalStatusResult := fun param => do
+  let some ⟨modulesRaw⟩ := param
+    | throw <| invalidParamsError "params object required"
+  let modules ← parseModuleNamesHub modulesRaw
+  let ctx ← read
+  fromIOResult <| runDomainIO ctx "informal" <| AFTK.Informal.Service.status modules
+
+
+unsafe def informalDecls : LeanWorker.Server.StatelessHandler Context InformalDeclsParam InformalDeclsResult := fun param => do
+  let some declsParam := param
+    | throw <| invalidParamsError "params object required"
+  let modules ← parseModuleNamesHub declsParam.modules
+  let prefixRawOpt := declsParam.prefix?
+  let declPrefixOpt ←
+    match prefixRawOpt with
+    | .some prefText => do
+        let parsed ← parseDeclNameHub prefText
+        pure (some parsed)
+    | .none =>
+        pure none
+  let refOpt := declsParam.ref?
+  let ctx ← read
+  fromIOResult <| runDomainIO ctx "informal" do
+    let opts : AFTK.Informal.Service.DeclsOptions := {
+      prefix? := declPrefixOpt
+      ref? := refOpt
+    }
+    let entriesResult ← AFTK.Informal.Service.decls modules opts
+    pure <| mapExcept (fun values => { entries := values.map informalDeclDtoOf }) entriesResult
+
+
+unsafe def informalDecl : LeanWorker.Server.StatelessHandler Context InformalDeclParam InformalDeclResult := fun param => do
+  let some ⟨modulesRaw, declNameRaw⟩ := param
+    | throw <| invalidParamsError "params object required"
+  let modules ← parseModuleNamesHub modulesRaw
+  let declName ← parseDeclNameHub declNameRaw
+  let ctx ← read
+  fromIOResult <| runDomainIO ctx "informal" do
+    let entryResult ← AFTK.Informal.Service.decl modules declName
+    pure <| mapExcept (fun entry => { entry := informalDeclDtoOf entry }) entryResult
+
+
+unsafe def informalRefs : LeanWorker.Server.StatelessHandler Context InformalRefsParam InformalRefsResult := fun param => do
+  let some refsParam := param
+    | throw <| invalidParamsError "params object required"
+  let modules ← parseModuleNamesHub refsParam.modules
+  let prefixOpt := refsParam.prefix?
+  let ctx ← read
+  fromIOResult <| runDomainIO ctx "informal" do
+    let opts : AFTK.Informal.Service.RefsOptions := {
+      prefix? := prefixOpt
+    }
+    let entriesResult ← AFTK.Informal.Service.refs modules opts
+    pure <| mapExcept (fun entries => { entries := entries.map informalRefDtoOf }) entriesResult
+
+
+unsafe def informalRef : LeanWorker.Server.StatelessHandler Context InformalRefParam InformalRefResult := fun param => do
+  let some ⟨modulesRaw, ref⟩ := param
+    | throw <| invalidParamsError "params object required"
+  let modules ← parseModuleNamesHub modulesRaw
+  let ctx ← read
+  fromIOResult <| runDomainIO ctx "informal" do
+    let entryResult ← AFTK.Informal.Service.ref modules ref
+    pure <| mapExcept (fun entry => { entry := informalRefDtoOf entry }) entryResult
+
+
+unsafe def informalDeclDeps : LeanWorker.Server.StatelessHandler Context InformalDepsParam InformalDeclDepsResult := fun param => do
+  let some depsParam := param
+    | throw <| invalidParamsError "params object required"
+  let modules ← parseModuleNamesHub depsParam.modules
+  let onlyLeaves := depsParam.onlyLeaves?.getD false
+  let ctx ← read
+  fromIOResult <| runDomainIO ctx "informal" do
+    let resultE ← AFTK.Informal.Service.declDependencies modules onlyLeaves
+    pure <| mapExcept (fun result => {
+      rows := result.rows.map informalDeclDependencyDtoOf
+      leaves := result.leaves.map nameString
+    }) resultE
+
+
+unsafe def informalRefDeps : LeanWorker.Server.StatelessHandler Context InformalDepsParam InformalRefDepsResult := fun param => do
+  let some depsParam := param
+    | throw <| invalidParamsError "params object required"
+  let modules ← parseModuleNamesHub depsParam.modules
+  let onlyLeaves := depsParam.onlyLeaves?.getD false
+  let ctx ← read
+  fromIOResult <| runDomainIO ctx "informal" do
+    let resultE ← AFTK.Informal.Service.refDependencies modules onlyLeaves
+    pure <| mapExcept (fun result => {
+      rows := result.rows.map informalRefDependencyDtoOf
+      leaves := result.leaves
+    }) resultE
+
+
+def informalPresent : LeanWorker.Server.StatelessHandler Context InformalPresentParam InformalPresentResult := fun param => do
+  let some presentParam := param
+    | throw <| invalidParamsError "params object required"
+  let ctx ← read
+  fromIOResult <| runDomainEIO ctx "informal"
+    (AFTK.Informal.Service.present presentParam.ref
+      (presentParam.mode?.getD .rich)
+      (presentParam.bodyMode?.getD .preview)
+      (rootPathOf? presentParam.root?))
+
+
 def shutdownHub : LeanWorker.Server.StatelessHandler Context ShutdownParam ShutdownResult := fun _ => do
   let ctx ← read
   fromIOResult <| shutdownIO ctx
 
 
-def server (transport : JsonTransport) : LeanWorker.Server.Server Context Unit where
+unsafe def server (transport : JsonTransport) : LeanWorker.Server.Server Context Unit where
   handlers := LeanWorker.Server.HandlerRegistry.empty
     |>.addStateless "open" openFile
     |>.addStateless "close" closeFile
@@ -462,6 +825,35 @@ def server (transport : JsonTransport) : LeanWorker.Server.Server Context Unit w
     |>.addStateless "get_goals" getGoals
     |>.addStateless "run_tactic" runTactic
     |>.addStateless "run_tactic_steps" runTacticSteps
+    |>.addStateless "knowledgebase_init" knowledgeBaseInit
+    |>.addStateless "knowledgebase_status" knowledgeBaseStatus
+    |>.addStateless "knowledgebase_list" knowledgeBaseList
+    |>.addStateless "knowledgebase_show" knowledgeBaseShow
+    |>.addStateless "knowledgebase_get_body" knowledgeBaseGetBody
+    |>.addStateless "knowledgebase_get_metadata" knowledgeBaseGetMetadata
+    |>.addStateless "knowledgebase_get_paths" knowledgeBaseGetPaths
+    |>.addStateless "knowledgebase_create" knowledgeBaseCreate
+    |>.addStateless "knowledgebase_rename" knowledgeBaseRename
+    |>.addStateless "knowledgebase_delete" knowledgeBaseDelete
+    |>.addStateless "knowledgebase_set_body" knowledgeBaseSetBody
+    |>.addStateless "knowledgebase_replace_metadata" knowledgeBaseReplaceMetadata
+    |>.addStateless "knowledgebase_validate_metadata" knowledgeBaseValidateMetadata
+    |>.addStateless "knowledgebase_validate_storage" knowledgeBaseValidateStorage
+    |>.addStateless "knowledgebase_validate_node" knowledgeBaseValidateNode
+    |>.addStateless "knowledgebase_validate_all" knowledgeBaseValidateAll
+    |>.addStateless "knowledgebase_search_text" knowledgeBaseSearchText
+    |>.addStateless "knowledgebase_search_tag" knowledgeBaseSearchTag
+    |>.addStateless "knowledgebase_relationships_outgoing" knowledgeBaseRelationshipsOutgoing
+    |>.addStateless "knowledgebase_relationships_incoming" knowledgeBaseRelationshipsIncoming
+    |>.addStateless "knowledgebase_relationships_related" knowledgeBaseRelationshipsRelated
+    |>.addStateless "informal_status" informalStatus
+    |>.addStateless "informal_decls" informalDecls
+    |>.addStateless "informal_decl" informalDecl
+    |>.addStateless "informal_refs" informalRefs
+    |>.addStateless "informal_ref" informalRef
+    |>.addStateless "informal_decl_deps" informalDeclDeps
+    |>.addStateless "informal_ref_deps" informalRefDeps
+    |>.addStateless "informal_present" informalPresent
     |>.addStateless "shutdown" shutdownHub
   notifications := .empty
   transport := transport

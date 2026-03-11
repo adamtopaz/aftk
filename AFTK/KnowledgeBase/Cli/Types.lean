@@ -2,6 +2,7 @@ module
 
 public import AFTK.KnowledgeBase.Search
 public import AFTK.KnowledgeBase.Validation
+public import AFTK.KnowledgeBase.Service
 
 public section
 
@@ -144,28 +145,7 @@ instance : ToJson CliError where
     ("message", toJson err.message)
   ]
 
-structure StatusInfo where
-  root : System.FilePath
-  manifest : StorageManifest
-  initialized : Bool
-  nodeCount : Nat
-  internalDirExists : Bool
-  indexDirExists : Bool
-  cacheDirExists : Bool
-  tmpDirExists : Bool
-  deriving Repr, DecidableEq
-
-instance : ToJson StatusInfo where
-  toJson info := Json.mkObj [
-    ("root", toJson info.root),
-    ("manifest", toJson info.manifest),
-    ("initialized", toJson info.initialized),
-    ("nodeCount", toJson info.nodeCount),
-    ("internalDirExists", toJson info.internalDirExists),
-    ("indexDirExists", toJson info.indexDirExists),
-    ("cacheDirExists", toJson info.cacheDirExists),
-    ("tmpDirExists", toJson info.tmpDirExists)
-  ]
+abbrev StatusInfo := AFTK.KnowledgeBase.Service.StatusInfo
 
 inductive CommandResult
   | init (paths : KnowledgeBaseStoragePaths)

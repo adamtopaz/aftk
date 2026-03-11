@@ -6,6 +6,7 @@ public import AFTK.KnowledgeBase.Serialization
 public import AFTK.KnowledgeBase.Storage
 public import AFTK.KnowledgeBase.Validation
 public import AFTK.KnowledgeBase.Search
+public import AFTK.KnowledgeBase.Service
 
 public section
 

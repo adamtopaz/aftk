@@ -2,7 +2,7 @@ module
 
 public import AFTK.KnowledgeBase.Cli.Parse
 public import AFTK.KnowledgeBase.Cli.Render
-public import AFTK.KnowledgeBase.Storage
+public import AFTK.KnowledgeBase.Service
 
 public section
 
@@ -23,55 +23,6 @@ private def readInputSource : InputSource → IO String
       stdin.readToEnd
   | .file path => IO.FS.readFile path
 
-private def statusInfoForRoot (root : System.FilePath) : KBIO StatusInfo := do
-  let provisional := storagePathsForRoot root
-  if !(← liftIO <| provisional.rootDir.pathExists) || !(← liftIO <| provisional.manifestPath.pathExists) then
-    let internalDirExists ← liftIO <| provisional.internalDir.pathExists
-    let indexDirExists ← liftIO <| provisional.indexDir.pathExists
-    let cacheDirExists ← liftIO <| provisional.cacheDir.pathExists
-    let tmpDirExists ← liftIO <| provisional.tmpDir.pathExists
-    return {
-      root := root
-      manifest := defaultManifest
-      initialized := false
-      nodeCount := 0
-      internalDirExists := internalDirExists
-      indexDirExists := indexDirExists
-      cacheDirExists := cacheDirExists
-      tmpDirExists := tmpDirExists
-    }
-  let (paths, manifest) ← Storage.resolveInitializedRoot root
-  let discovered ← Storage.scanCanonicalNodeFiles paths
-  let nodeCount := discovered.foldl (init := 0) fun count files =>
-    if files.markdownPath?.isSome && files.metadataPath?.isSome then count + 1 else count
-  let internalDirExists ← liftIO <| paths.internalDir.pathExists
-  let indexDirExists ← liftIO <| paths.indexDir.pathExists
-  let cacheDirExists ← liftIO <| paths.cacheDir.pathExists
-  let tmpDirExists ← liftIO <| paths.tmpDir.pathExists
-  return {
-    root := root
-    manifest := manifest
-    initialized := true
-    nodeCount := nodeCount
-    internalDirExists := internalDirExists
-    indexDirExists := indexDirExists
-    cacheDirExists := cacheDirExists
-    tmpDirExists := tmpDirExists
-  }
-
-private def requireInitialized (root : System.FilePath) : KBIO (KnowledgeBaseStoragePaths × StorageManifest) :=
-  Storage.resolveInitializedRoot root
-
-private def filterListNodes (nodes : Array NodeMetadata) (opts : ListOptions) : Array NodeMetadata :=
-  nodes.filter fun metadata =>
-    let prefixOk := match opts.prefix? with
-      | some pref => NodeId.startsWithSegmentPrefix metadata.id pref
-      | none => true
-    let kindOk := match opts.kind? with | some kind => metadata.kind == kind | none => true
-    let statusOk := match opts.status? with | some status => metadata.status == status | none => true
-    let tagOk := match opts.tag? with | some tag => metadata.tags.contains tag | none => true
-    prefixOk && kindOk && statusOk && tagOk
-
 private def loadMetadataReplacement (source : InputSource) : KBIO NodeMetadata := do
   let text ← liftIO <| readInputSource source
   match Serialization.parseNodeMetadataText text with
@@ -85,78 +36,55 @@ private def loadBodyInput (source? : Option InputSource) : IO String := do
 
 private def dispatch (root : System.FilePath) : Command → KBIO CommandResult
   | .init =>
-      CommandResult.init <$> Storage.initRoot root
+      CommandResult.init <$> Service.initAtRoot root
   | .status =>
-      CommandResult.status <$> statusInfoForRoot root
+      CommandResult.status <$> Service.statusInfoForRoot root
   | .list opts => do
-      let (paths, _) ← requireInitialized root
-      let metadata ← Storage.loadAllMetadata paths
-      pure <| .list (filterListNodes metadata opts)
-  | .show id .combined => do
-      let (paths, _) ← requireInitialized root
-      .show <$> Storage.loadStoredNode paths id
+      return .list (← Service.listAtRoot root opts.prefix? opts.kind? opts.status? opts.tag?)
+  | .show id .combined =>
+      .show <$> Service.showNodeAtRoot root id
   | .show id .body => do
-      let (paths, _) ← requireInitialized root
-      let stored ← Storage.loadStoredNode paths id
-      pure <| .body id stored.node.body
+      pure <| .body id (← Service.getBodyAtRoot root id)
   | .show id .metadata => do
-      let (paths, _) ← requireInitialized root
-      let stored ← Storage.loadStoredNode paths id
-      pure <| .metadata stored.node.metadata
+      pure <| .metadata (← Service.getMetadataAtRoot root id)
   | .show id .paths => do
-      let (paths, _) ← requireInitialized root
-      let _ ← Storage.loadStoredNode paths id
-      pure <| .paths id (nodePaths paths id)
+      pure <| .paths id (← Service.getPathsAtRoot root id)
   | .create id opts => do
-      let (paths, _) ← requireInitialized root
       let body ← liftIO <| loadBodyInput opts.bodySource?
-      .create <$> Storage.createNode paths id opts.title body opts.kind opts.status opts.summary? opts.tags opts.authors
-  | .rename oldId newId => do
-      let (paths, _) ← requireInitialized root
-      .rename oldId <$> Storage.renameNode paths oldId newId
+      .create <$> Service.createAtRoot root id opts.title body opts.kind opts.status opts.summary? opts.tags opts.authors
+  | .rename oldId newId =>
+      .rename oldId <$> Service.renameAtRoot root oldId newId
   | .delete id => do
-      let (paths, _) ← requireInitialized root
-      Storage.deleteNode paths id
+      Service.deleteAtRoot root id
       pure <| .delete id
   | .body (.show id) => do
-      let (paths, _) ← requireInitialized root
-      let stored ← Storage.loadStoredNode paths id
-      pure <| .body id stored.node.body
+      pure <| .body id (← Service.getBodyAtRoot root id)
   | .body (.set id source) => do
-      let (paths, _) ← requireInitialized root
       let body ← liftIO <| readInputSource source
-      .show <$> Storage.setNodeBody paths id body
+      .show <$> Service.setBodyAtRoot root id body
   | .metadata (.show id) => do
-      let (paths, _) ← requireInitialized root
-      let stored ← Storage.loadStoredNode paths id
-      pure <| .metadata stored.node.metadata
+      pure <| .metadata (← Service.getMetadataAtRoot root id)
   | .metadata (.replace id source) => do
-      let (paths, _) ← requireInitialized root
       let metadata ← loadMetadataReplacement source
-      .show <$> Storage.replaceNodeMetadata paths id metadata
-  | .metadata (.validate id) =>
-      return .validation (← liftIO <| Validation.validateMetadata root id)
-  | .validate .storage =>
-      return .validation (← liftIO <| Validation.validateStorage root)
-  | .validate (.node id) =>
-      return .validation (← liftIO <| Validation.validateNode root id)
-  | .validate .all =>
-      return .validation (← liftIO <| Validation.validateAll root)
-  | .search (.text query limit?) => do
-      let (paths, _) ← requireInitialized root
-      .search <$> Search.searchText paths query limit?
-  | .search (.tag tag limit?) => do
-      let (paths, _) ← requireInitialized root
-      .search <$> Search.searchTag paths tag limit?
-  | .relationships (.outgoing id) => do
-      let (paths, _) ← requireInitialized root
-      .outgoingRelationships id <$> Search.outgoingRelationships paths id
-  | .relationships (.incoming id) => do
-      let (paths, _) ← requireInitialized root
-      .incomingRelationships id <$> Search.incomingRelationships paths id
-  | .relationships (.related id) => do
-      let (paths, _) ← requireInitialized root
-      .relatedRelationships <$> Search.relatedRelationships paths id
+      .show <$> Service.replaceMetadataAtRoot root id metadata
+  | .metadata (.validate id) => do
+      return .validation (← Service.validateMetadataAtRoot root id)
+  | .validate .storage => do
+      return .validation (← Service.validateStorageAtRoot root)
+  | .validate (.node id) => do
+      return .validation (← Service.validateNodeAtRoot root id)
+  | .validate .all => do
+      return .validation (← Service.validateAllAtRoot root)
+  | .search (.text query limit?) =>
+      .search <$> Service.searchTextAtRoot root query limit?
+  | .search (.tag tag limit?) =>
+      .search <$> Service.searchTagAtRoot root tag limit?
+  | .relationships (.outgoing id) =>
+      .outgoingRelationships id <$> Service.outgoingRelationshipsAtRoot root id
+  | .relationships (.incoming id) =>
+      .incomingRelationships id <$> Service.incomingRelationshipsAtRoot root id
+  | .relationships (.related id) =>
+      .relatedRelationships <$> Service.relatedRelationshipsAtRoot root id
 
 private def exitCodeForResult : CommandResult → UInt8
   | .validation report => if report.ok then 0 else 4

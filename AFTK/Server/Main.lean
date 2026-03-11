@@ -11,8 +11,10 @@ unsafe def main (args : List String) : IO Unit := do
     | throw <| IO.userError "Usage: lake exe aftk_server"
   let transport ← AFTK.Server.Transport.serverTransportFromStdio
   let state ← Std.Mutex.new ({ } : AFTK.Server.Hub.State)
+  let knowledgeBaseLock ← Std.Mutex.new ()
   let ctx : AFTK.Server.Hub.Context := {
     state := state
+    knowledgeBaseLock := knowledgeBaseLock
   }
   let server := LeanWorker.Server.run (AFTK.Server.Hub.server transport) ctx <| ← Std.Mutex.new ()
   try

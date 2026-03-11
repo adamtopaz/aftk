@@ -7,8 +7,8 @@
 
 ## About
 
-AFTK is an AutoFormalization ToolKit for Lean4.
-It consists of four layers:
+AFTK is an AutoFormalization ToolKit for Lean 4.
+It currently has three implemented layers:
 
 ### Knowledge base
 
@@ -46,24 +46,12 @@ Current capabilities:
 - standalone `aftk_server` hub and `aftk_file_worker` worker executables
 - one worker per open Lean file
 - JSON-RPC methods for hover, goals, term goals, infoview, tactic-state capture, and tactic execution
+- direct JSON-RPC methods for knowledge-base operations and informal-layer queries/presentation
 - reopen-on-change invalidation
 - richer hover at `informal[...]` sites via the informal + knowledge-base layers
+- async Python client wrappers in `aftk_client/` for the public server surface
 
-### Toolkit / pi integration layer
-
-Implemented in `src/toolkit/` and `src/hosts/pi/`.
-
-Current capabilities:
-
-- Node-compatible runtime context with project-root discovery and subprocess helpers
-- managed TypeScript client for `aftk_server`
-- CLI-backed TypeScript clients for `aftk knowledgebase ...` and `aftk informal ...`
-- Lean/server-backed `aftk_*` tools
-- knowledge-base `knowledgebase_*` tools
-- informal `informal_*` tools
-- aggregate toolkit assembly and thin pi integration helpers
-- Lake setup script `lake run aftk_setup` for project-local pi extension/prompt installation
-- dedicated TypeScript-side tests under `tests/toolkit/`
+Higher-level automation and agent orchestration are not implemented in this branch.
 
 ## Quick start
 
@@ -77,24 +65,6 @@ Run the Lean-layer tests:
 
 ```text
 lake test
-```
-
-Run the toolkit typecheck:
-
-```text
-npm run check
-```
-
-Run the toolkit tests:
-
-```text
-npm run test:toolkit
-```
-
-Run everything together:
-
-```text
-npm run test:all
 ```
 
 ### Knowledge-base CLI
@@ -154,16 +124,6 @@ lake exe aftk_server
 
 The hub speaks newline-delimited JSON-RPC over stdio and spawns `aftk_file_worker` processes as needed.
 
-### Toolkit setup for pi
-
-Install or refresh the local pi shim and appended prompt for the current Lake workspace:
-
-```text
-lake run aftk_setup
-```
-
-If pi is already running after setup, use `/reload`.
-
 ## Repository structure
 
 Main implementation roots:
@@ -175,12 +135,8 @@ AFTK/
   Server/
   FileWorker/
 AFTKTest/
-src/
-  toolkit/
-  hosts/pi/
 docs/
 tests/
-  toolkit/
 ```
 
 ## Documentation
@@ -194,7 +150,6 @@ Recommended entry points:
 - `docs/knowledgebase/overview.md`
 - `docs/informal/overview.md`
 - `docs/server/overview.md`
-- `docs/toolkit/overview.md`
 
 More detailed references:
 
@@ -211,10 +166,6 @@ More detailed references:
   - `docs/server/library.md`
   - `docs/server/protocol.md`
   - `docs/server/testing.md`
-- toolkit:
-  - `docs/toolkit/library.md`
-  - `docs/toolkit/testing.md`
-  - `docs/aftk_setup.md`
 
 Project-level vision and deferred work live in:
 
@@ -227,7 +178,6 @@ A few important things are still intentionally deferred:
 - knowledge-base indexing
 - knowledge-base repair tooling
 - incremental editable-document server support
-- broader toolkit mutation/admin coverage for the knowledge-base and informal CLIs
 - the AI autoformalization agent layer
 
-So the current repository is best understood as a solid Lean-core-plus-toolkit foundation for the larger architecture, not yet the complete planned stack.
+So the current repository is best understood as a Lean-core foundation for the larger architecture, not yet the complete planned stack.

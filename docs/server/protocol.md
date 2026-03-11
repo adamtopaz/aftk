@@ -9,7 +9,7 @@ Transport details:
 - one request per line
 - object-shaped `params`
 
-The hub speaks this protocol publicly and forwards most requests to per-file workers behind the scenes.
+The hub speaks this protocol publicly. File-oriented Lean queries are forwarded to per-file workers; knowledge-base and informal methods run directly in the hub process.
 
 ## Start the server
 
@@ -276,6 +276,90 @@ Result shape:
 
 `stopped` is the number of worker sessions that were shut down.
 
+## Knowledge-base method family
+
+The server also exposes direct knowledge-base operations.
+All of these methods take object-shaped params and accept an optional `root` path.
+If `root` is omitted, the server uses the default knowledge-base root policy relative to its cwd.
+
+Implemented methods:
+
+- `knowledgebase_init`
+- `knowledgebase_status`
+- `knowledgebase_list`
+- `knowledgebase_show`
+- `knowledgebase_get_body`
+- `knowledgebase_get_metadata`
+- `knowledgebase_get_paths`
+- `knowledgebase_create`
+- `knowledgebase_rename`
+- `knowledgebase_delete`
+- `knowledgebase_set_body`
+- `knowledgebase_replace_metadata`
+- `knowledgebase_validate_metadata`
+- `knowledgebase_validate_storage`
+- `knowledgebase_validate_node`
+- `knowledgebase_validate_all`
+- `knowledgebase_search_text`
+- `knowledgebase_search_tag`
+- `knowledgebase_relationships_outgoing`
+- `knowledgebase_relationships_incoming`
+- `knowledgebase_relationships_related`
+
+Representative request shapes:
+
+```json
+{ "root": "/path/to/knowledgebase" }
+{ "root": "/path/to/knowledgebase", "id": "group.basic.definition" }
+{ "root": "/path/to/knowledgebase", "query": "inverse", "limit": 10 }
+```
+
+Representative result shapes:
+
+```json
+{ "root": "/path/to/knowledgebase", "initialized": true, "nodeCount": 1, "manifest": { ... } }
+{ "nodes": [{ "id": "group.basic.definition", "title": "Definition of group", ... }] }
+{ "id": "group.basic.definition", "body": "..." }
+{ "oldId": "analysis.uniform_continuity", "stored": { "node": { ... }, "paths": { ... } } }
+```
+
+`knowledgebase_replace_metadata` expects structured metadata JSON under the `metadata` field, not CLI-rendered JSON text.
+
+## Informal method family
+
+The server also exposes direct informal-layer queries.
+Environment-backed methods require a non-empty `modules` array of Lean module names as strings.
+`informal_present` is knowledge-base-backed and takes an optional `root` instead.
+
+Implemented methods:
+
+- `informal_status`
+- `informal_decls`
+- `informal_decl`
+- `informal_refs`
+- `informal_ref`
+- `informal_decl_deps`
+- `informal_ref_deps`
+- `informal_present`
+
+Representative request shapes:
+
+```json
+{ "modules": ["AFTKTest.Informal.Fixtures.Basic"] }
+{ "modules": ["AFTKTest.Informal.Fixtures.Basic"], "declName": "AFTKTest.Informal.Fixtures.Basic.multiRef" }
+{ "root": "/path/to/knowledgebase", "ref": "group.basic.definition", "mode": "rich", "bodyMode": "preview" }
+```
+
+Representative result shapes:
+
+```json
+{ "trackedDeclarations": 8, "trackedReferences": 5, "declarationsWithMultipleReferences": 2 }
+{ "entries": [{ "declName": "AFTKTest.Informal.Fixtures.Basic.multiRef", "refs": ["group.basic.definition"], "refCount": 1 }] }
+{ "mode": "rich", "summary": { ... }, "payload": { ... }, "bodyMode": "preview" }
+```
+
+Informal declaration names are transported as plain strings rather than Lean `Name` JSON values.
+
 ## Shared value types
 
 ### Source positions
@@ -318,6 +402,10 @@ Example cases:
 | `-32011` | file changed; reopen required |
 | `-32012` | worker unavailable |
 | `-32013` | stale or unknown node id |
+| `-32020` | domain not found |
+| `-32021` | domain validation error |
+| `-32022` | domain conflict |
+| `-32023` | generic domain error |
 
 #### `-32001` tactic failed
 
@@ -341,6 +429,27 @@ The hub removes the session and reports the failure.
 #### `-32013` stale or unknown node id
 
 A tactic-state node id is unknown in the current worker session, or it became stale after reopen/restart.
+
+#### `-32020` / `-32021` / `-32022` / `-32023` domain errors
+
+These are used for direct knowledge-base and informal-layer operations.
+The JSON-RPC error `data` is structured and preserves lower-layer identity:
+
+```json
+{
+  "layer": "knowledgebase",
+  "code": "node.notFound",
+  "message": "Node not found: group.basic.missing",
+  "exitCode": 3
+}
+```
+
+Semantics:
+
+- `-32020` = not found
+- `-32021` = validation error
+- `-32022` = conflict
+- `-32023` = other domain-level failure
 
 ## Public behavior worth relying on
 

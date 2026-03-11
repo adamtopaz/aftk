@@ -64,10 +64,12 @@ private def errorMessage? (json : Json) : Option String := do
   let msg ← jsonField? err "message"
   msg.getStr?.toOption
 
-private def errorDataString? (json : Json) : Option String := do
+private def errorData? (json : Json) : Option Json := do
   let err ← jsonField? json "error"
-  let data := jsonField? err "data"
-  match data with
+  jsonField? err "data"
+
+private def errorDataString? (json : Json) : Option String :=
+  match errorData? json with
   | some (.str text) => some text
   | _ => none
 
@@ -89,6 +91,11 @@ private def result? (json : Json) : Option Json :=
   match errorMessage? json with
   | some message => pure message
   | none => fail s!"expected JSON-RPC error message, got: {json.compress}"
+
+@[inline] def responseErrorData (json : Json) : TestM Json :=
+  match errorData? json with
+  | some data => pure data
+  | none => fail s!"expected JSON-RPC error data, got: {json.compress}"
 
 @[inline] def responseErrorDataString (json : Json) : TestM String :=
   match errorDataString? json with

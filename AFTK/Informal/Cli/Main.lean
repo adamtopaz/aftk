@@ -2,7 +2,7 @@ module
 
 public import AFTK.Informal.Cli.Parse
 public import AFTK.Informal.Cli.Render
-public import AFTK.KnowledgeBase.PathLayout
+public import AFTK.Informal.Service
 
 public section
 
@@ -13,109 +13,52 @@ namespace Main
 
 open Lean
 open AFTK.KnowledgeBase
-open AFTK.KnowledgeBase.PathLayout
 
-private unsafe def importEnvironment (modules : Array Name) : IO Environment := do
-  let sysroot ← Lean.findSysroot
-  Lean.initSearchPath sysroot
-  Lean.enableInitializersExecution
-  let imports := modules.map fun moduleName => ({ module := moduleName : Import })
-  Lean.importModules imports {} (loadExts := true)
+private def mapExcept (f : α → β) : Except ε α → Except ε β
+  | .ok value => .ok (f value)
+  | .error err => .error err
 
-private def runCoreInEnv (env : Environment) (x : CoreM α) : IO α := do
-  let ctx : Core.Context := {
-    fileName := "<aftk-informal-cli>"
-    fileMap := FileMap.ofString ""
-    options := {}
-  }
-  let state : Core.State := { env := env }
-  x.toIO' ctx state
-
-private def declMatchesPrefix (pref : Name) (declName : Name) : Bool :=
-  pref.isPrefixOf declName
-
-private def filterDeclEntries (entries : Array InformalDeclEntry) (opts : DeclsOptions) : Array InformalDeclEntry :=
-  entries.filter fun entry =>
-    let prefixOk := match opts.prefix? with
-      | some pref => declMatchesPrefix pref entry.declName
-      | none => true
-    let refOk := match opts.ref? with
-      | some ref => entry.refs.contains ref
-      | none => true
-    prefixOk && refOk
-
-private def filterRefEntries (entries : Array InformalReferenceEntry) (opts : RefsOptions) : Array InformalReferenceEntry :=
-  entries.filter fun entry =>
-    match opts.prefix? with
-    | some pref => entry.ref.startsWithSegmentPrefix pref
-    | none => true
-
-private def statusInfo : CoreM StatusResult := do
-  let declEntries ← allInformalDeclEntries
-  let refEntries ← allInformalReferenceEntries
-  pure {
-    trackedDeclarations := declEntries.size
-    trackedReferences := refEntries.size
-    declarationsWithMultipleReferences := declEntries.foldl (init := 0) fun acc entry =>
-      if entry.refs.size > 1 then acc + 1 else acc
-  }
-
-private def commandResultInEnv (command : Command) : CoreM CommandResult := do
-  match command with
-  | .status =>
-      .status <$> statusInfo
-  | .decls opts => do
-      let entries ← allInformalDeclEntries
-      pure <| .decls (filterDeclEntries entries opts)
-  | .decl declName => do
-      let some entry ← informalDeclEntry? declName
-        | throwError "declaration '{declName}' is not tracked"
-      pure <| .decl entry
-  | .refs opts => do
-      let entries ← allInformalReferenceEntries
-      pure <| .refs (filterRefEntries entries opts)
-  | .ref ref => do
-      let some entry ← informalReferenceEntry? ref
-        | throwError "reference '{ref}' is not tracked"
-      pure <| .ref entry
-  | .deps opts =>
-      match opts.mode with
-      | .decl =>
-          let rows ← allInformalDeclDependencyEntries
-          let leaves ← informalDeclDependencyLeaves
-          let rows := if opts.onlyLeaves then rows.filter (·.dependencies.isEmpty) else rows
-          pure <| .declDeps rows leaves
-      | .ref =>
-          let rows ← allInformalReferenceDependencyEntries
-          let leaves ← informalReferenceDependencyLeaves
-          let rows := if opts.onlyLeaves then rows.filter (·.dependencies.isEmpty) else rows
-          pure <| .refDeps rows leaves
-  | .present .. =>
-      throwError "present is not an environment-backed command"
-
-private def presentResult (global : GlobalOptions) (ref : InformalReference) (opts : PresentOptions) : IO (Except KnowledgeBaseError CommandResult) := do
-  let root ← resolveRootPath global.root?
-  let resolved ← (resolveInformalReferenceAtRoot root ref).toIO'
-  pure <| resolved.map fun resolved =>
-    match opts.mode with
-    | .compact => .presentCompact (summaryOfResolved resolved)
-    | .rich => .presentRich (payloadOfResolved resolved opts.bodyMode) opts.bodyMode
+private def presentCommandResult (result : Service.PresentResult) : CommandResult :=
+  match result.mode, result.payload?, result.bodyMode? with
+  | .compact, _, _ =>
+      .presentCompact result.summary
+  | .rich, some payload, some bodyMode =>
+      .presentRich payload bodyMode
+  | .rich, _, _ =>
+      .presentRich {
+        summary := result.summary
+      } .preview
 
 private unsafe def commandResult (global : GlobalOptions) (command : Command) : IO (Except KnowledgeBaseError CommandResult) := do
   match command with
-  | .present ref opts =>
-      presentResult global ref opts
-  | _ =>
-      try
-        let env ← importEnvironment global.modules
-        let result ← runCoreInEnv env (commandResultInEnv command)
-        pure <| .ok result
-      catch ex =>
-        let message := ex.toString
-        if message.contains "is not tracked" then
-          pure <| .error <| KnowledgeBaseError.notFound "informal.notTracked" message
-        else
-          pure <| .error <| KnowledgeBaseError.generic "informal.queryFailed" message 1
+  | .status =>
+      return mapExcept CommandResult.status (← Service.status global.modules)
+  | .decls opts =>
+      return mapExcept CommandResult.decls (← Service.decls global.modules { prefix? := opts.prefix?, ref? := opts.ref? })
+  | .decl declName =>
+      return mapExcept CommandResult.decl (← Service.decl global.modules declName)
+  | .refs opts =>
+      return mapExcept CommandResult.refs (← Service.refs global.modules { prefix? := opts.prefix? })
+  | .ref ref =>
+      return mapExcept CommandResult.ref (← Service.ref global.modules ref)
+  | .deps opts =>
+      match opts.mode with
+      | .decl =>
+          return mapExcept (fun result => CommandResult.declDeps result.rows result.leaves)
+            (← Service.declDependencies global.modules opts.onlyLeaves)
+      | .ref =>
+          return mapExcept (fun result => CommandResult.refDeps result.rows result.leaves)
+            (← Service.refDependencies global.modules opts.onlyLeaves)
+  | .present ref opts => do
+      let rootResult ← (Service.resolveRoot global.root?).toIO'
+      match rootResult with
+      | .error err =>
+          return .error err
+      | .ok root =>
+          let result ← (Service.presentAtRoot root ref
+            (match opts.mode with | .compact => .compact | .rich => .rich)
+            opts.bodyMode).toIO'
+          return mapExcept presentCommandResult result
 
 /-- Run the informal CLI and return its exit code. -/
 unsafe def run (args : List String) : IO UInt8 := do

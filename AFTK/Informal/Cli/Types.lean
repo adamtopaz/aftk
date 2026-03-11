@@ -1,6 +1,7 @@
 module
 
 public import AFTK.Informal
+public import AFTK.Informal.Service
 
 public section
 
@@ -71,11 +72,7 @@ inductive HelpTopic
   | present
   deriving Repr, DecidableEq, Inhabited
 
-structure StatusResult where
-  trackedDeclarations : Nat
-  trackedReferences : Nat
-  declarationsWithMultipleReferences : Nat
-  deriving Repr, DecidableEq, Inhabited
+abbrev StatusResult := AFTK.Informal.Service.StatusInfo
 
 inductive CommandResult
   | status (info : StatusResult)

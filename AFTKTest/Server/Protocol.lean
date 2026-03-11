@@ -20,6 +20,10 @@ private def errorCodes : TestCase := {
     assertEq ErrorCode.fileChanged (-32011)
     assertEq ErrorCode.workerUnavailable (-32012)
     assertEq ErrorCode.staleNode (-32013)
+    assertEq ErrorCode.domainNotFound (-32020)
+    assertEq ErrorCode.domainValidation (-32021)
+    assertEq ErrorCode.domainConflict (-32022)
+    assertEq ErrorCode.domainError (-32023)
 }
 
 private def runTacticResultRoundTrip : TestCase := {
@@ -49,8 +53,36 @@ private def hoverJsonShape : TestCase := {
     assertContains text "\"range\""
 }
 
+private def informalDeclDtoRoundTrip : TestCase := {
+  name := "server.protocol.informalDeclDtoRoundTrip"
+  run := do
+    let value : InformalDeclDto := {
+      declName := "Demo.basic"
+      refs := #[{ nodeId := ⟨"group.basic.definition"⟩ }]
+      refCount := 1
+    }
+    let json := toJson value
+    let decoded ←
+      match fromJson? (α := InformalDeclDto) json with
+      | .ok decoded => pure decoded
+      | .error err => fail err
+    assertEq decoded value
+}
+
+private def domainErrorShape : TestCase := {
+  name := "server.protocol.domainErrorShape"
+  run := do
+    let err := knowledgeBaseError "knowledgebase" <| AFTK.KnowledgeBase.KnowledgeBaseError.notFound "node.notFound" "missing node"
+    assertEq err.code ErrorCode.domainNotFound
+    let data := err.data?.getD Json.null
+    let text := data.compress
+    assertContains text "\"layer\":\"knowledgebase\""
+    assertContains text "\"code\":\"node.notFound\""
+    assertContains text "\"exitCode\":3"
+}
+
 
 def tests : List TestCase :=
-  [errorCodes, runTacticResultRoundTrip, hoverJsonShape]
+  [errorCodes, runTacticResultRoundTrip, hoverJsonShape, informalDeclDtoRoundTrip, domainErrorShape]
 
 end AFTKTest.Server.Protocol

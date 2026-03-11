@@ -12,7 +12,7 @@ For a component-by-component guide with direct code pointers, see `docs/server/l
 
 ## Architecture in one sentence
 
-`aftk_server` is a hub that manages one `aftk_file_worker` process per open Lean file.
+`aftk_server` is a JSON-RPC hub that manages one `aftk_file_worker` process per open Lean file and also serves direct knowledge-base and informal-layer operations.
 
 ## What is implemented
 
@@ -20,13 +20,15 @@ The current server layer includes:
 
 - shared protocol types in `AFTK.Server.Protocol`
 - `lean_worker`-based JSON-RPC transport helpers in `AFTK.Server.Transport`
-- hub/session management in `AFTK.Server.Hub`
+- hub/session management plus direct knowledge-base / informal handlers in `AFTK.Server.Hub`
 - one-shot file snapshot construction in `AFTK.FileWorker.Context`
 - source-position Lean queries in `AFTK.FileWorker.Queries`
 - transient tactic-state capture and replay in `AFTK.FileWorker.TacticState`
+- shared knowledge-base execution logic in `AFTK.KnowledgeBase.Service`
+- shared informal execution logic in `AFTK.Informal.Service`
 - richer `informal[...]` hover integration in `AFTK.FileWorker.Informal`
 - executable wrappers for the hub and worker
-- direct worker tests, hub tests, integration tests, and subprocess end-to-end tests
+- direct worker tests, hub tests, integration tests, subprocess end-to-end tests, and Python client tests
 
 ## Executables
 
@@ -118,7 +120,9 @@ Invalid positions are reported as JSON-RPC invalid-params errors.
 
 ## Query surface
 
-The current public hub methods are:
+The current public hub methods are grouped into three families.
+
+File-worker methods:
 
 - `open`
 - `close`
@@ -130,6 +134,44 @@ The current public hub methods are:
 - `get_goals`
 - `run_tactic`
 - `run_tactic_steps`
+
+Knowledge-base methods:
+
+- `knowledgebase_init`
+- `knowledgebase_status`
+- `knowledgebase_list`
+- `knowledgebase_show`
+- `knowledgebase_get_body`
+- `knowledgebase_get_metadata`
+- `knowledgebase_get_paths`
+- `knowledgebase_create`
+- `knowledgebase_rename`
+- `knowledgebase_delete`
+- `knowledgebase_set_body`
+- `knowledgebase_replace_metadata`
+- `knowledgebase_validate_metadata`
+- `knowledgebase_validate_storage`
+- `knowledgebase_validate_node`
+- `knowledgebase_validate_all`
+- `knowledgebase_search_text`
+- `knowledgebase_search_tag`
+- `knowledgebase_relationships_outgoing`
+- `knowledgebase_relationships_incoming`
+- `knowledgebase_relationships_related`
+
+Informal methods:
+
+- `informal_status`
+- `informal_decls`
+- `informal_decl`
+- `informal_refs`
+- `informal_ref`
+- `informal_decl_deps`
+- `informal_ref_deps`
+- `informal_present`
+
+And the hub shutdown method:
+
 - `shutdown`
 
 These are documented in detail in `docs/server/protocol.md`.
@@ -200,8 +242,8 @@ A typical client session looks like this:
 - one-shot file snapshots only
 - no incremental document updates
 - no request cancellation layer beyond what the transport/library already provides
-- no first-class server methods for generic knowledge-base operations
 - no persistence of tactic exploration history
+- no server-side caching yet for imported informal environments
 
 These are intentional current boundaries, not accidental omissions in the docs.
 

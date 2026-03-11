@@ -83,11 +83,28 @@ instance : ToJson PresentationMode where
     | .compact => toJson "compact"
     | .rich => toJson "rich"
 
+instance : FromJson PresentationMode where
+  fromJson? json := do
+    let value ← Json.getStr? json
+    match value with
+    | "compact" => pure .compact
+    | "rich" => pure .rich
+    | _ => throw s!"unknown presentation mode '{value}'"
+
 instance : ToJson BodyRenderMode where
   toJson
     | .none => toJson "none"
     | .preview => toJson "preview"
     | .full => toJson "full"
+
+instance : FromJson BodyRenderMode where
+  fromJson? json := do
+    let value ← Json.getStr? json
+    match value with
+    | "none" => pure .none
+    | "preview" => pure .preview
+    | "full" => pure .full
+    | _ => throw s!"unknown body render mode '{value}'"
 
 private def normalizeOptionalText (text? : Option String) : Option String :=
   text?.bind fun text =>
