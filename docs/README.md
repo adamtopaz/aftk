@@ -57,6 +57,7 @@ Then use the layer-specific implementation guides for component-level details.
 
 - `docs/framework/overview.md` — project requirements, Python runner usage, `.aftk/` state layout, and inspection workflow
 - `docs/framework/library.md` — module-by-module guide to the Python framework APIs and main services
+- `docs/framework/example-config.yaml` — example Hydra config for `autoformalize`
 
 ## Project-level docs
 

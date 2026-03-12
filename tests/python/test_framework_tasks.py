@@ -19,6 +19,7 @@ from aftk.tasks import (
     TaskEvent,
     TaskEventKind,
     TaskGraphError,
+    TaskLifecycleError,
     TaskPatch,
     TaskPriority,
     TaskService,
@@ -293,7 +294,7 @@ class TaskServiceTests(unittest.TestCase):
                     now=ts(2026, 3, 1, 4, 1),
                 )
 
-    def test_finish_attempt_records_attempt_without_direct_graph_mutation(self) -> None:
+    def test_reconcile_finished_attempt_marks_completed_task_and_clears_active_attempt(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             service = TaskService(Path(tmp) / ".aftk" / "tasks")
             service.store.save_state(make_state(make_task(id="task-0001", status=TaskStatus.READY)))
@@ -313,20 +314,121 @@ class TaskServiceTests(unittest.TestCase):
                 now=ts(2026, 3, 1, 5, 10),
             )
 
+            reconciled_task = service.reconcile_finished_attempt(
+                attempt.id,
+                actor="runner",
+                now=ts(2026, 3, 1, 5, 11),
+            )
+
             self.assertEqual(finished_attempt.status, TaskAttemptStatus.COMPLETED)
             self.assertEqual(service.store.load_attempt(attempt.id), finished_attempt)
+            self.assertEqual(reconciled_task.status, TaskStatus.COMPLETED)
+            self.assertIsNone(reconciled_task.current_attempt_id)
+            self.assertEqual(reconciled_task.notes[-1].message, "The worker finished successfully.")
 
-            state_after_finish = service.load_state()
-            self.assertEqual(state_after_finish.tasks["task-0001"].status, TaskStatus.IN_PROGRESS)
-            self.assertEqual(state_after_finish.tasks["task-0001"].current_attempt_id, attempt.id)
+            state_after_reconcile = service.load_state()
+            self.assertEqual(state_after_reconcile.tasks["task-0001"].status, TaskStatus.COMPLETED)
+            self.assertIsNone(state_after_reconcile.tasks["task-0001"].current_attempt_id)
 
-            completed_task = service.apply_patch(
-                TaskPatch(task_id="task-0001", new_status=TaskStatus.COMPLETED),
-                actor="orchestrator",
-                now=ts(2026, 3, 1, 5, 20),
+            reconciliation_event = service.store.load_events()[-1]
+            self.assertEqual(reconciliation_event.kind, TaskEventKind.TASK_PATCHED)
+            self.assertEqual(reconciliation_event.payload["reason"], "attempt_reconciled")
+            self.assertEqual(reconciliation_event.payload["attempt_status"], TaskAttemptStatus.COMPLETED.value)
+            self.assertEqual(reconciliation_event.payload["new_status"], TaskStatus.COMPLETED.value)
+
+    def test_reconcile_finished_attempt_requeues_partial_task_as_ready(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            service = TaskService(Path(tmp) / ".aftk" / "tasks")
+            service.store.save_state(make_state(make_task(id="task-0001", status=TaskStatus.READY)))
+
+            attempt = service.claim_task(
+                "task-0001",
+                actor="runner",
+                worker_kind="worker",
+                now=ts(2026, 3, 1, 5),
             )
-            self.assertEqual(completed_task.status, TaskStatus.COMPLETED)
-            self.assertIsNone(completed_task.current_attempt_id)
+            service.finish_attempt(
+                attempt.id,
+                actor="runner",
+                status=TaskAttemptStatus.PARTIAL,
+                summary="The worker made partial progress.",
+                run_id="run-0001",
+                now=ts(2026, 3, 1, 5, 10),
+            )
+
+            reconciled_task = service.reconcile_finished_attempt(
+                attempt.id,
+                actor="runner",
+                now=ts(2026, 3, 1, 5, 11),
+            )
+
+            self.assertEqual(reconciled_task.status, TaskStatus.READY)
+            self.assertIsNone(reconciled_task.current_attempt_id)
+            self.assertEqual(reconciled_task.notes[-1].message, "The worker made partial progress.")
+            self.assertEqual([task.id for task in service.list_ready_tasks()], ["task-0001"])
+
+    def test_reconcile_finished_attempt_marks_blocked_task_and_persists_blockers(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            service = TaskService(Path(tmp) / ".aftk" / "tasks")
+            service.store.save_state(make_state(make_task(id="task-0001", status=TaskStatus.READY)))
+
+            attempt = service.claim_task(
+                "task-0001",
+                actor="runner",
+                worker_kind="worker",
+                now=ts(2026, 3, 1, 5),
+            )
+            service.finish_attempt(
+                attempt.id,
+                actor="runner",
+                status=TaskAttemptStatus.BLOCKED,
+                summary="Need a missing theorem from the source paper.",
+                run_id="run-0001",
+                now=ts(2026, 3, 1, 5, 10),
+            )
+
+            blockers = [Blocker(kind=BlockerKind.INFORMATION, summary="Need the missing theorem statement.")]
+            reconciled_task = service.reconcile_finished_attempt(
+                attempt.id,
+                actor="runner",
+                blockers=blockers,
+                now=ts(2026, 3, 1, 5, 11),
+            )
+
+            self.assertEqual(reconciled_task.status, TaskStatus.BLOCKED)
+            self.assertIsNone(reconciled_task.current_attempt_id)
+            self.assertEqual(reconciled_task.blockers, blockers)
+            self.assertEqual(reconciled_task.notes[-1].message, "Need a missing theorem from the source paper.")
+
+    def test_reconcile_finished_attempt_marks_failed_task(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            service = TaskService(Path(tmp) / ".aftk" / "tasks")
+            service.store.save_state(make_state(make_task(id="task-0001", status=TaskStatus.READY)))
+
+            attempt = service.claim_task(
+                "task-0001",
+                actor="runner",
+                worker_kind="worker",
+                now=ts(2026, 3, 1, 5),
+            )
+            service.finish_attempt(
+                attempt.id,
+                actor="runner",
+                status=TaskAttemptStatus.FAILED,
+                summary="The worker crashed while editing the file.",
+                run_id="run-0001",
+                now=ts(2026, 3, 1, 5, 10),
+            )
+
+            reconciled_task = service.reconcile_finished_attempt(
+                attempt.id,
+                actor="runner",
+                now=ts(2026, 3, 1, 5, 11),
+            )
+
+            self.assertEqual(reconciled_task.status, TaskStatus.FAILED)
+            self.assertIsNone(reconciled_task.current_attempt_id)
+            self.assertEqual(reconciled_task.notes[-1].message, "The worker crashed while editing the file.")
 
     def test_recover_interrupted_task_requeues_it_on_restart(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -368,6 +470,61 @@ class TaskServiceTests(unittest.TestCase):
             )
             self.assertEqual(second_attempt.id, "attempt-0002")
             self.assertEqual(restarted_service.load_state().tasks["task-0001"].attempt_count, 2)
+
+    def test_recovery_reconciles_finished_attempts_left_in_progress(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            service = TaskService(Path(tmp) / ".aftk" / "tasks")
+            task = make_task(
+                id="task-0001",
+                status=TaskStatus.IN_PROGRESS,
+                current_attempt_id="attempt-0001",
+                attempt_count=1,
+            )
+            service.store.save_state(make_state(task))
+            service.store.save_attempt(
+                make_attempt(
+                    id="attempt-0001",
+                    status=TaskAttemptStatus.PARTIAL,
+                    finished_at=ts(2026, 3, 1, 12, 5),
+                    summary="Partial proof work is complete.",
+                )
+            )
+
+            recovered = service.recover_interrupted_tasks(actor="system", now=ts(2026, 3, 1, 6, 10))
+
+            self.assertEqual([task.id for task in recovered], ["task-0001"])
+            self.assertEqual(recovered[0].status, TaskStatus.READY)
+            self.assertIsNone(recovered[0].current_attempt_id)
+            self.assertEqual(recovered[0].notes[-1].message, "Partial proof work is complete.")
+
+            recovery_event = service.store.load_events()[-1]
+            self.assertEqual(recovery_event.kind, TaskEventKind.TASK_RECOVERED)
+            self.assertEqual(recovery_event.payload["reason"], "finished_attempt_reconciled")
+            self.assertTrue(recovery_event.payload["attempt_record_found"])
+            self.assertEqual(recovery_event.payload["attempt_status"], TaskAttemptStatus.PARTIAL.value)
+            self.assertEqual(recovery_event.payload["new_status"], TaskStatus.READY.value)
+
+    def test_validate_runtime_state_rejects_finished_current_attempt(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            service = TaskService(Path(tmp) / ".aftk" / "tasks")
+            task = make_task(
+                id="task-0001",
+                status=TaskStatus.IN_PROGRESS,
+                current_attempt_id="attempt-0001",
+                attempt_count=1,
+            )
+            service.store.save_state(make_state(task))
+            service.store.save_attempt(
+                make_attempt(
+                    id="attempt-0001",
+                    status=TaskAttemptStatus.COMPLETED,
+                    finished_at=ts(2026, 3, 1, 12, 5),
+                    summary="Finished.",
+                )
+            )
+
+            with self.assertRaises(TaskLifecycleError):
+                service.validate_runtime_state()
 
     def test_recovery_tolerates_missing_attempt_metadata(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

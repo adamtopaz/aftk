@@ -5,8 +5,10 @@ from typing import Any
 
 from pydantic_ai import FunctionToolset
 
+from aftk.agents.tools.retries import wrap_async_tool_errors
 from aftk_client import (
     AsyncAftkClient,
+    CloseResult,
     GetGoalsResult,
     HoverResult,
     InfoViewResult,
@@ -25,6 +27,7 @@ from aftk_client import (
     KnowledgeBasePathsResult,
     KnowledgeBaseStatusResult,
     LoadNodeResult,
+    OpenResult,
     PlainGoalResult,
     PlainTermGoalResult,
     RelatedRelationships,
@@ -35,9 +38,20 @@ from aftk_client import (
 )
 
 
+DEFAULT_TOOLKIT_TOOL_RETRIES = 2
+
+
 class ToolkitQueryTools:
     def __init__(self, client: AsyncAftkClient) -> None:
         self.client = client
+
+    async def open(self, path: str, timeout_seconds: float | None = None) -> OpenResult:
+        """Open or reuse a Lean file session before using file-scoped Lean query tools."""
+        return await self.client.open(path, timeout=timeout_seconds)
+
+    async def close(self, path: str, timeout_seconds: float | None = None) -> CloseResult:
+        """Close a Lean file session when you are done with file-scoped Lean queries."""
+        return await self.client.close(path, timeout=timeout_seconds)
 
     async def load_node(self, path: str, line: int, col: int, timeout_seconds: float | None = None) -> LoadNodeResult:
         """Load the Lean syntax node at a 1-indexed file position."""
@@ -319,41 +333,48 @@ class ToolkitQueryTools:
 
     def tool_functions(self) -> tuple[Callable[..., object], ...]:
         return (
-            self.load_node,
-            self.get_hover,
-            self.get_plain_goal,
-            self.get_plain_term_goal,
-            self.get_infoview,
-            self.get_goals,
-            self.run_tactic,
-            self.run_tactic_steps,
-            self.knowledgebase_status,
-            self.knowledgebase_list,
-            self.knowledgebase_show,
-            self.knowledgebase_get_body,
-            self.knowledgebase_get_paths,
-            self.knowledgebase_search_text,
-            self.knowledgebase_search_tag,
-            self.knowledgebase_relationships_outgoing,
-            self.knowledgebase_relationships_incoming,
-            self.knowledgebase_relationships_related,
-            self.informal_status,
-            self.informal_decls,
-            self.informal_decl,
-            self.informal_refs,
-            self.informal_ref,
-            self.informal_decl_deps,
-            self.informal_ref_deps,
-            self.informal_present,
+            wrap_async_tool_errors(self.open),
+            wrap_async_tool_errors(self.close),
+            wrap_async_tool_errors(self.load_node),
+            wrap_async_tool_errors(self.get_hover),
+            wrap_async_tool_errors(self.get_plain_goal),
+            wrap_async_tool_errors(self.get_plain_term_goal),
+            wrap_async_tool_errors(self.get_infoview),
+            wrap_async_tool_errors(self.get_goals),
+            wrap_async_tool_errors(self.run_tactic),
+            wrap_async_tool_errors(self.run_tactic_steps),
+            wrap_async_tool_errors(self.knowledgebase_status),
+            wrap_async_tool_errors(self.knowledgebase_list),
+            wrap_async_tool_errors(self.knowledgebase_show),
+            wrap_async_tool_errors(self.knowledgebase_get_body),
+            wrap_async_tool_errors(self.knowledgebase_get_paths),
+            wrap_async_tool_errors(self.knowledgebase_search_text),
+            wrap_async_tool_errors(self.knowledgebase_search_tag),
+            wrap_async_tool_errors(self.knowledgebase_relationships_outgoing),
+            wrap_async_tool_errors(self.knowledgebase_relationships_incoming),
+            wrap_async_tool_errors(self.knowledgebase_relationships_related),
+            wrap_async_tool_errors(self.informal_status),
+            wrap_async_tool_errors(self.informal_decls),
+            wrap_async_tool_errors(self.informal_decl),
+            wrap_async_tool_errors(self.informal_refs),
+            wrap_async_tool_errors(self.informal_ref),
+            wrap_async_tool_errors(self.informal_decl_deps),
+            wrap_async_tool_errors(self.informal_ref_deps),
+            wrap_async_tool_errors(self.informal_present),
         )
 
 
 def build_toolkit_query_toolset(toolkit_client: AsyncAftkClient) -> Any:
     tools = ToolkitQueryTools(toolkit_client)
-    return FunctionToolset(tools=list(tools.tool_functions()))
+    return FunctionToolset(
+        tools=list(tools.tool_functions()),
+        max_retries=DEFAULT_TOOLKIT_TOOL_RETRIES,
+        sequential=True,
+    )
 
 
 __all__ = [
+    "DEFAULT_TOOLKIT_TOOL_RETRIES",
     "ToolkitQueryTools",
     "build_toolkit_query_toolset",
 ]

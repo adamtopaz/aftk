@@ -27,6 +27,9 @@ Your job is to manage the global plan without doing detailed task execution your
 
 Requirements:
 - inspect the current task graph and latest project context before deciding what should happen next
+- Lean file-scoped toolkit queries require an open file session first; call open(path=...) before load_node, hover, goal, or tactic tools
+- if a toolkit tool says a file is not open or changed, call open(path=...) and then retry the query
+- if a toolkit tool says a node id is stale, call load_node(...) again to get a fresh node id before continuing
 - choose only tasks that are actually ready for worker execution
 - keep tasks small, local, and dependency-aware
 - interpret the latest worker report when present and update the graph accordingly
@@ -116,6 +119,7 @@ class OrchestratorService:
         snapshot: ProjectSnapshot | None = None,
         user_prompt: str = DEFAULT_ORCHESTRATOR_USER_PROMPT,
         toolsets: Sequence[Any] | None = None,
+        event_stream_handler: Any | None = None,
     ) -> AgentRunResult[OrchestratorDecision]:
         chosen_snapshot = self.prepare_snapshot(snapshot)
         chosen_task_snapshot = self.task_service.load_state() if task_snapshot is None else task_snapshot
@@ -135,11 +139,22 @@ class OrchestratorService:
             run_kwargs["model"] = run_model
         if toolsets is not None:
             run_kwargs["toolsets"] = list(toolsets)
+        if event_stream_handler is not None and _supports_event_streaming(run_model, chosen_agent):
+            run_kwargs["event_stream_handler"] = event_stream_handler
         return await chosen_agent.run(user_prompt, **run_kwargs)
 
 
 def _default_orchestrator_toolset(ctx: RunContext[OrchestratorDeps]) -> Any:
     return CombinedToolset(toolsets=list(build_orchestrator_toolsets(ctx.deps.project_snapshot, ctx.deps.toolkit_client)))
+
+
+def _supports_event_streaming(model: Any | None, agent: Agent[OrchestratorDeps, OrchestratorDecision]) -> bool:
+    candidate = model if model is not None else agent.model
+    if candidate is None:
+        return True
+    if hasattr(candidate, "stream_function") and getattr(candidate, "stream_function") is None:
+        return False
+    return True
 
 
 def _resolve_run_model(

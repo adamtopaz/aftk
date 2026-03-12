@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
+from aftk.agents.tools.retries import wrap_tool_errors
 from aftk.coding.commands import ProjectCommandService
 from aftk.coding.filesystem import PathLike, ProjectFileService
 from aftk.coding.logs import CodingActionRecorder
@@ -14,6 +15,9 @@ try:
     from pydantic_ai import FunctionToolset
 except ImportError:  # pragma: no cover - exercised through fallback behavior in tests
     FunctionToolset = None
+
+
+DEFAULT_CODING_TOOL_RETRIES = 2
 
 
 class WorkerCodingTools:
@@ -90,15 +94,15 @@ class WorkerCodingTools:
 
     def tool_functions(self) -> tuple[Callable[..., object], ...]:
         return (
-            self.list_project_files,
-            self.search_project_text,
-            self.read_file,
-            self.read_file_slice,
-            self.write_file,
-            self.replace_in_file,
-            self.append_to_file,
-            self.run_command,
-            self.lake_build,
+            wrap_tool_errors(self.list_project_files),
+            wrap_tool_errors(self.search_project_text),
+            wrap_tool_errors(self.read_file),
+            wrap_tool_errors(self.read_file_slice),
+            wrap_tool_errors(self.write_file),
+            wrap_tool_errors(self.replace_in_file),
+            wrap_tool_errors(self.append_to_file),
+            wrap_tool_errors(self.run_command),
+            wrap_tool_errors(self.lake_build),
         )
 
 
@@ -110,7 +114,11 @@ def build_worker_coding_toolset(
     tools = WorkerCodingTools(project, recorder=recorder)
     if FunctionToolset is None:
         raise RuntimeError("pydantic-ai is not installed; install `pydantic-ai` to build worker coding toolsets")
-    return FunctionToolset(tools=list(tools.tool_functions()))
+    return FunctionToolset(
+        tools=list(tools.tool_functions()),
+        max_retries=DEFAULT_CODING_TOOL_RETRIES,
+        sequential=True,
+    )
 
 
-__all__ = ["WorkerCodingTools", "build_worker_coding_toolset"]
+__all__ = ["DEFAULT_CODING_TOOL_RETRIES", "WorkerCodingTools", "build_worker_coding_toolset"]

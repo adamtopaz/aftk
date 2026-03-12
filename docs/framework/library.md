@@ -130,8 +130,9 @@ created = service.create_tasks(
 Important design rule:
 
 - attempts are recorded separately from task definitions
-- finishing an attempt does **not** directly mark the task complete
-- task completion still flows through an orchestrator patch applied by deterministic code
+- `finish_attempt(...)` records the immutable attempt outcome and artifacts
+- `reconcile_finished_attempt(...)` deterministically folds that terminal attempt back into task state
+- interrupted `in_progress` tasks are recovered and validated on startup before the runner continues
 
 ## `aftk.coding`
 
@@ -181,6 +182,36 @@ Important safeguards:
 - writes into `.aftk/` are rejected
 - command executions are logged
 
+## `aftk.logging`
+
+Primary types/functions:
+
+- `LoggingCliConfig`
+- `LoggingRuntime`
+- `setup_logging(...)`
+- `log_event(...)`
+
+This module owns the framework's operator-facing logging policy.
+It configures:
+
+- console logging for live progress
+- `.aftk/cli.log` for persistent session logs
+- `.aftk/events.jsonl` for structured runtime events
+- dependency logger suppression by default
+- live `pydantic-ai` event streaming for tool calls, retries, and final-result traces
+
+Typical usage:
+
+```python
+from aftk.logging import LoggingCliConfig, setup_logging
+
+runtime = setup_logging(LoggingCliConfig(level="debug"), config)
+try:
+    ...
+finally:
+    runtime.close()
+```
+
 ## `aftk.agents`
 
 Primary types:
@@ -226,7 +257,7 @@ report = result.output
 The role-scoped tool wrappers live under `aftk.agents.tools`:
 
 - `project.py` — snapshot-backed read-only project tools
-- `toolkit.py` — `AsyncAftkClient` wrappers for Lean/knowledge-base/informal operations
+- `toolkit.py` — `AsyncAftkClient` wrappers for Lean/knowledge-base/informal operations, including Lean file-session tools such as `open` and `close`
 - `coding.py` — worker-only coding tools backed by `aftk.coding`
 
 Policy summary:
@@ -234,6 +265,8 @@ Policy summary:
 - initializer: project + toolkit tools
 - orchestrator: project + toolkit tools
 - worker: project + toolkit + coding tools
+
+The toolkit toolset exposes explicit Lean file-session lifecycle operations (`open`, `close`) alongside file-scoped Lean queries. Model-facing toolsets also convert common recoverable tool failures into retry prompts so the agent loop can continue instead of aborting immediately.
 
 ## `aftk.storage`
 

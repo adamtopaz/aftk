@@ -28,6 +28,9 @@ Your job is to execute exactly one assigned task.
 Requirements:
 - stay local to the provided task brief and do not take on global planning responsibilities
 - use the provided toolkit and coding tools when they help you inspect, edit, or validate the local project state
+- Lean file-scoped toolkit queries require an open file session first; call open(path=...) before load_node, hover, goal, or tactic tools
+- if a toolkit tool says a file is not open or changed, call open(path=...) and then retry the query
+- if a toolkit tool says a node id is stale, call load_node(...) again to get a fresh node id before continuing
 - do not mutate the task graph or claim completion by side effect; only report what happened
 - use surgical edits when possible and validate your changes when appropriate
 - if you are blocked, explain the missing prerequisite explicitly and include blockers in the WorkerReport
@@ -114,6 +117,7 @@ class WorkerService:
         user_prompt: str = DEFAULT_WORKER_USER_PROMPT,
         recorder: CodingActionRecorder | None = None,
         toolsets: Sequence[Any] | None = None,
+        event_stream_handler: Any | None = None,
     ) -> AgentRunResult[WorkerReport]:
         chosen_snapshot = self.prepare_snapshot(snapshot)
         chosen_agent = (
@@ -131,6 +135,8 @@ class WorkerService:
         }
         if run_model is not None:
             run_kwargs["model"] = run_model
+        if event_stream_handler is not None and _supports_event_streaming(run_model, chosen_agent):
+            run_kwargs["event_stream_handler"] = event_stream_handler
         return await chosen_agent.run(user_prompt, **run_kwargs)
 
 
@@ -138,6 +144,15 @@ def _default_worker_toolset(ctx: RunContext[WorkerDeps]) -> Any:
     return CombinedToolset(
         toolsets=list(build_worker_toolsets(ctx.deps.config, ctx.deps.project_snapshot, ctx.deps.toolkit_client))
     )
+
+
+def _supports_event_streaming(model: Any | None, agent: Agent[WorkerDeps, WorkerReport]) -> bool:
+    candidate = model if model is not None else agent.model
+    if candidate is None:
+        return True
+    if hasattr(candidate, "stream_function") and getattr(candidate, "stream_function") is None:
+        return False
+    return True
 
 
 def _resolve_run_model(

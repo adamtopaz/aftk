@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 from fnmatch import fnmatch
 from pathlib import Path
@@ -27,6 +28,13 @@ class ProjectSearchService(ProjectSandbox):
                 "limit": limit,
                 "result_count": len(results),
             },
+        )
+        self._log(
+            logging.DEBUG,
+            "list_project_files",
+            "listed project files",
+            tool_name="list_project_files",
+            summary=f"{len(results)} results",
         )
         return results
 
@@ -74,6 +82,13 @@ class ProjectSearchService(ProjectSandbox):
                             "result_count": len(matches),
                         },
                     )
+                    self._log(
+                        logging.DEBUG,
+                        "search_project_text",
+                        "searched project text",
+                        tool_name="search_project_text",
+                        summary=f"query={query!r} results={len(matches)}",
+                    )
                     return matches
 
         self._record_action(
@@ -85,6 +100,13 @@ class ProjectSearchService(ProjectSandbox):
                 "limit": limit,
                 "result_count": len(matches),
             },
+        )
+        self._log(
+            logging.DEBUG,
+            "search_project_text",
+            "searched project text",
+            tool_name="search_project_text",
+            summary=f"query={query!r} results={len(matches)}",
         )
         return matches
 

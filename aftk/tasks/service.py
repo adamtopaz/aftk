@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 import re
 from collections import defaultdict, deque
@@ -9,6 +10,8 @@ from pathlib import Path
 
 from aftk.tasks.models import (
     AttemptId,
+    Blocker,
+    BlockerKind,
     SummaryValue,
     Task,
     TaskAttempt,
@@ -23,11 +26,23 @@ from aftk.tasks.models import (
     TaskStatus,
     utc_now,
 )
+from aftk.logging import log_event
 from aftk.tasks.store import TaskStore
+
+
+LOGGER = logging.getLogger("aftk.tasks")
 
 
 PathLike = str | os.PathLike[str]
 TERMINAL_TASK_STATUSES = frozenset({TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.CANCELLED})
+_TERMINAL_ATTEMPT_STATUSES = frozenset(
+    {
+        TaskAttemptStatus.COMPLETED,
+        TaskAttemptStatus.PARTIAL,
+        TaskAttemptStatus.BLOCKED,
+        TaskAttemptStatus.FAILED,
+    }
+)
 _DYNAMIC_TASK_STATUSES = frozenset({TaskStatus.PLANNED, TaskStatus.READY})
 _ID_TEMPLATE = re.compile(r"^(?P<prefix>[a-z_]+)-(?P<number>\d+)$")
 
@@ -38,6 +53,10 @@ class TaskServiceError(Exception):
 
 class TaskGraphError(TaskServiceError):
     """The task graph violates dependency or status invariants."""
+
+
+class TaskLifecycleError(TaskServiceError):
+    """A task and its current attempt disagree about execution lifecycle state."""
 
 
 class TaskNotFoundError(TaskServiceError):
@@ -89,6 +108,30 @@ class TaskService:
             if task.status in {TaskStatus.READY, TaskStatus.IN_PROGRESS, TaskStatus.COMPLETED} and not dependencies_completed:
                 raise TaskGraphError(
                     f"task {task.id!r} with status {task.status.value!r} requires all dependencies to be completed"
+                )
+
+    def validate_runtime_state(self, state: TaskState | None = None) -> None:
+        current_state = self.load_state() if state is None else state
+        for task in self._tasks_in_topological_order(current_state):
+            if task.status is not TaskStatus.IN_PROGRESS:
+                continue
+            attempt_id = task.current_attempt_id
+            if attempt_id is None:
+                raise TaskLifecycleError(f"in-progress task {task.id!r} is missing current_attempt_id")
+            try:
+                attempt = self.store.load_attempt(attempt_id)
+            except FileNotFoundError as exc:
+                raise TaskLifecycleError(
+                    f"in-progress task {task.id!r} references missing attempt {attempt_id!r}"
+                ) from exc
+            if attempt.task_id != task.id:
+                raise TaskLifecycleError(
+                    f"in-progress task {task.id!r} references attempt {attempt_id!r} for task {attempt.task_id!r}"
+                )
+            if attempt.status is not TaskAttemptStatus.RUNNING:
+                raise TaskLifecycleError(
+                    f"in-progress task {task.id!r} references non-running attempt {attempt_id!r} "
+                    f"with status {attempt.status.value!r}"
                 )
 
     def is_task_ready(self, task: Task, state: TaskState) -> bool:
@@ -156,6 +199,14 @@ class TaskService:
         ]
         events.extend(self._normalization_events(committed_state, normalized_changes, actor=actor, excluded_task_ids=set(created_ids)))
         self._append_events(events)
+        log_event(
+            LOGGER,
+            logging.INFO,
+            "tasks_created",
+            "created tasks",
+            revision=committed_state.revision,
+            summary=", ".join(created_ids),
+        )
         return [committed_state.tasks[task_id] for task_id in created_ids]
 
     def apply_patch(self, patch: TaskPatch, *, actor: str, now: datetime | None = None) -> Task:
@@ -211,6 +262,15 @@ class TaskService:
             self._normalization_events(committed_state, normalized_changes, actor=actor, excluded_task_ids=direct_patch_task_ids)
         )
         self._append_events(events)
+        log_event(
+            LOGGER,
+            logging.DEBUG,
+            "tasks_patched",
+            "applied task patches",
+            revision=committed_state.revision,
+            patches=len(patches),
+            summary=", ".join(patch.task_id for patch in patches),
+        )
         return [committed_state.tasks[patch.task_id] for patch in patches]
 
     def claim_task(
@@ -226,6 +286,7 @@ class TaskService:
         tasks, _ = self._normalize_tasks(state.tasks, actor=actor, now=timestamp)
         state = self._candidate_state(state, tasks)
         self.validate_state(state)
+        self.validate_runtime_state(state)
 
         task = state.tasks.get(task_id)
         if task is None:
@@ -284,6 +345,16 @@ class TaskService:
                     payload={"worker_kind": worker_kind},
                 ),
             ]
+        )
+        log_event(
+            LOGGER,
+            logging.INFO,
+            "task_claimed",
+            "claimed task for execution",
+            task_id=task_id,
+            attempt_id=attempt.id,
+            worker_kind=worker_kind,
+            revision=committed_state.revision,
         )
         return attempt
 
@@ -354,13 +425,106 @@ class TaskService:
                 )
             ]
         )
+        log_event(
+            LOGGER,
+            logging.INFO,
+            "attempt_finished",
+            "finished task attempt",
+            task_id=task.id,
+            attempt_id=attempt_id,
+            run_id=finished_attempt.run_id,
+            status=finished_attempt.status.value,
+            summary=finished_attempt.summary,
+            revision=state.revision,
+        )
         return finished_attempt
+
+    def reconcile_finished_attempt(
+        self,
+        attempt_id: AttemptId,
+        *,
+        actor: str,
+        blockers: Sequence[Blocker] | None = None,
+        note: str | None = None,
+        now: datetime | None = None,
+    ) -> Task:
+        timestamp = utc_now() if now is None else now
+        state = self.load_state()
+        try:
+            attempt = self.store.load_attempt(attempt_id)
+        except FileNotFoundError as exc:
+            raise AttemptNotFoundError(f"unknown attempt id: {attempt_id}") from exc
+
+        if attempt.status is TaskAttemptStatus.RUNNING:
+            raise AttemptStateError(f"attempt {attempt_id!r} is still running and cannot be reconciled")
+
+        task = state.tasks.get(attempt.task_id)
+        if task is None:
+            raise TaskNotFoundError(f"unknown task id: {attempt.task_id}")
+        if task.current_attempt_id not in {None, attempt_id}:
+            raise AttemptStateError(
+                f"attempt {attempt_id!r} is not the current active attempt for task {attempt.task_id!r}"
+            )
+        if task.current_attempt_id is None and task.status is not TaskStatus.IN_PROGRESS:
+            return task
+
+        updated_task = self._task_after_finished_attempt(
+            task,
+            attempt,
+            actor=actor,
+            now=timestamp,
+            blockers=blockers,
+            note=note,
+        )
+        tasks = dict(state.tasks)
+        tasks[task.id] = updated_task
+        normalized_tasks, normalized_changes = self._normalize_tasks(tasks, actor=actor, now=timestamp)
+        candidate_state = self._candidate_state(state, normalized_tasks)
+        self.validate_state(candidate_state)
+
+        committed_state = self._commit_graph_state(candidate_state, now=timestamp)
+        self._append_events(
+            [
+                TaskEvent(
+                    kind=TaskEventKind.TASK_PATCHED,
+                    revision=committed_state.revision,
+                    task_id=task.id,
+                    attempt_id=attempt.id,
+                    actor=actor,
+                    payload={
+                        "reason": "attempt_reconciled",
+                        "old_status": task.status.value,
+                        "new_status": committed_state.tasks[task.id].status.value,
+                        "attempt_status": attempt.status.value,
+                    },
+                ),
+                *self._normalization_events(
+                    committed_state,
+                    normalized_changes,
+                    actor=actor,
+                    excluded_task_ids={task.id},
+                ),
+            ]
+        )
+        reconciled_task = committed_state.tasks[task.id]
+        log_event(
+            LOGGER,
+            logging.INFO,
+            "attempt_reconciled",
+            "reconciled finished attempt into task state",
+            task_id=task.id,
+            attempt_id=attempt.id,
+            status=reconciled_task.status.value,
+            reason=attempt.status.value,
+            revision=committed_state.revision,
+        )
+        return reconciled_task
 
     def recover_interrupted_tasks(self, *, actor: str = "system", now: datetime | None = None) -> list[Task]:
         timestamp = utc_now() if now is None else now
         state = self.load_state()
         tasks = dict(state.tasks)
-        recovered_attempts: list[tuple[Task, TaskAttempt | None]] = []
+        recovered_attempts: list[tuple[Task, TaskAttempt | None, str]] = []
 
         for task in self._tasks_in_topological_order(state):
             if task.status is not TaskStatus.IN_PROGRESS:
@@ -371,19 +535,33 @@ class TaskService:
                     attempt = self.store.load_attempt(task.current_attempt_id)
                 except FileNotFoundError:
                     attempt = None
+
+            if attempt is not None and attempt.status in _TERMINAL_ATTEMPT_STATUSES:
+                tasks[task.id] = self._task_after_finished_attempt(
+                    task,
+                    attempt,
+                    actor=actor,
+                    now=timestamp,
+                    blockers=None,
+                    note=attempt.summary,
+                )
+                recovered_attempts.append((task, attempt, "finished_attempt_reconciled"))
+                continue
+
             tasks[task.id] = self._replace_task(
                 task,
                 status=TaskStatus.PLANNED,
+                blockers=[],
                 current_attempt_id=None,
                 updated_by=actor,
                 updated_at=timestamp,
             )
-            recovered_attempts.append((task, attempt))
+            recovered_attempts.append((task, attempt, "startup_recovery"))
 
         if not recovered_attempts:
             return []
 
-        normalized_tasks, _ = self._normalize_tasks(tasks, actor=actor, now=timestamp)
+        normalized_tasks, normalized_changes = self._normalize_tasks(tasks, actor=actor, now=timestamp)
         candidate_state = self._candidate_state(state, normalized_tasks)
         self.validate_state(candidate_state)
 
@@ -397,17 +575,81 @@ class TaskService:
                     attempt_id=task.current_attempt_id,
                     actor=actor,
                     payload={
-                        "reason": "startup_recovery",
+                        "reason": reason,
                         "old_status": task.status.value,
                         "new_status": committed_state.tasks[task.id].status.value,
                         "attempt_record_found": attempt is not None,
                         "attempt_status": None if attempt is None else attempt.status.value,
                     },
                 )
-                for task, attempt in recovered_attempts
+                for task, attempt, reason in recovered_attempts
             ]
+            + self._normalization_events(
+                committed_state,
+                normalized_changes,
+                actor=actor,
+                excluded_task_ids={task.id for task, _, _ in recovered_attempts},
+            )
         )
-        return [committed_state.tasks[task.id] for task, _ in recovered_attempts]
+        log_event(
+            LOGGER,
+            logging.WARNING,
+            "tasks_recovered",
+            "recovered interrupted tasks",
+            revision=committed_state.revision,
+            summary=", ".join(task.id for task, _, _ in recovered_attempts),
+        )
+        return [committed_state.tasks[task.id] for task, _, _ in recovered_attempts]
+
+    def _task_after_finished_attempt(
+        self,
+        task: Task,
+        attempt: TaskAttempt,
+        *,
+        actor: str,
+        now: datetime,
+        blockers: Sequence[Blocker] | None,
+        note: str | None,
+    ) -> Task:
+        task_status = self._task_status_for_attempt(attempt.status)
+        notes = list(task.notes)
+        note_message = (attempt.summary if note is None else note).strip() if (attempt.summary if note is None else note) else None
+        if note_message:
+            notes.append(TaskNote(author=actor, message=note_message, timestamp=now))
+        return self._replace_task(
+            task,
+            status=task_status,
+            blockers=self._blockers_for_finished_attempt(attempt, blockers=blockers),
+            notes=notes,
+            current_attempt_id=None,
+            updated_by=actor,
+            updated_at=now,
+        )
+
+    @staticmethod
+    def _task_status_for_attempt(status: TaskAttemptStatus) -> TaskStatus:
+        if status is TaskAttemptStatus.COMPLETED:
+            return TaskStatus.COMPLETED
+        if status is TaskAttemptStatus.PARTIAL:
+            return TaskStatus.PLANNED
+        if status is TaskAttemptStatus.BLOCKED:
+            return TaskStatus.BLOCKED
+        if status is TaskAttemptStatus.FAILED:
+            return TaskStatus.FAILED
+        raise AttemptStateError(f"cannot derive task status from running attempt status {status.value!r}")
+
+    @staticmethod
+    def _blockers_for_finished_attempt(
+        attempt: TaskAttempt,
+        *,
+        blockers: Sequence[Blocker] | None,
+    ) -> list[Blocker]:
+        if attempt.status is not TaskAttemptStatus.BLOCKED:
+            return []
+        if blockers is not None:
+            return list(blockers)
+        summary = attempt.summary or f"Worker attempt {attempt.id} ended blocked."
+        return [Blocker(kind=BlockerKind.INFORMATION, summary=summary)]
 
     def _apply_single_patch(self, task: Task, patch: TaskPatch, *, actor: str, now: datetime) -> Task:
         dependencies = [dependency for dependency in task.depends_on if dependency not in set(patch.remove_dependencies)]
@@ -572,6 +814,7 @@ __all__ = [
     "AttemptNotFoundError",
     "AttemptStateError",
     "TaskGraphError",
+    "TaskLifecycleError",
     "TaskNotFoundError",
     "TaskNotReadyError",
     "TaskService",

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -7,6 +8,7 @@ from tempfile import NamedTemporaryFile
 
 from aftk.config import FrameworkConfig, FrameworkPaths
 from aftk.coding.logs import CodingActionRecorder
+from aftk.logging import log_event
 from aftk.coding.models import (
     CodingActionKind,
     FileEditResult,
@@ -14,6 +16,9 @@ from aftk.coding.models import (
     FileWriteResult,
     RelativeCodingPath,
 )
+
+
+LOGGER = logging.getLogger("aftk.coding")
 
 
 PathLike = str | os.PathLike[str]
@@ -57,6 +62,18 @@ class ProjectSandbox:
         self.project_root = context.project_root
         self.runs_dir = context.runs_dir
         self.recorder = recorder
+
+    def _log_context(self) -> dict[str, object]:
+        if self.recorder is None:
+            return {}
+        return {
+            "run_id": self.recorder.store.run_id,
+            "task_id": self.recorder.task_id,
+            "attempt_id": self.recorder.attempt_id,
+        }
+
+    def _log(self, level: int, event_type: str, message: str, **context: object) -> None:
+        log_event(LOGGER, level, event_type, message, **self._log_context(), **context)
 
     def relative_path(self, path: PathLike) -> RelativeCodingPath:
         candidate = Path(path).expanduser()
@@ -169,6 +186,13 @@ class ProjectFileService(ProjectSandbox):
             path=resolved,
             details={"bytes_read": len(content.encode("utf-8"))},
         )
+        self._log(
+            logging.DEBUG,
+            "read_file",
+            "read file",
+            tool_name="read_file",
+            summary=self.relative_path(resolved),
+        )
         return FileReadResult(path=self.relative_path(resolved), content=content)
 
     def read_file_slice(self, path: PathLike, start_line: int, end_line: int) -> FileReadResult:
@@ -189,6 +213,13 @@ class ProjectFileService(ProjectSandbox):
                 "end_line": actual_end,
                 "bytes_read": len(content.encode("utf-8")),
             },
+        )
+        self._log(
+            logging.DEBUG,
+            "read_file_slice",
+            "read file slice",
+            tool_name="read_file_slice",
+            summary=f"{self.relative_path(resolved)}:{start_line}-{actual_end}",
         )
         return FileReadResult(
             path=self.relative_path(resolved),
@@ -213,6 +244,13 @@ class ProjectFileService(ProjectSandbox):
             CodingActionKind.WRITE_FILE,
             path=resolved,
             details=result.model_dump(mode="json"),
+        )
+        self._log(
+            logging.DEBUG,
+            "write_file",
+            "wrote file",
+            tool_name="write_file",
+            summary=result.path,
         )
         return result
 
@@ -241,6 +279,13 @@ class ProjectFileService(ProjectSandbox):
             path=resolved,
             details=result.model_dump(mode="json"),
         )
+        self._log(
+            logging.DEBUG,
+            "replace_in_file",
+            "replaced text in file",
+            tool_name="replace_in_file",
+            summary=result.path,
+        )
         return result
 
     def append_to_file(self, path: PathLike, content: str) -> FileEditResult:
@@ -258,6 +303,13 @@ class ProjectFileService(ProjectSandbox):
             CodingActionKind.APPEND_TO_FILE,
             path=resolved,
             details=result.model_dump(mode="json"),
+        )
+        self._log(
+            logging.DEBUG,
+            "append_to_file",
+            "appended to file",
+            tool_name="append_to_file",
+            summary=result.path,
         )
         return result
 

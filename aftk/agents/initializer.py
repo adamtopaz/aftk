@@ -34,6 +34,9 @@ Your job is to understand the starting state of the project and propose the firs
 
 Requirements:
 - inspect the entrypoint, source inventory, and Lean workspace using the provided read-only tools when helpful
+- Lean file-scoped toolkit queries require an open file session first; call open(path=...) before load_node, hover, goal, or tactic tools
+- if a toolkit tool says a file is not open or changed, call open(path=...) and then retry the query
+- if a toolkit tool says a node id is stale, call load_node(...) again to get a fresh node id before continuing
 - produce a concise project summary focused on the current formalization state and near-term goals
 - list assumptions and risks explicitly when they matter
 - propose worker-sized TaskDraft items that are concrete, local, and executable with limited context
@@ -163,6 +166,7 @@ class InitializerService:
         snapshot: ProjectSnapshot | None = None,
         user_prompt: str = DEFAULT_INITIALIZER_USER_PROMPT,
         toolsets: Sequence[Any] | None = None,
+        event_stream_handler: Any | None = None,
     ) -> AgentRunResult[InitializationResult]:
         chosen_snapshot = self.prepare_snapshot(snapshot)
         chosen_agent = (
@@ -174,6 +178,8 @@ class InitializerService:
             run_kwargs["model"] = run_model
         if toolsets is not None:
             run_kwargs["toolsets"] = list(toolsets)
+        if event_stream_handler is not None and _supports_event_streaming(run_model, chosen_agent):
+            run_kwargs["event_stream_handler"] = event_stream_handler
         return await chosen_agent.run(user_prompt, **run_kwargs)
 
     def apply_initialization_result(
@@ -263,6 +269,15 @@ class InitializerService:
 
 def _default_initializer_toolset(ctx: RunContext[InitializerDeps]) -> Any:
     return CombinedToolset(toolsets=list(build_initializer_toolsets(ctx.deps.project_snapshot, ctx.deps.toolkit_client)))
+
+
+def _supports_event_streaming(model: Any | None, agent: Agent[InitializerDeps, InitializationResult]) -> bool:
+    candidate = model if model is not None else agent.model
+    if candidate is None:
+        return True
+    if hasattr(candidate, "stream_function") and getattr(candidate, "stream_function") is None:
+        return False
+    return True
 
 
 def _format_path_list(paths: Sequence[ProjectPathLike], *, limit: int = 12) -> str:

@@ -1,12 +1,22 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Sequence
 
 from pydantic import BaseModel, Field
+from pydantic_ai import capture_run_messages
 from pydantic_ai.agent import AgentRunResult
-from pydantic_ai.messages import ModelRequest, ModelResponse, RetryPromptPart, TextPart, ToolCallPart, ToolReturnPart
+from pydantic_ai.messages import (
+    ModelMessagesTypeAdapter,
+    ModelRequest,
+    ModelResponse,
+    RetryPromptPart,
+    TextPart,
+    ToolCallPart,
+    ToolReturnPart,
+)
 
 from aftk.agents import (
     DEFAULT_INITIALIZER_USER_PROMPT,
@@ -24,6 +34,7 @@ from aftk.agents import (
 )
 from aftk.coding.logs import CodingActionRecorder
 from aftk.config import FrameworkConfig, FrameworkModel, FrameworkPaths
+from aftk.logging import LoggingRuntime, log_event
 from aftk.project import ProjectSnapshot, ProjectSnapshotService
 from aftk.storage import (
     AgentRole,
@@ -44,6 +55,9 @@ from aftk.tasks import Task, TaskAttemptStatus, TaskPatch, TaskService, TaskStat
 from aftk.tasks.service import TERMINAL_TASK_STATUSES, TaskGraphError, TaskNotReadyError
 from aftk.storage.telemetry import UsageSummary, utc_now
 from aftk_client import AsyncAftkClient
+
+
+LOGGER = logging.getLogger("aftk.runner")
 
 
 _PROJECT_TOOL_NAMES = {
@@ -98,6 +112,7 @@ class FrameworkRunner:
         config: FrameworkConfig | FrameworkPaths,
         *,
         pricing_table: PricingTable | None = None,
+        logging_runtime: LoggingRuntime | None = None,
     ) -> None:
         self.config = config if isinstance(config, FrameworkConfig) else FrameworkConfig(paths=config)
         self.snapshot_service = ProjectSnapshotService(self.config)
@@ -108,6 +123,7 @@ class FrameworkRunner:
         self.run_collection = RunCollection(self.config)
         self.rollup_service = ProjectRollupService(self.run_collection, pricing_table=pricing_table)
         self.pricing_table = pricing_table
+        self.logging_runtime = logging_runtime
 
     async def run(
         self,
@@ -146,18 +162,47 @@ class FrameworkRunner:
         worker_model: Any | None,
         max_iterations: int,
     ) -> RunnerLoopResult:
+        log_event(
+            LOGGER,
+            logging.INFO,
+            "runner_start",
+            "runner started",
+            project_root=str(self.config.paths.project_root),
+            state_dir=self.config.paths.relative_to_project_root(self.config.paths.state_dir),
+            max_iterations=max_iterations,
+        )
         self.run_collection.ensure_layout()
-        self.task_service.recover_interrupted_tasks(actor="runner")
+        recovered_tasks = self.task_service.recover_interrupted_tasks(actor="runner")
+        if recovered_tasks:
+            log_event(
+                LOGGER,
+                logging.WARNING,
+                "runner_recovered_tasks",
+                "recovered interrupted tasks before starting runner loop",
+                revision=self.task_service.load_state().revision,
+                summary=f"recovered {len(recovered_tasks)} task(s)",
+            )
+        self.task_service.validate_runtime_state()
         snapshot = self.snapshot_service.build_and_save_snapshot()
 
         initialization_run_id: str | None = None
         if self._needs_initialization():
+            log_event(LOGGER, logging.INFO, "initializer_needed", "project requires initialization")
             initializer_run = await self._run_initializer(toolkit_client, snapshot=snapshot, model=initializer_model)
             initialization_run_id = initializer_run.run_id
-            self.initializer_service.apply_initialization_result(
+            initialization_record = self.initializer_service.apply_initialization_result(
                 initializer_run.result.output,
                 actor="initializer",
                 snapshot=snapshot,
+            )
+            log_event(
+                LOGGER,
+                logging.INFO,
+                "initializer_applied",
+                "initializer output applied",
+                run_id=initializer_run.run_id,
+                summary=initialization_record.result.project_summary,
+                revision=initialization_record.task_state_revision,
             )
 
         orchestrator_run_ids: list[str] = []
@@ -168,6 +213,15 @@ class FrameworkRunner:
         for iteration in range(1, max_iterations + 1):
             snapshot = self.snapshot_service.build_and_save_snapshot()
             task_snapshot = self.task_service.load_state()
+            self.task_service.validate_runtime_state(task_snapshot)
+            log_event(
+                LOGGER,
+                logging.INFO,
+                "iteration_start",
+                "starting orchestrator iteration",
+                revision=task_snapshot.revision,
+                summary=f"iteration={iteration} tasks={len(task_snapshot.tasks)}",
+            )
 
             orchestrator_run = await self._run_orchestrator(
                 toolkit_client,
@@ -181,6 +235,17 @@ class FrameworkRunner:
             last_worker_report = None
 
             preview_state = self._validate_decision(task_snapshot, decision)
+            log_event(
+                LOGGER,
+                logging.DEBUG,
+                "decision",
+                "validated orchestrator decision",
+                run_id=orchestrator_run.run_id,
+                selected_task_id=decision.selected_task_id,
+                new_tasks=len(decision.new_tasks),
+                patches=len(decision.task_patches),
+                summary=decision.rationale,
+            )
             if decision.task_patches:
                 self.task_service.apply_patches(decision.task_patches, actor="orchestrator")
             if decision.new_tasks:
@@ -189,6 +254,15 @@ class FrameworkRunner:
             if decision.project_done:
                 completion_summary = decision.completion_summary
                 final_state = self.task_service.load_state()
+                log_event(
+                    LOGGER,
+                    logging.INFO,
+                    "project_done",
+                    "orchestrator marked project complete",
+                    run_id=orchestrator_run.run_id,
+                    revision=final_state.revision,
+                    summary=completion_summary,
+                )
                 return RunnerLoopResult(
                     project_done=True,
                     completion_summary=completion_summary,
@@ -202,12 +276,30 @@ class FrameworkRunner:
             if decision.selected_task_id is None:
                 if preview_state.tasks == task_snapshot.tasks:
                     raise RunnerDecisionError("orchestrator decision made no actionable progress")
+                log_event(
+                    LOGGER,
+                    logging.INFO,
+                    "iteration_continue",
+                    "orchestrator updated the task graph without selecting a task",
+                    run_id=orchestrator_run.run_id,
+                    revision=self.task_service.load_state().revision,
+                )
                 continue
 
+            self.task_service.validate_runtime_state()
             attempt = self.task_service.claim_task(
                 decision.selected_task_id,
                 actor="runner",
                 worker_kind=self._worker_kind(worker_model),
+            )
+            log_event(
+                LOGGER,
+                logging.INFO,
+                "worker_claimed",
+                "claimed task for worker attempt",
+                task_id=decision.selected_task_id,
+                attempt_id=attempt.id,
+                worker_kind=attempt.worker_kind,
             )
             try:
                 worker_run = await self._run_worker(
@@ -224,6 +316,20 @@ class FrameworkRunner:
                     actor="runner",
                     status=TaskAttemptStatus.FAILED,
                     summary=str(exc),
+                )
+                self.task_service.reconcile_finished_attempt(
+                    attempt.id,
+                    actor="runner",
+                    note=str(exc),
+                )
+                log_event(
+                    LOGGER,
+                    logging.ERROR,
+                    "worker_failed",
+                    "worker attempt failed with an exception",
+                    task_id=decision.selected_task_id,
+                    attempt_id=attempt.id,
+                    reason=str(exc),
                 )
                 raise
 
@@ -242,8 +348,31 @@ class FrameworkRunner:
                 usage_summary=_attempt_usage_summary(worker_run.record.usage_summary),
                 cost_summary=None if worker_run.record.cost_summary is None else worker_run.record.cost_summary.model_dump(mode="json"),
             )
+            reconciled_task = self.task_service.reconcile_finished_attempt(
+                attempt.id,
+                actor="runner",
+                blockers=report.blockers,
+            )
+            log_event(
+                LOGGER,
+                logging.INFO,
+                "worker_reconciled",
+                "worker attempt reconciled into task state",
+                run_id=worker_run.run_id,
+                task_id=reconciled_task.id,
+                attempt_id=attempt.id,
+                status=reconciled_task.status.value,
+                summary=report.summary,
+            )
             last_worker_report = report
 
+        log_event(
+            LOGGER,
+            logging.ERROR,
+            "runner_iteration_limit",
+            "runner exceeded iteration limit",
+            max_iterations=max_iterations,
+        )
         raise RunnerIterationLimitError(f"runner exceeded max_iterations={max_iterations}")
 
     async def _run_initializer(
@@ -257,12 +386,13 @@ class FrameworkRunner:
         return await self._run_logged_agent(
             agent_role=AgentRole.INITIALIZER,
             model_name=_model_name_for_run(model, fallback=self.config.models.initializer),
-            invoke=lambda: self.initializer_service.run_initializer(
+            invoke=lambda event_stream_handler: self.initializer_service.run_initializer(
                 toolkit_client,
                 model=model,
                 snapshot=snapshot,
                 user_prompt=DEFAULT_INITIALIZER_USER_PROMPT,
                 toolsets=toolsets,
+                event_stream_handler=event_stream_handler,
             ),
         )
 
@@ -279,7 +409,7 @@ class FrameworkRunner:
         return await self._run_logged_agent(
             agent_role=AgentRole.ORCHESTRATOR,
             model_name=_model_name_for_run(model, fallback=self.config.models.orchestrator),
-            invoke=lambda: self.orchestrator_service.run_orchestrator(
+            invoke=lambda event_stream_handler: self.orchestrator_service.run_orchestrator(
                 toolkit_client,
                 task_snapshot=task_snapshot,
                 last_worker_report=last_worker_report,
@@ -287,6 +417,7 @@ class FrameworkRunner:
                 snapshot=snapshot,
                 user_prompt=DEFAULT_ORCHESTRATOR_USER_PROMPT,
                 toolsets=toolsets,
+                event_stream_handler=event_stream_handler,
             ),
         )
 
@@ -309,7 +440,7 @@ class FrameworkRunner:
             task_id=task_id,
             attempt_id=attempt_id,
             run_id=run_id,
-            invoke=lambda: self.worker_service.run_worker(
+            invoke=lambda event_stream_handler: self.worker_service.run_worker(
                 toolkit_client,
                 task_brief=task_brief,
                 model=model,
@@ -317,6 +448,7 @@ class FrameworkRunner:
                 user_prompt=DEFAULT_WORKER_USER_PROMPT,
                 recorder=recorder,
                 toolsets=toolsets,
+                event_stream_handler=event_stream_handler,
             ),
         )
 
@@ -339,28 +471,82 @@ class FrameworkRunner:
             task_id=task_id,
             attempt_id=attempt_id,
         )
-        try:
-            result: AgentRunResult[Any] = await invoke()
-        except Exception as exc:
-            record = session.finalize_run(status=RunStatus.FAILED, error_message=str(exc))
-            self.rollup_service.rebuild_rollups()
-            raise
+        log_event(
+            LOGGER,
+            logging.INFO,
+            "run_start",
+            "agent run started",
+            run_id=chosen_run_id,
+            agent_role=agent_role.value,
+            task_id=task_id,
+            attempt_id=attempt_id,
+            model_name=model_name,
+            artifact_dir=store.relative_to_project(store.run_dir),
+        )
+        event_stream_handler = None
+        if self.logging_runtime is not None:
+            event_stream_handler = self.logging_runtime.create_agent_event_stream_handler(
+                run_id=chosen_run_id,
+                agent_role=agent_role.value,
+                task_id=task_id,
+                attempt_id=attempt_id,
+                model_name=model_name,
+            )
+        with capture_run_messages() as captured_messages:
+            try:
+                result: AgentRunResult[Any] = await invoke(event_stream_handler)
+            except Exception as exc:
+                _persist_message_telemetry(
+                    session,
+                    captured_messages,
+                    run_id=chosen_run_id,
+                    agent_role=agent_role,
+                    task_id=task_id,
+                    attempt_id=attempt_id,
+                    pending_tool_error_message=str(exc),
+                )
+                record = session.finalize_run(status=RunStatus.FAILED, error_message=str(exc))
+                self.rollup_service.rebuild_rollups()
+                log_event(
+                    LOGGER,
+                    logging.ERROR,
+                    "run_end",
+                    "agent run failed",
+                    run_id=chosen_run_id,
+                    agent_role=agent_role.value,
+                    task_id=task_id,
+                    attempt_id=attempt_id,
+                    model_name=model_name,
+                    status=record.status.value,
+                    duration_s=record.duration_seconds,
+                    reason=str(exc),
+                )
+                raise
 
         session.save_result_payload(result.output)
-        session.save_messages_from_result(result)
-        llm_calls, tool_calls = _extract_telemetry_records(
-            result,
+        _persist_message_telemetry(
+            session,
+            result.new_messages(),
             run_id=chosen_run_id,
             agent_role=agent_role,
             task_id=task_id,
             attempt_id=attempt_id,
         )
-        for call in llm_calls:
-            session.append_llm_call(call)
-        for call in tool_calls:
-            session.append_tool_call(call)
         record = session.finalize_run(status=RunStatus.COMPLETED, run_usage=session.usage_from_result(result))
         self.rollup_service.rebuild_rollups()
+        log_event(
+            LOGGER,
+            logging.INFO,
+            "run_end",
+            "agent run completed",
+            run_id=chosen_run_id,
+            agent_role=agent_role.value,
+            task_id=task_id,
+            attempt_id=attempt_id,
+            model_name=model_name,
+            status=record.status.value,
+            duration_s=record.duration_seconds,
+        )
         return _LoggedAgentRun(run_id=chosen_run_id, store=store, record=record, result=result)
 
     def _needs_initialization(self) -> bool:
@@ -486,18 +672,38 @@ def _attempt_usage_summary(usage: UsageSummary | None) -> dict[str, str | int | 
 
 
 
-def _extract_telemetry_records(
-    result: AgentRunResult[Any],
+def _persist_message_telemetry(
+    session: RunTelemetrySession,
+    messages: Sequence[ModelRequest | ModelResponse],
     *,
     run_id: str,
     agent_role: AgentRole,
     task_id: str | None,
     attempt_id: str | None,
-) -> tuple[list[LlmCallRecord], list[ToolCallRecord]]:
-    messages = result.new_messages()
-    llm_calls = _extract_llm_calls(messages, run_id=run_id, agent_role=agent_role, task_id=task_id, attempt_id=attempt_id)
-    tool_calls = _extract_tool_calls(messages, run_id=run_id, agent_role=agent_role, task_id=task_id, attempt_id=attempt_id)
-    return llm_calls, tool_calls
+    pending_tool_error_message: str | None = None,
+) -> None:
+    captured_messages = list(messages)
+    if captured_messages:
+        session.save_messages(ModelMessagesTypeAdapter.dump_json(captured_messages))
+    llm_calls = _extract_llm_calls(
+        captured_messages,
+        run_id=run_id,
+        agent_role=agent_role,
+        task_id=task_id,
+        attempt_id=attempt_id,
+    )
+    tool_calls = _extract_tool_calls(
+        captured_messages,
+        run_id=run_id,
+        agent_role=agent_role,
+        task_id=task_id,
+        attempt_id=attempt_id,
+        pending_tool_error_message=pending_tool_error_message,
+    )
+    for call in llm_calls:
+        session.append_llm_call(call)
+    for call in tool_calls:
+        session.append_tool_call(call)
 
 
 
@@ -547,6 +753,7 @@ def _extract_tool_calls(
     agent_role: AgentRole,
     task_id: str | None,
     attempt_id: str | None,
+    pending_tool_error_message: str | None = None,
 ) -> list[ToolCallRecord]:
     pending: dict[str, tuple[int, ToolCallPart, datetime]] = {}
     tool_calls: list[ToolCallRecord] = []
@@ -623,8 +830,14 @@ def _extract_tool_calls(
                 duration_seconds=0.0,
                 status=ToolCallStatus.FAILED,
                 input_summary=_summarize_tool_args(part.args),
-                output_summary={"outcome": "missing_return"},
-                error_message=f"tool call {tool_call_id} did not produce a return part",
+                output_summary={
+                    "outcome": "exception" if pending_tool_error_message is not None else "missing_return"
+                },
+                error_message=(
+                    _truncate(pending_tool_error_message)
+                    if pending_tool_error_message is not None
+                    else f"tool call {tool_call_id} did not produce a return part"
+                ),
             )
         )
 

@@ -1,0 +1,33 @@
+# Example Hydra config for the AFTK autoformalization CLI.
+#
+# Assumptions:
+# - the current working directory is the root of the Lean/Lake project being formalized
+# - entrypoint.md exists at the project root
+# - optional source material lives under sources/
+
+project_root: .
+entrypoint_path: entrypoint.md
+sources_dir: sources
+state_dir: .aftk
+max_iterations: 40
+pricing_overrides_path: null
+output: text
+
+models:
+  initializer: openai:gpt-5-mini
+  orchestrator: openai:gpt-5
+  worker: openai:gpt-5-mini
+
+logging:
+  level: info
+  live_traces: true
+  trace_model_events: summary
+  trace_tool_events: true
+  include_tool_payloads: summary
+
+hydra:
+  run:
+    dir: .
+  output_subdir: null
+  job:
+    chdir: false

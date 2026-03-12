@@ -97,6 +97,52 @@ The CLI uses Hydra for config management and reads defaults from the packaged `a
 By default, the underlying `FrameworkRunner` creates its own `AsyncAftkClient`, which in turn starts `lake exe aftk_server` for the project automatically.
 For the basic workflow you do **not** need to start the server manually.
 
+### 3a. Example config file
+
+A concrete example lives at `docs/framework/example-config.yaml`.
+If you copy it into the project root as `autoformalize.yaml`, you can launch the framework with:
+
+```text
+uv run autoformalize --config-dir . --config-name autoformalize
+```
+
+or, when `aftk` is a Lake dependency of the current project:
+
+```text
+lake run autoformalize --config-dir . --config-name autoformalize
+```
+
+The example file looks like this:
+
+```yaml
+project_root: .
+entrypoint_path: entrypoint.md
+sources_dir: sources
+state_dir: .aftk
+max_iterations: 40
+pricing_overrides_path: null
+output: text
+
+models:
+  initializer: openai:gpt-5-mini
+  orchestrator: openai:gpt-5
+  worker: openai:gpt-5-mini
+
+logging:
+  level: info
+  live_traces: true
+  trace_model_events: summary
+  trace_tool_events: true
+  include_tool_payloads: summary
+
+hydra:
+  run:
+    dir: .
+  output_subdir: null
+  job:
+    chdir: false
+```
+
 If `aftk` is installed as a Lake dependency in another project, you can also launch the framework from that project's root with:
 
 ```text
@@ -108,6 +154,37 @@ lake run autoformalize \
 
 That Lake script resolves the Python environment from the `aftk` dependency package while forcing the command's working directory to be the root of the current Lean/Lake project.
 This matches the framework's assumption that the current working directory is always the project root being formalized.
+
+### 3b. Live logging and traces
+
+The CLI now emits framework-owned live logs while the run is in progress.
+By default it writes:
+
+- human-readable session logs to `.aftk/cli.log`
+- structured runtime events to `.aftk/events.jsonl`
+
+Useful logging overrides include:
+
+```text
+uv run autoformalize \
+  project_root=. \
+  logging.level=debug \
+  logging.trace_model_events=full \
+  logging.include_tool_payloads=full
+```
+
+Common knobs:
+
+- `logging.level=warning|info|debug`
+- `logging.live_traces=true|false`
+- `logging.trace_model_events=off|summary|full`
+- `logging.trace_tool_events=true|false`
+- `logging.include_http=true|false`
+- `logging.include_tool_payloads=none|summary|full`
+- `logging.include_command_output=none|summary|full`
+
+At `info`, the console and `cli.log` focus on runner lifecycle, task claims, worker outcomes, retries, and command summaries.
+At `debug`, you also see tool-call traces, command previews, and more detailed framework internals.
 
 ### 4. Inspect the persisted state
 
@@ -152,6 +229,8 @@ The current on-disk layout is:
 
 ```text
 .aftk/
+  cli.log
+  events.jsonl
   project/
     snapshot.json
     initialization.json
@@ -175,6 +254,7 @@ The current on-disk layout is:
 
 The important split is:
 
+- `cli.log` and `events.jsonl` — project-wide live session logs and structured runtime events
 - `project/` — deterministic project snapshot and initialization record
 - `tasks/` — canonical task graph plus task events and immutable attempts
 - `runs/` — operational telemetry for initializer/orchestrator/worker runs
@@ -188,7 +268,7 @@ The framework enforces a strict planner/executor split.
 Gets:
 
 - project snapshot tools
-- toolkit query tools
+- toolkit tools for Lean sessions (`open`, `close`), Lean queries, knowledge-base access, and informal-layer access
 
 Does not get:
 
@@ -200,7 +280,7 @@ Does not get:
 Gets:
 
 - project snapshot tools
-- toolkit query tools
+- toolkit tools for Lean sessions (`open`, `close`), Lean queries, knowledge-base access, and informal-layer access
 - the persisted task snapshot through structured deps
 
 Does not get:
@@ -214,7 +294,7 @@ Does not get:
 Gets:
 
 - project snapshot tools
-- toolkit query tools
+- toolkit tools for Lean sessions (`open`, `close`), Lean queries, knowledge-base access, and informal-layer access
 - coding tools for file search, reads, edits, and commands such as `lake build`
 
 Does not get:
@@ -224,6 +304,8 @@ Does not get:
 - permission to edit `.aftk/`
 
 The worker reports what happened; the runner and task service decide how persistent state changes.
+
+Tool wrappers also translate common recoverable tool failures into model-visible retry prompts. In practice this means an agent can recover from mistakes such as calling `load_node` before `open`, using a stale node id, or asking for an out-of-sandbox path, instead of immediately crashing the whole run.
 
 ## Programmatic entrypoints
 

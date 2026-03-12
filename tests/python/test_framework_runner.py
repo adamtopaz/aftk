@@ -7,7 +7,8 @@ import unittest
 from datetime import datetime, timezone
 from pathlib import Path
 
-from pydantic_ai.messages import ModelRequest, ModelResponse, TextPart, ToolCallPart, ToolReturnPart
+from pydantic_ai import UnexpectedModelBehavior
+from pydantic_ai.messages import ModelMessagesTypeAdapter, ModelRequest, ModelResponse, RetryPromptPart, TextPart, ToolCallPart, ToolReturnPart
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.models.test import TestModel
 
@@ -24,12 +25,24 @@ from aftk.agents import (
 from aftk.config import FrameworkConfig
 from aftk.project import ProjectSnapshotService
 from aftk.runner import FrameworkRunner, RunnerDecisionError
-from aftk.storage import RunLogStore, ToolFamily
+from aftk.storage import RunLogStore, ToolCallStatus, ToolFamily
 from aftk.tasks import ArtifactKind, ArtifactRef, Task, TaskPriority, TaskState, TaskStatus
+from aftk_client.errors import FileNotOpenError
 
 
 class EmptyToolkitClient:
     pass
+
+
+class FailingLoadNodeToolkitClient:
+    async def load_node(self, path: str, line: int, col: int, *, timeout: float | None = None):
+        raise FileNotOpenError(
+            code=-32010,
+            message="File is not open",
+            data=None,
+            method="load_node",
+            request_id=1,
+        )
 
 
 def make_config(root: Path) -> FrameworkConfig:
@@ -337,6 +350,268 @@ class RunnerIntegrationTests(unittest.TestCase):
             self.assertTrue(worker_store.coding_actions_path.is_file())
             self.assertIn("append_to_file", worker_store.coding_actions_path.read_text(encoding="utf-8"))
             self.assertTrue(runner.run_collection.rollups_path.is_file())
+
+    def test_runner_requeues_partial_worker_task_without_stale_in_progress_state(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "project"
+            config = make_config(root)
+            (root / "Demo.lean").write_text("theorem demo : True := trivial\n", encoding="utf-8")
+            runner = FrameworkRunner(config)
+
+            initializer_model = TestModel(
+                call_tools=[],
+                custom_output_args={
+                    "project_summary": "Demo project with one Lean theorem.",
+                    "assumptions": [],
+                    "risks": [],
+                    "initial_tasks": [
+                        {
+                            "title": "Update Demo.lean",
+                            "description": "Finish the tracked edit in Demo.lean.",
+                            "kind": "formalization",
+                            "acceptance_criteria": ["Demo.lean records the worker edit."],
+                            "scope": [{"kind": "file", "value": "Demo.lean"}],
+                        }
+                    ],
+                },
+            )
+
+            orchestrator_calls = {"count": 0}
+
+            def orchestrator_function(messages: list[ModelRequest | ModelResponse], info: AgentInfo) -> ModelResponse:
+                orchestrator_calls["count"] += 1
+                if orchestrator_calls["count"] < 3:
+                    payload = {
+                        "project_done": False,
+                        "selected_task_id": "task-0001",
+                        "worker_brief": {
+                            "task_id": "task-0001",
+                            "title": "Update Demo.lean",
+                            "description": "Finish the tracked edit in Demo.lean.",
+                            "acceptance_criteria": ["Demo.lean records the worker edit."],
+                            "scope": [{"kind": "file", "value": "Demo.lean"}],
+                            "local_context": "Keep iterating on Demo.lean until the edit is complete.",
+                            "suggested_starting_points": ["Review the current file", "Continue the same task"],
+                        },
+                        "new_tasks": [],
+                        "task_patches": [],
+                        "rationale": "Continue the only ready task.",
+                    }
+                else:
+                    payload = {
+                        "project_done": True,
+                        "selected_task_id": None,
+                        "worker_brief": None,
+                        "new_tasks": [],
+                        "task_patches": [],
+                        "rationale": "The only task is now complete.",
+                        "completion_summary": "The demo task has been completed.",
+                    }
+                return ModelResponse(parts=[TextPart(content=json.dumps(payload))])
+
+            worker_calls = {"count": 0}
+
+            def worker_function(messages: list[ModelRequest | ModelResponse], info: AgentInfo) -> ModelResponse:
+                worker_calls["count"] += 1
+                if worker_calls["count"] == 1:
+                    payload = {
+                        "outcome": "partial",
+                        "summary": "Made partial progress on Demo.lean.",
+                        "evidence": ["The first pass identified what still needs work."],
+                        "changed_artifacts": [{"kind": "file", "value": "Demo.lean"}],
+                        "followup_tasks": [],
+                        "blockers": [],
+                        "handoff_notes": "Repeat the same task once more.",
+                    }
+                else:
+                    payload = {
+                        "outcome": "completed",
+                        "summary": "Finished the Demo.lean edit.",
+                        "evidence": ["The tracked edit is complete."],
+                        "changed_artifacts": [{"kind": "file", "value": "Demo.lean"}],
+                        "followup_tasks": [],
+                        "blockers": [],
+                        "handoff_notes": "No follow-up is required.",
+                    }
+                return ModelResponse(parts=[TextPart(content=json.dumps(payload))])
+
+            result = asyncio.run(
+                runner.run(
+                    toolkit_client=EmptyToolkitClient(),  # type: ignore[arg-type]
+                    initializer_model=initializer_model,
+                    orchestrator_model=FunctionModel(orchestrator_function, model_name="function:orchestrator"),
+                    worker_model=FunctionModel(worker_function, model_name="function:worker"),
+                    max_iterations=6,
+                )
+            )
+
+            self.assertTrue(result.project_done)
+            self.assertEqual(result.orchestrator_run_ids, ["run-0002", "run-0004", "run-0006"])
+            self.assertEqual(result.worker_run_ids, ["run-0003", "run-0005"])
+
+            state = runner.task_service.load_state()
+            task = state.tasks["task-0001"]
+            self.assertEqual(task.status, TaskStatus.COMPLETED)
+            self.assertIsNone(task.current_attempt_id)
+            self.assertEqual([note.message for note in task.notes[-2:]], [
+                "Made partial progress on Demo.lean.",
+                "Finished the Demo.lean edit.",
+            ])
+
+            first_attempt = runner.task_service.store.load_attempt("attempt-0001")
+            second_attempt = runner.task_service.store.load_attempt("attempt-0002")
+            self.assertEqual(first_attempt.status.value, "partial")
+            self.assertEqual(second_attempt.status.value, "completed")
+
+    def test_runner_releases_failed_task_after_worker_exception(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "project"
+            config = make_config(root)
+            (root / "Demo.lean").write_text("theorem demo : True := trivial\n", encoding="utf-8")
+            runner = FrameworkRunner(config)
+
+            initializer_model = TestModel(
+                call_tools=[],
+                custom_output_args={
+                    "project_summary": "Demo project with one Lean theorem.",
+                    "assumptions": [],
+                    "risks": [],
+                    "initial_tasks": [
+                        {
+                            "title": "Update Demo.lean",
+                            "description": "Make the first tracked edit in Demo.lean.",
+                            "kind": "formalization",
+                            "acceptance_criteria": ["Demo.lean records the worker edit."],
+                            "scope": [{"kind": "file", "value": "Demo.lean"}],
+                        }
+                    ],
+                },
+            )
+            orchestrator_model = TestModel(
+                call_tools=[],
+                custom_output_args={
+                    "project_done": False,
+                    "selected_task_id": "task-0001",
+                    "worker_brief": {
+                        "task_id": "task-0001",
+                        "title": "Update Demo.lean",
+                        "description": "Make the first tracked edit in Demo.lean.",
+                        "acceptance_criteria": ["Demo.lean records the worker edit."],
+                        "scope": [{"kind": "file", "value": "Demo.lean"}],
+                        "local_context": "Attempt the edit.",
+                        "suggested_starting_points": ["Read Demo.lean"],
+                    },
+                    "new_tasks": [],
+                    "task_patches": [],
+                    "rationale": "Run the only task.",
+                },
+            )
+
+            def failing_worker(messages: list[ModelRequest | ModelResponse], info: AgentInfo) -> ModelResponse:
+                raise RuntimeError("worker boom")
+
+            with self.assertRaises(RuntimeError):
+                asyncio.run(
+                    runner.run(
+                        toolkit_client=EmptyToolkitClient(),  # type: ignore[arg-type]
+                        initializer_model=initializer_model,
+                        orchestrator_model=orchestrator_model,
+                        worker_model=FunctionModel(failing_worker, model_name="function:failing-worker"),
+                        max_iterations=2,
+                    )
+                )
+
+            state = runner.task_service.load_state()
+            task = state.tasks["task-0001"]
+            self.assertEqual(task.status, TaskStatus.FAILED)
+            self.assertIsNone(task.current_attempt_id)
+            self.assertEqual(task.notes[-1].message, "worker boom")
+
+            attempt = runner.task_service.store.load_attempt("attempt-0001")
+            self.assertEqual(attempt.status.value, "failed")
+            worker_record = runner.run_collection.run_store("run-0003").load_run_record()
+            self.assertEqual(worker_record.status.value, "failed")
+
+    def test_runner_persists_partial_tool_trace_for_failed_initializer_runs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "project"
+            config = make_config(root)
+            (root / "Demo.lean").write_text("theorem demo : True := trivial\n", encoding="utf-8")
+            runner = FrameworkRunner(config)
+
+            def initializer_function(messages: list[ModelRequest | ModelResponse], info: AgentInfo) -> ModelResponse:
+                return ModelResponse(
+                    parts=[
+                        ToolCallPart(
+                            tool_name="load_node",
+                            args={"path": "Demo.lean", "line": 1, "col": 1},
+                            tool_call_id=f"load-demo-node-{len(messages)}",
+                        )
+                    ]
+                )
+
+            with self.assertRaises(UnexpectedModelBehavior):
+                asyncio.run(
+                    runner.run(
+                        toolkit_client=FailingLoadNodeToolkitClient(),  # type: ignore[arg-type]
+                        initializer_model=FunctionModel(initializer_function, model_name="function:failing-initializer"),
+                        orchestrator_model=TestModel(
+                            call_tools=[],
+                            custom_output_args={
+                                "project_done": True,
+                                "selected_task_id": None,
+                                "worker_brief": None,
+                                "new_tasks": [],
+                                "task_patches": [],
+                                "rationale": "unused",
+                                "completion_summary": "unused",
+                            },
+                        ),
+                        worker_model=TestModel(
+                            call_tools=[],
+                            custom_output_args={
+                                "outcome": "failed",
+                                "summary": "unused",
+                                "evidence": [],
+                                "changed_artifacts": [],
+                                "followup_tasks": [],
+                                "blockers": [],
+                            },
+                        ),
+                        max_iterations=2,
+                    )
+                )
+
+            self.assertEqual(runner.run_collection.list_run_ids(), ["run-0001"])
+            run_store = RunLogStore(config, "run-0001")
+            run_record = run_store.load_run_record()
+            self.assertEqual(run_record.status.value, "failed")
+            self.assertIn("exceeded max retries", (run_record.error_message or "").lower())
+            self.assertTrue(run_store.messages_path.is_file())
+            self.assertTrue(run_store.tool_calls_path.is_file())
+
+            tool_calls = run_store.load_tool_calls()
+            self.assertEqual(len(tool_calls), 3)
+            self.assertTrue(all(tool_call.tool_name == "load_node" for tool_call in tool_calls))
+            self.assertTrue(all(tool_call.tool_family == ToolFamily.TOOLKIT for tool_call in tool_calls))
+            self.assertTrue(all(tool_call.status == ToolCallStatus.FAILED for tool_call in tool_calls))
+            self.assertTrue(all(tool_call.input_summary["path"] == "Demo.lean" for tool_call in tool_calls))
+            self.assertTrue(all(tool_call.input_summary["line"] == 1 for tool_call in tool_calls))
+            self.assertTrue(all(tool_call.input_summary["col"] == 1 for tool_call in tool_calls))
+            self.assertIn("Call open(path=...)", tool_calls[0].error_message or "")
+            self.assertIn("Call open(path=...)", tool_calls[1].error_message or "")
+            self.assertIn("exceeded max retries", (tool_calls[2].error_message or "").lower())
+
+            messages = ModelMessagesTypeAdapter.validate_json(run_store.load_messages_bytes())
+            retry_prompts = [
+                part
+                for message in messages
+                if isinstance(message, ModelRequest)
+                for part in message.parts
+                if isinstance(part, RetryPromptPart)
+            ]
+            self.assertEqual(len(retry_prompts), 2)
+            self.assertTrue(all(part.tool_name == "load_node" for part in retry_prompts))
 
     def test_runner_rejects_invalid_project_done_decision(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

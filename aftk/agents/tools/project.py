@@ -7,9 +7,13 @@ from typing import Any
 from pydantic import Field
 from pydantic_ai import FunctionToolset
 
+from aftk.agents.tools.retries import wrap_tool_errors
 from aftk.coding.models import FileReadResult, ProjectPath
 from aftk.config import FrameworkModel
 from aftk.project import ProjectSnapshot, RelativeProjectPath
+
+
+DEFAULT_PROJECT_TOOL_RETRIES = 2
 
 
 class ProjectSnapshotSummary(FrameworkModel):
@@ -72,11 +76,11 @@ class ProjectContextTools:
 
     def tool_functions(self) -> tuple[Callable[..., object], ...]:
         return (
-            self.get_project_snapshot_summary,
-            self.read_entrypoint,
-            self.list_source_files,
-            self.read_source_file,
-            self.list_lean_files,
+            wrap_tool_errors(self.get_project_snapshot_summary),
+            wrap_tool_errors(self.read_entrypoint),
+            wrap_tool_errors(self.list_source_files),
+            wrap_tool_errors(self.read_source_file),
+            wrap_tool_errors(self.list_lean_files),
         )
 
     def _resolve_project_path(self, path: str) -> Path:
@@ -104,10 +108,14 @@ class ProjectContextTools:
 
 def build_project_context_toolset(snapshot: ProjectSnapshot) -> Any:
     tools = ProjectContextTools(snapshot)
-    return FunctionToolset(tools=list(tools.tool_functions()))
+    return FunctionToolset(
+        tools=list(tools.tool_functions()),
+        max_retries=DEFAULT_PROJECT_TOOL_RETRIES,
+    )
 
 
 __all__ = [
+    "DEFAULT_PROJECT_TOOL_RETRIES",
     "ProjectContextTools",
     "ProjectSnapshotSummary",
     "build_project_context_toolset",

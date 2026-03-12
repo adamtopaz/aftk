@@ -120,7 +120,21 @@ uv run autoformalize \
   models.worker='openai:gpt-5-mini'
 ```
 
-The CLI will create or resume `.aftk/` state and will start the toolkit server through `AsyncAftkClient` automatically unless you build your own runner integration.
+For more live visibility during a run, you can also raise the framework logging level or tune the trace settings:
+
+```text
+uv run autoformalize \
+  project_root=. \
+  logging.level=debug \
+  logging.trace_model_events=full \
+  logging.include_tool_payloads=full \
+  models.initializer='openai:gpt-5-mini' \
+  models.orchestrator='openai:gpt-5' \
+  models.worker='openai:gpt-5-mini'
+```
+
+The CLI now emits framework-owned live progress logs by default, writes a session log to `.aftk/cli.log`, and appends structured runtime events to `.aftk/events.jsonl`.
+It will create or resume `.aftk/` state and will start the toolkit server through `AsyncAftkClient` automatically unless you build your own runner integration.
 
 If `aftk` is added as a Lake dependency in another Lean project, you can launch the same CLI from the dependent project's root with:
 
@@ -257,6 +271,7 @@ More detailed references:
 - framework:
   - `docs/framework/overview.md`
   - `docs/framework/library.md`
+  - `docs/framework/example-config.yaml`
 
 Project-level vision and deferred work live in:
 

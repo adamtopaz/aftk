@@ -233,13 +233,15 @@ class AgentToolTests(unittest.TestCase):
             worker_names = self._tool_names(build_worker_toolsets(config, snapshot, toolkit_client))
 
             self.assertEqual(initializer_names, orchestrator_names)
-            for expected in {"get_project_snapshot_summary", "read_entrypoint", "knowledgebase_status", "run_tactic"}:
+            for expected in {"get_project_snapshot_summary", "read_entrypoint", "open", "close", "knowledgebase_status", "run_tactic"}:
                 self.assertIn(expected, initializer_names)
             self.assertNotIn("write_file", initializer_names)
             self.assertNotIn("lake_build", initializer_names)
 
             for expected in {
                 "get_project_snapshot_summary",
+                "open",
+                "close",
                 "knowledgebase_status",
                 "run_tactic",
                 "list_project_files",

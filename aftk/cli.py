@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
@@ -9,8 +10,12 @@ import hydra
 from omegaconf import DictConfig, OmegaConf
 
 from aftk.config import AgentModelSettings, FrameworkConfig
+from aftk.logging import LoggingCliConfig, log_event, setup_logging
 from aftk.runner import FrameworkRunner, RunnerLoopResult
 from aftk.storage import PricingTable
+
+
+LOGGER = logging.getLogger("aftk.cli")
 
 
 @dataclass(slots=True)
@@ -30,6 +35,7 @@ class FrameworkCliConfig:
     pricing_overrides_path: str | None = None
     output: str = "json"
     models: AgentModelsCliConfig = field(default_factory=AgentModelsCliConfig)
+    logging: LoggingCliConfig = field(default_factory=LoggingCliConfig)
 
 
 def coerce_cli_config(raw: FrameworkCliConfig | DictConfig | Mapping[str, Any]) -> FrameworkCliConfig:
@@ -53,6 +59,12 @@ def coerce_cli_config(raw: FrameworkCliConfig | DictConfig | Mapping[str, Any]) 
     if not isinstance(models_payload, Mapping):
         raise TypeError("models config must be a mapping")
 
+    logging_payload = payload.get("logging", {})
+    if logging_payload is None:
+        logging_payload = {}
+    if not isinstance(logging_payload, Mapping):
+        raise TypeError("logging config must be a mapping")
+
     return FrameworkCliConfig(
         project_root=str(payload.get("project_root", ".")),
         entrypoint_path=str(payload.get("entrypoint_path", "entrypoint.md")),
@@ -65,6 +77,24 @@ def coerce_cli_config(raw: FrameworkCliConfig | DictConfig | Mapping[str, Any]) 
             initializer=_optional_string(models_payload.get("initializer")),
             orchestrator=_optional_string(models_payload.get("orchestrator")),
             worker=_optional_string(models_payload.get("worker")),
+        ),
+        logging=LoggingCliConfig(
+            level=str(logging_payload.get("level", "info")),
+            console=_coerce_bool(logging_payload.get("console", True)),
+            file=_coerce_bool(logging_payload.get("file", True)),
+            file_path=str(logging_payload.get("file_path", ".aftk/cli.log")),
+            file_format=str(logging_payload.get("file_format", "text")),
+            dependency_level=str(logging_payload.get("dependency_level", "warning")),
+            include_http=_coerce_bool(logging_payload.get("include_http", False)),
+            include_llm_payloads=_coerce_bool(logging_payload.get("include_llm_payloads", False)),
+            include_tool_payloads=str(logging_payload.get("include_tool_payloads", "summary")),
+            include_command_output=str(logging_payload.get("include_command_output", "summary")),
+            live_traces=_coerce_bool(logging_payload.get("live_traces", True)),
+            trace_model_events=str(logging_payload.get("trace_model_events", "summary")),
+            trace_tool_events=_coerce_bool(logging_payload.get("trace_tool_events", True)),
+            trace_thinking_deltas=_coerce_bool(logging_payload.get("trace_thinking_deltas", False)),
+            structured_events=_coerce_bool(logging_payload.get("structured_events", True)),
+            structured_event_path=str(logging_payload.get("structured_event_path", ".aftk/events.jsonl")),
         ),
     )
 
@@ -91,9 +121,42 @@ def load_pricing_table(cli_config: FrameworkCliConfig) -> PricingTable | None:
 
 async def run_framework(cli_config: FrameworkCliConfig) -> RunnerLoopResult:
     framework_config = build_framework_config(cli_config)
-    pricing_table = load_pricing_table(cli_config)
-    runner = FrameworkRunner(framework_config, pricing_table=pricing_table)
-    return await runner.run(max_iterations=cli_config.max_iterations)
+    logging_runtime = setup_logging(cli_config.logging, framework_config)
+    try:
+        log_event(
+            LOGGER,
+            logging.INFO,
+            "cli_start",
+            "starting AFTK framework run",
+            project_root=str(framework_config.paths.project_root),
+            state_dir=framework_config.paths.relative_to_project_root(framework_config.paths.state_dir),
+            max_iterations=cli_config.max_iterations,
+        )
+        pricing_table = load_pricing_table(cli_config)
+        runner = FrameworkRunner(framework_config, pricing_table=pricing_table, logging_runtime=logging_runtime)
+        result = await runner.run(max_iterations=cli_config.max_iterations)
+        log_event(
+            LOGGER,
+            logging.INFO,
+            "cli_end",
+            "AFTK framework run completed",
+            project_root=str(framework_config.paths.project_root),
+            state_dir=framework_config.paths.relative_to_project_root(framework_config.paths.state_dir),
+            summary=result.completion_summary,
+        )
+        return result
+    except Exception:
+        log_event(
+            LOGGER,
+            logging.ERROR,
+            "cli_failed",
+            "AFTK framework run failed",
+            project_root=str(framework_config.paths.project_root),
+            state_dir=framework_config.paths.relative_to_project_root(framework_config.paths.state_dir),
+        )
+        raise
+    finally:
+        logging_runtime.close()
 
 
 def render_run_result(cli_config: FrameworkCliConfig, result: RunnerLoopResult) -> str:
@@ -130,9 +193,22 @@ def _optional_string(value: object) -> str | None:
     return rendered or None
 
 
+def _coerce_bool(value: object) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"1", "true", "yes", "on"}:
+            return True
+        if normalized in {"0", "false", "no", "off"}:
+            return False
+    return bool(value)
+
+
 __all__ = [
     "AgentModelsCliConfig",
     "FrameworkCliConfig",
+    "LoggingCliConfig",
     "build_framework_config",
     "coerce_cli_config",
     "load_pricing_table",

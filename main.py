@@ -1,6 +1,7 @@
 from aftk.cli import (
     AgentModelsCliConfig,
     FrameworkCliConfig,
+    LoggingCliConfig,
     build_framework_config,
     coerce_cli_config,
     load_pricing_table,
@@ -12,6 +13,7 @@ from aftk.cli import (
 __all__ = [
     "AgentModelsCliConfig",
     "FrameworkCliConfig",
+    "LoggingCliConfig",
     "build_framework_config",
     "coerce_cli_config",
     "load_pricing_table",

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import subprocess
 import time
 from collections.abc import Sequence
@@ -50,6 +51,13 @@ class ProjectCommandService(ProjectSandbox):
             raise ValueError("timeout_seconds must be positive when provided")
 
         working_directory = self.resolve_directory(cwd, allow_reserved=False)
+        self._log(
+            logging.INFO,
+            "command_start",
+            "starting command",
+            command=argv_list,
+            cwd=self.relative_path(working_directory),
+        )
         started = time.perf_counter()
         try:
             completed = subprocess.run(
@@ -90,6 +98,18 @@ class ProjectCommandService(ProjectSandbox):
                 "duration_seconds": result.duration_seconds,
             },
         )
+        self._log(
+            logging.WARNING if result.timed_out or result.exit_code != 0 else logging.INFO,
+            "command_end",
+            "finished command",
+            command=result.argv,
+            cwd=result.cwd,
+            exit_code=result.exit_code,
+            timed_out=result.timed_out,
+            duration_s=result.duration_seconds,
+            stdout_preview=_preview_output(result.stdout),
+            stderr_preview=_preview_output(result.stderr),
+        )
         return result
 
 
@@ -99,6 +119,15 @@ def _ensure_text(value: str | bytes | None) -> str:
     if isinstance(value, bytes):
         return value.decode("utf-8", errors="replace")
     return value
+
+
+def _preview_output(value: str, *, limit: int = 240) -> str | None:
+    stripped = value.strip()
+    if not stripped:
+        return None
+    if len(stripped) <= limit:
+        return stripped
+    return f"{stripped[: limit - 3]}..."
 
 
 __all__ = ["ProjectCommandService"]
