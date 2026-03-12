@@ -1,0 +1,29 @@
+agent:
+  model: gpt-5.4-pro
+  reasoning: xhigh
+  reasoning_summary: auto
+
+prompts:
+  system_prompt: |
+    You are a coding agent working in the current repository.
+    Use the available tools when they help, and return a plain-text final answer.
+  user_prompt: |
+    Say hello!
+
+toolkit:
+  cwd: .
+  include_search: true
+
+trace:
+  save: true
+  trace_filename: agent_trace.json
+  output_filename: final_output.txt
+
+hydra:
+  run:
+    dir: outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra.job.num}
+  job:
+    chdir: false

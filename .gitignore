@@ -11,6 +11,8 @@
 /.pi
 .aftk/
 .hydra/
+outputs/
+multirun/
 
 # Python
 __pycache__/
