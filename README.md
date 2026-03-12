@@ -170,6 +170,8 @@ def build_toolkit() -> CodingToolkit:
 
 ## Python agent CLI
 
+The Hydra config file is `config.yaml` at the root of the current project.
+
 Run the Hydra-configured Python agent directly:
 
 ```text

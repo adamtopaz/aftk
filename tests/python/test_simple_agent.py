@@ -26,7 +26,7 @@ from main import (
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-CONFIG_PATH = REPO_ROOT / "aftk" / "conf" / "config.yaml"
+CONFIG_PATH = REPO_ROOT / "config.yaml"
 
 
 class SimpleAgentConfigTests(unittest.TestCase):

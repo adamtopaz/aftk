@@ -4,6 +4,7 @@ import asyncio
 import dataclasses
 import json
 import logging
+import sys
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -301,8 +302,12 @@ async def main(
     return artifacts.output
 
 
-@hydra.main(version_base="1.3", config_path="aftk/conf", config_name="config")
-def cli(cfg: DictConfig) -> None:
+def _has_cli_option(argv: Sequence[str], option: str) -> bool:
+    return any(arg == option or arg.startswith(f"{option}=") for arg in argv)
+
+
+@hydra.main(version_base="1.3", config_path=None, config_name=None)
+def _hydra_cli(cfg: DictConfig) -> None:
     """Hydra entrypoint for configuring and running the local agent."""
     app_config = load_app_config(cfg)
     hydra_output_dir = Path(HydraConfig.get().runtime.output_dir)
@@ -319,6 +324,22 @@ def cli(cfg: DictConfig) -> None:
         )
     )
     print(artifacts.output)
+
+
+def cli() -> None:
+    """Run the Hydra CLI using `config.yaml` from the current working directory by default."""
+    argv = sys.argv
+    inserted: list[str] = []
+    if not _has_cli_option(argv[1:], "--config-path"):
+        inserted.extend(["--config-path", str(Path.cwd())])
+    if not _has_cli_option(argv[1:], "--config-name"):
+        inserted.extend(["--config-name", "config"])
+    if inserted:
+        sys.argv = [argv[0], *inserted, *argv[1:]]
+    try:
+        _hydra_cli()
+    finally:
+        sys.argv = argv
 
 
 if __name__ == "__main__":

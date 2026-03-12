@@ -8,14 +8,15 @@ package aftk where
 
 require lean_worker from git "https://github.com/adamtopaz/lean_worker"@"main"
 
-/-- Run the Python AFTK CLI via `uv run aftk` from the AFTK package directory. -/
+/-- Run the Python AFTK CLI via `uv run aftk`, using the AFTK package as the uv project while keeping the caller workspace as the working directory. -/
 script aftk (args) do
+  let ws ← getWorkspace
   let some pkg ← findPackageByName? `aftk
     | error "workspace is missing package `aftk`"
   let child ← IO.Process.spawn {
     cmd := "uv"
-    args := #["run", "aftk"] ++ args.toArray
-    cwd := pkg.dir
+    args := #["run", "--project", pkg.dir.toString, "aftk"] ++ args.toArray
+    cwd := ws.dir
     env := ← getAugmentedEnv
   }
   return ← child.wait
