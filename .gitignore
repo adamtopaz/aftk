@@ -1,6 +1,12 @@
 .envrc
 .env
 .env.*
+!.env.example
+.direnv/
+*.pem
+*.key
+*.p12
+*.pfx
 /.lake
 /.pi
 .aftk/
@@ -16,5 +22,14 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 .coverage
+.coverage.*
+.hypothesis/
+.tox/
+.nox/
 build/
 dist/
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
