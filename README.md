@@ -1,73 +1,25 @@
 # AFTK
 
 > [!WARNING]
-> **Work in progress / highly experimental:** `aftk` is still at an early experimental stage.
-> Things may break, interfaces may change, and behavior may shift at any time without much notice.
-> Do not assume stability yet.
+> AFTK is still experimental. The Lean toolkit layers and the Python client are usable,
+> but interfaces may still change.
 
 ## About
 
 AFTK is an AutoFormalization ToolKit for Lean 4.
-It currently has four implemented layers, with the fourth still highly experimental:
+After the current cleanup, the repository contains:
 
-### Knowledge base
+1. **Knowledge base** — canonical Markdown + JSON storage, validation, search, relationships, and a Lean CLI
+2. **Informal layer** — `informal[...]` elaboration, declaration/reference tracking, dependency views, presentation, and a Lean CLI
+3. **Server / file-worker layer** — JSON-RPC executables for Lean queries, tactic exploration, knowledge-base operations, and informal queries
+4. **Python client** — async typed wrappers in `aftk/` for the public `aftk_server` surface
 
-Implemented in `AFTK.KnowledgeBase`.
-
-Current capabilities:
-
-- canonical Markdown + JSON storage under a knowledge-base root
-- strict node ids, metadata parsing, and canonical path layout
-- node lifecycle operations: init, create, show, body update, metadata replace, rename, delete
-- storage, metadata, node, and whole-root validation
-- direct-scan text search and exact-tag search
-- outgoing/incoming relationship queries
-- CLI at `lake exe aftk knowledgebase ...`
-
-### Informal layer
-
-Implemented in `AFTK.Informal`.
-
-Current capabilities:
-
-- `informal[...]` elaboration backed by knowledge-base node ids
-- explicit placeholder primitive for gradual formalization
-- declaration-level tracking of successful informal references
-- declaration and reference dependency projections
-- compact and rich presentation rendering
-- CLI at `lake exe aftk informal ...`
-
-### Server / file-worker layer
-
-Implemented in `AFTK.Server` and `AFTK.FileWorker`.
-
-Current capabilities:
-
-- standalone `aftk_server` hub and `aftk_file_worker` worker executables
-- one worker per open Lean file
-- JSON-RPC methods for hover, goals, term goals, infoview, tactic-state capture, and tactic execution
-- direct JSON-RPC methods for knowledge-base operations and informal-layer queries/presentation
-- reopen-on-change invalidation
-- richer hover at `informal[...]` sites via the informal + knowledge-base layers
-- async Python client wrappers in `aftk_client/` for the public server surface
-
-### Experimental Python framework layer
-
-Implemented in `aftk/` on top of `aftk_client/`.
-
-Current capabilities:
-
-- deterministic project snapshots and generated framework state under `.aftk/`
-- a persistent task graph with attempts, events, and recovery on restart
-- `pydantic-ai` initializer, orchestrator, and worker agents with typed dependencies and structured outputs
-- worker-only coding tools for project search, file reads/edits, and validation commands such as `lake build`
-- run telemetry, usage/cost rollups, and operator-facing inspection via `aftk-inspect`
-
-This framework layer is real but still early: it is currently best understood as an experimental library and test surface rather than a stable end-user automation product.
+The previous experimental Python agent/framework layer has been removed.
+Future agent work will be rebuilt separately on top of the server/client boundary.
 
 ## Quick start
 
-Install the Python package and framework dependencies:
+Install the Python dependencies:
 
 ```text
 uv sync
@@ -79,83 +31,21 @@ Build the Lean code:
 lake build
 ```
 
-Run the Lean-layer tests:
+Run the Lean tests:
 
 ```text
-lake test
+lake exe aftk_test
 ```
 
-### Experimental framework quickstart
-
-The framework now has a simple Hydra-backed CLI exposed as `autoformalize`.
-A minimal project needs:
+Run the Python client tests:
 
 ```text
-my-project/
-  lakefile.lean | lakefile.toml
-  entrypoint.md
-  sources/   # optional
+uv run python -m unittest discover -s tests/python -v
 ```
 
-Set the credentials required by your chosen `pydantic-ai` provider, then run from the project root with Hydra overrides for the three agent models:
+## Lean CLIs
 
-```text
-uv run autoformalize \
-  project_root=. \
-  models.initializer='openai:gpt-5-mini' \
-  models.orchestrator='openai:gpt-5' \
-  models.worker='openai:gpt-5-mini'
-```
-
-Useful overrides:
-
-```text
-uv run autoformalize \
-  project_root=. \
-  max_iterations=20 \
-  state_dir=.aftk \
-  output=text \
-  models.initializer='openai:gpt-5-mini' \
-  models.orchestrator='openai:gpt-5' \
-  models.worker='openai:gpt-5-mini'
-```
-
-For more live visibility during a run, you can also raise the framework logging level or tune the trace settings:
-
-```text
-uv run autoformalize \
-  project_root=. \
-  logging.level=debug \
-  logging.trace_model_events=full \
-  logging.include_tool_payloads=full \
-  models.initializer='openai:gpt-5-mini' \
-  models.orchestrator='openai:gpt-5' \
-  models.worker='openai:gpt-5-mini'
-```
-
-The CLI now emits framework-owned live progress logs by default, writes a session log to `.aftk/cli.log`, and appends structured runtime events to `.aftk/events.jsonl`.
-It will create or resume `.aftk/` state and will start the toolkit server through `AsyncAftkClient` automatically unless you build your own runner integration.
-
-If `aftk` is added as a Lake dependency in another Lean project, you can launch the same CLI from the dependent project's root with:
-
-```text
-lake run autoformalize \
-  models.initializer='openai:gpt-5-mini' \
-  models.orchestrator='openai:gpt-5' \
-  models.worker='openai:gpt-5-mini'
-```
-
-That script resolves the Python package from the `aftk` dependency but runs it with the working directory set to the root of the current Lean/Lake project.
-
-Inspect the resulting state with:
-
-```text
-uv run aftk-inspect .
-```
-
-For a fuller usage guide, see `docs/framework/overview.md`.
-
-### Knowledge-base CLI
+### Knowledge base
 
 Show help:
 
@@ -181,7 +71,7 @@ Validate the root:
 lake exe aftk knowledgebase validate all
 ```
 
-### Informal CLI
+### Informal
 
 Show help:
 
@@ -202,7 +92,7 @@ lake exe aftk informal present group.basic.definition \
   --root tests/informal/knowledgebase-fixtures/basic-valid
 ```
 
-### Server
+## Server
 
 Start the JSON-RPC hub:
 
@@ -210,17 +100,40 @@ Start the JSON-RPC hub:
 lake exe aftk_server
 ```
 
-The hub speaks newline-delimited JSON-RPC over stdio and spawns `aftk_file_worker` processes as needed.
+The hub speaks newline-delimited JSON-RPC over stdio and spawns `aftk_file_worker`
+processes as needed.
 
-### Experimental framework inspection
-
-After an experimental framework run has created `.aftk/`, inspect the persisted project/task/run state with:
+Run the Lean server-specific tests with:
 
 ```text
-uv run aftk-inspect .
+lake exe aftk_server_test
 ```
 
-Use `uv run aftk-inspect --help` for JSON output and report-shaping options.
+## Python client
+
+The supported Python API lives in `aftk/`.
+Because the repository is still pre-release and experimental, we do not preserve old Python package names.
+Import the client from `aftk` directly.
+
+Example:
+
+```python
+from pathlib import Path
+
+from aftk import AsyncAftkClient
+
+
+async def main() -> None:
+    project_root = Path(".").resolve()
+    async with AsyncAftkClient(project_root=project_root) as client:
+        opened = await client.open("tests/server/fixtures/lean/Semantics.lean")
+        hover = await client.get_hover(opened.path, 10, 26)
+        print(hover.text if hover is not None else "no hover")
+```
+
+The client also exposes typed wrappers for the server's knowledge-base and informal
+method families.
+See `aftk/client.py`, `aftk/models.py`, and `tests/python/`.
 
 ## Repository structure
 
@@ -232,8 +145,7 @@ AFTK/
   Informal/
   Server/
   FileWorker/
-aftk/
-aftk_client/
+aftk/          # Python client package
 AFTKTest/
 docs/
 plans/
@@ -242,18 +154,16 @@ tests/
 
 ## Documentation
 
-Repository documentation lives under `docs/`.
 Recommended entry points:
 
 - `docs/README.md`
 - `docs/architecture.md`
 - `docs/roadmap.md`
-- `docs/framework/overview.md`
 - `docs/knowledgebase/overview.md`
 - `docs/informal/overview.md`
 - `docs/server/overview.md`
 
-More detailed references:
+Useful detail references:
 
 - knowledge base:
   - `docs/knowledgebase/storage.md`
@@ -268,24 +178,18 @@ More detailed references:
   - `docs/server/library.md`
   - `docs/server/protocol.md`
   - `docs/server/testing.md`
-- framework:
-  - `docs/framework/overview.md`
-  - `docs/framework/library.md`
-  - `docs/framework/example-config.yaml`
+- plans:
+  - `plans/aftk-client.md`
+  - `plans/unified_server.md`
 
-Project-level vision and deferred work live in:
+## Current boundaries
 
-- `docs/roadmap.md` — project vision, long-term architecture, and main deferred work
-- `plans/framework.md` and `plans/framework/*.md` — framework design and implementation sequencing notes
-
-## Current implementation boundaries
-
-A few important things are still intentionally deferred or unstable:
+A few important things are still intentionally deferred or limited:
 
 - knowledge-base indexing
 - knowledge-base repair tooling
 - incremental editable-document server support
-- a stable end-user runner CLI and polished UX for the experimental framework layer
-- further prompt/model refinement and operational hardening for the framework agents
+- any rebuilt agent/orchestration layer beyond the current client/server foundation
 
-So the current repository is best understood as a working four-layer stack, with the Lean/toolkit foundation more mature and the Python framework layer still experimental.
+So the repository is now best understood as a Lean toolkit stack plus a focused Python
+client for the public server surface.

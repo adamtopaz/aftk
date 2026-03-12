@@ -4,7 +4,7 @@ import unittest
 
 from pydantic import ValidationError
 
-from aftk_client.models import (
+from aftk.models import (
     FileLocationParams,
     InfoViewResult,
     InformalDeclDto,
@@ -28,7 +28,7 @@ class ModelTests(unittest.TestCase):
 
     def test_run_tactic_steps_requires_non_empty_tactics(self) -> None:
         with self.assertRaises(ValidationError):
-            RunTacticStepsParams(path="/tmp/Test.lean", node_id="node-0", tactics=[])
+            RunTacticStepsParams(path="/tmp/Test.lean", id="node-0", tactics=[])
 
     def test_aliases_round_trip(self) -> None:
         result = RunTacticResult.model_validate({"goals": [], "nextId": "node-1"})

@@ -39,30 +39,3 @@ lean_exe aftk_server_test where
 lean_exe aftk_test where
   root := `AFTKTest.Main
   supportInterpreter := true
-
-/--
-Run the AFTK Python autoformalization framework against the current root Lake project.
-
-This is intended to work both in this repository and when `aftk` is used as a Lake dependency.
-The script always launches the Python CLI with the working directory set to the root Lake project,
-while resolving the Python package and its dependencies from the `aftk` package directory.
-
-Usage:
-  lake run autoformalize <hydra overrides>
-
-Example:
-  lake run autoformalize \
-    models.initializer='openai:gpt-5-mini' \
-    models.orchestrator='openai:gpt-5' \
-    models.worker='openai:gpt-5-mini'
--/
-script autoformalize (args) do
-  let rootPkg ← getRootPackage
-  let some aftkPkg ← findPackageByName? `aftk
-    | error "could not locate the `aftk` package in the current Lake workspace"
-  let child ← IO.Process.spawn {
-    cmd := "uv"
-    args := #[("run" : String), "--project", aftkPkg.dir.toString, "autoformalize"] ++ args.toArray
-    cwd := rootPkg.dir
-  }
-  return (← child.wait)

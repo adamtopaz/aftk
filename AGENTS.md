@@ -7,6 +7,8 @@ Minimal guidance for coding agents working in this repository.
 - Work from the repository root.
 - Prefer small, focused diffs.
 - Do not edit `.lake/` contents manually.
+- This repository is in a pre-release experimental phase.
+- Backward compatibility is not required yet; prefer the simplest current design over compatibility shims or preserving old APIs.
 
 ## Lean
 
@@ -23,9 +25,14 @@ Minimal guidance for coding agents working in this repository.
 - Typical commands:
   - `uv run python -V`
   - `uv run python -m unittest discover -s tests/python -v`
+  - `uv run pyright`
+  - `uv run ruff check`
 
 ## Validation
 
 - For Lean changes, run the relevant `lake` build/test command.
 - For Python client changes, run the Python tests via `uv`.
+- For Python code changes, also typecheck and lint:
+  - `uv run pyright`
+  - `uv run ruff check`
 - If you touch both sides, validate both.

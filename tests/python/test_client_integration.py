@@ -6,8 +6,8 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
-from aftk_client import AsyncAftkClient
-from aftk_client.errors import DomainNotFoundError, FileNotOpenError
+from aftk import AsyncAftkClient
+from aftk.errors import DomainNotFoundError, FileNotOpenError
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]

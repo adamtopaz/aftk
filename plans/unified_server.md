@@ -1,5 +1,9 @@
 # Plan: unified server surface for knowledgebase + informal
 
+> Status: largely implemented. The shared service split, unified server methods, and
+> `aftk/` Python client support now exist in the repository. This document remains useful
+> mainly as design rationale, implementation history, and guidance for future extensions.
+
 ## Goal
 
 Extend `aftk_server` so it is the single public programmatic interface for:
@@ -227,50 +231,46 @@ At minimum, v1 should not allow concurrent mutations to interleave unsafely.
 
 Relevant files:
 
-- `aftk_client/client.py`
-- `aftk_client/models.py`
-- `aftk_client/errors.py`
-- `aftk_client/jsonrpc.py`
-- `aftk_client/transport.py`
-- `aftk_client/__init__.py`
+- `aftk/client.py`
+- `aftk/models.py`
+- `aftk/errors.py`
+- `aftk/jsonrpc.py`
+- `aftk/transport.py`
+- `aftk/__init__.py`
 - `tests/python/test_models.py`
 - `tests/python/test_project_root.py`
 - `tests/python/test_client_integration.py`
 - `plans/aftk-client.md`
 
-Current Python client structure already mirrors the current file-worker server surface closely:
+Current Python client structure already mirrors the unified server surface closely:
 
-- `AsyncAftkClient` in `aftk_client/client.py` provides one wrapper per existing public server method
-- `aftk_client/models.py` contains Pydantic request/result models only for the current file/session methods
-- `aftk_client/errors.py` only maps the current JSON-RPC error codes:
-  - `-32602`
-  - `-32603`
-  - `-32001`
-  - `-32010`
-  - `-32011`
-  - `-32012`
-  - `-32013`
-- `aftk_client/__init__.py` only re-exports those current models and exceptions
-- the Python integration tests currently only cover the existing file-worker flow:
+- `AsyncAftkClient` in `aftk/client.py` exposes wrappers for file-worker, knowledge-base, and informal server methods
+- `aftk/models.py` includes Pydantic request/result models for those method families
+- `aftk/errors.py` maps both file-worker JSON-RPC errors and domain-level server errors
+- `aftk/__init__.py` re-exports the public client surface
+- the Python integration tests cover:
   - open/query/tactic lifecycle
   - project-root detection
   - concurrent requests
   - client-side param validation
+  - knowledge-base read/write flows
+  - informal query/presentation flows
 
-An important positive finding is that the transport/runtime is already generic enough for the new server methods:
+An important positive finding from the original design still holds: the transport/runtime is generic enough that server-surface growth does not require redesign.
+In particular:
 
 - `AsyncJsonRpcSubprocessTransport` is method-agnostic and only assumes newline-delimited JSON-RPC
-- `AsyncAftkClient.request(...)` already accepts an arbitrary `RequestModel` plus arbitrary result type validated by Pydantic `TypeAdapter`
-- project-root / Lake-root handling is already solved in the Python client and should continue to work for the expanded server surface
+- `AsyncAftkClient.request(...)` accepts arbitrary `RequestModel` values plus arbitrary validated result types
+- project-root / Lake-root handling remains reusable across the expanded server surface
 
-So the Python-side follow-on work is mostly about:
+So future Python-side work for additional server methods should mostly stay in:
 
-- adding new Pydantic request/result models
-- adding new high-level client wrapper methods
-- extending JSON-RPC error-code mapping
+- adding or refining Pydantic request/result models
+- adding high-level client wrapper methods
+- extending JSON-RPC error-code mapping when new codes are introduced
 - extending exports and tests
 
-That means the unified-server feature should explicitly plan a Python-client update phase after the server methods land, but it does **not** appear to require a transport redesign.
+The main conclusion remains the same: expanding the server surface should not require a transport redesign.
 
 ## Recommended design
 
@@ -351,7 +351,7 @@ Use additive public method names with clear prefixes, for example:
 - `informal_ref_deps`
 - `informal_present`
 
-This keeps the current server contract backward-compatible while making the new layer surfaces explicit.
+This keeps the server method naming explicit while making the new layer surfaces clear.
 
 ### 4. Make the server protocol structured, not CLI-shaped
 
@@ -563,7 +563,7 @@ So:
 
 ### 5. Keep the server protocol Python-client-friendly
 
-Because `aftk_client/` is already a real consumer of the server, the new server methods should be shaped so the Python update is straightforward.
+Because `aftk/` is already a real consumer of the server, any additional server methods should be shaped so Python updates stay straightforward.
 
 Concretely:
 
@@ -691,21 +691,21 @@ Depending on how public we want the shared services to be:
 
 ### Python files likely to change
 
-- `aftk_client/models.py`
-- `aftk_client/client.py`
-- `aftk_client/errors.py`
-- `aftk_client/__init__.py`
+- `aftk/models.py`
+- `aftk/client.py`
+- `aftk/errors.py`
+- `aftk/__init__.py`
 - `tests/python/test_models.py`
 - `tests/python/test_client_integration.py`
 - possibly new Python integration/error tests if the suite becomes large enough to split
 
-## Python client update plan
+## Python client follow-on plan
 
-Once the new server methods exist, update `aftk_client/` so the Python client remains a first-class typed consumer of the unified server surface.
+The unified server methods now exist, so ongoing work in `aftk/` should keep the Python client a first-class typed consumer of the public server surface as that surface evolves.
 
 ### 1. Keep the transport layer unchanged unless the server protocol itself changes
 
-Based on the current code in `aftk_client/transport.py` and `aftk_client/jsonrpc.py`, the transport layer should not need meaningful changes if the server continues to use:
+Based on the current code in `aftk/transport.py` and `aftk/jsonrpc.py`, the transport layer should not need meaningful changes if the server continues to use:
 
 - newline-delimited JSON-RPC over stdio
 - object-shaped params
@@ -713,9 +713,9 @@ Based on the current code in `aftk_client/transport.py` and `aftk_client/jsonrpc
 
 So the Python work should be concentrated in models, wrappers, exports, and tests.
 
-### 2. Extend `aftk_client/models.py` with new request/result models
+### 2. Extend `aftk/models.py` with new request/result models
 
-Add Pydantic request/result models for the new server methods.
+Add Pydantic request/result models for any additional server methods.
 
 This likely includes knowledgebase-side models for:
 
@@ -733,15 +733,15 @@ and informal-side models for:
 - dependency DTOs
 - presentation request/result models
 
-Because `aftk_client/models.py` currently only contains file-worker models, it may be worth either:
+If `aftk/models.py` grows too large as additional methods are added, it may be worth either:
 
 - keeping one larger `models.py` file for now, or
 - splitting into submodules such as:
-  - `aftk_client/models_file.py`
-  - `aftk_client/models_knowledgebase.py`
-  - `aftk_client/models_informal.py`
+  - `aftk/models_file.py`
+  - `aftk/models_knowledgebase.py`
+  - `aftk/models_informal.py`
 
-Either approach is fine; the main requirement is that the new server methods have typed request/result models.
+Either approach is fine; the main requirement is that any additional server methods have typed request/result models.
 
 ### 3. Extend `AsyncAftkClient` with wrapper methods for the new RPC surface
 
@@ -789,7 +789,7 @@ Because `AsyncAftkClient.request(...)` is already generic, these wrappers should
 
 ### 4. Extend Python error mapping for the new server error codes
 
-If the server adds domain-level JSON-RPC errors for knowledgebase/informal failures, update `aftk_client/errors.py` to include matching exception classes and numeric-code mapping.
+If the server adds domain-level JSON-RPC errors for knowledgebase/informal failures, update `aftk/errors.py` to include matching exception classes and numeric-code mapping.
 
 A likely shape is:
 
@@ -813,7 +813,7 @@ If the server uses structured error `data`, the Python client may also add a sma
 
 ### 5. Update public exports
 
-Update `aftk_client/__init__.py` so the new models and exceptions are public the same way the current file-worker models are.
+Update `aftk/__init__.py` whenever new models and exceptions should become part of the public client surface.
 
 ### 6. Add Python tests for the expanded server surface
 
@@ -843,7 +843,7 @@ so the new coverage should extend that layout rather than invent a separate harn
 The current Python client already treats the Lake project root as a first-class startup concern.
 That should remain unchanged.
 
-For the new server methods:
+For these server methods:
 
 - if a method takes `root?`, the client should accept an explicit optional root path and send it verbatim
 - if `root?` is omitted, the server should keep using its default root-resolution policy relative to the process cwd/project root
@@ -1002,10 +1002,10 @@ so the documented Python client surface stays aligned with the expanded server p
 
 ### Phase 6: Python client update
 
-- extend `aftk_client/models.py` with knowledgebase/informal request/result models
+- extend `aftk/models.py` with knowledgebase/informal request/result models
 - add `AsyncAftkClient` wrapper methods for the new RPCs
-- extend `aftk_client/errors.py` for new domain-level JSON-RPC error codes
-- update `aftk_client/__init__.py` exports
+- extend `aftk/errors.py` for new domain-level JSON-RPC error codes
+- update `aftk/__init__.py` exports
 - add Python model/integration/error-mapping tests under `tests/python/`
 
 ## Recommended acceptance criteria
@@ -1019,7 +1019,7 @@ This feature/refactor is complete when all of the following are true:
 - server handlers do not shell out to the CLIs
 - server errors for knowledgebase/informal operations are real JSON-RPC errors with preserved lower-layer error identity
 - server tests cover representative success and failure paths for both new handler families
-- `aftk_client/` exposes typed wrappers/models for the new server methods
+- `aftk/` exposes typed wrappers/models for the implemented server methods
 - Python tests cover representative success and failure paths for the expanded server surface
 
 ## Deferred follow-ons

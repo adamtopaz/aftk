@@ -4,8 +4,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from aftk_client.client import AsyncAftkClient, detect_project_root, is_lake_project_root, validate_project_root
-from aftk_client.errors import InvalidProjectRootError, ProjectRootNotFoundError
+from aftk.client import AsyncAftkClient, detect_project_root, is_lake_project_root, validate_project_root
+from aftk.errors import InvalidProjectRootError, ProjectRootNotFoundError
 
 
 class ProjectRootTests(unittest.TestCase):

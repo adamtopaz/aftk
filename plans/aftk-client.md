@@ -1,5 +1,8 @@
 # Plan: async Python client for `aftk_server`
 
+> Status: largely implemented. The client now lives in `aftk/`, and this document is
+> best read as design rationale plus follow-on guidance rather than as an untouched to-do list.
+
 ## Goal
 
 Implement a fully async Python client for the public `aftk_server` JSON-RPC hub.
@@ -187,11 +190,11 @@ The client design should therefore make the Lake project root a first-class conc
 
 ## Proposed package structure
 
-Exact package placement can be decided when we touch packaging, but the client itself should be split roughly like this:
+The implemented client now lives in `aftk/` and is split roughly like this:
 
 ```text
-<a python package>/
-  __init__.py
+aftk/
+  __init__.py        # public exports
   client.py          # public async client API
   transport.py       # subprocess + read loop + request/response multiplexing
   models.py          # Pydantic request/result models for AFTK methods

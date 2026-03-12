@@ -1,21 +1,23 @@
 # aftk roadmap
 
-This document describes the project-level vision and the main remaining work for `aftk`.
+This document describes the project-level direction for `aftk` after the Python
+framework/agent cleanup.
 It complements `docs/architecture.md`, which focuses on the implementation that exists today.
 
-## Project vision
+## Project direction
 
-`aftk` is intended to be a full stack for Lean-oriented autoformalization and AI-assisted proof workflows.
-The long-term architecture has four layers:
+`aftk` currently focuses on a Lean toolkit foundation plus a Python client for the
+public server surface.
+The implemented stack is:
 
 1. **Knowledge base**
 2. **Informal bridge layer**
 3. **Server / file-worker layer**
-4. **AI autoformalization / orchestration framework**
+4. **Python client**
 
-All four layers now exist in the repository.
-The first three provide the more mature Lean/toolkit foundation.
-The fourth layer now exists as an experimental Python framework built on top of that foundation.
+The previous experimental Python agent/orchestration framework has been removed.
+Future automation work is expected to restart from scratch on top of the retained
+server/client boundary rather than evolve the deleted code in place.
 
 ## Core architectural commitments
 
@@ -23,12 +25,11 @@ The project continues to assume these core design choices:
 
 - the **knowledge base** is the single source of truth for canonical prose and structured metadata
 - the **informal layer** is the Lean-facing bridge to knowledge-base nodes
-- the **server / file-worker layer** provides interactive Lean queries and transient tactic exploration over real files
-- the **Python framework** should build on the existing lower-layer public interfaces rather than duplicating their semantics
-- framework state should stay explicit and persistent under `.aftk/`, rather than living only in chat history
-- deterministic Python code should own task-state mutation; agents should return structured proposals and reports
+- the **server / file-worker layer** provides interactive Lean queries, tactic exploration, and direct knowledge-base/informal operations over JSON-RPC
+- the **Python client** should stay a thin, typed wrapper over the public server protocol rather than duplicating server semantics
+- any future rebuilt automation layer should sit on top of the existing public interfaces rather than reaching around them
 
-In dependency order, the intended stack is:
+In dependency order, the implemented stack is:
 
 ```text
 AFTK.KnowledgeBase
@@ -37,9 +38,7 @@ AFTK.Informal
         ↓
 AFTK.Server / AFTK.FileWorker
         ↓
-aftk_client
-        ↓
-experimental autoformalization framework
+aftk
 ```
 
 ## Current implementation state
@@ -48,39 +47,35 @@ The repository already implements:
 
 - **Knowledge base** — canonical Markdown + JSON storage, validation, search, relationships, and a CLI
 - **Informal** — `informal[...]` elaboration, declaration-level tracking, dependency views, presentation, and a CLI
-- **Server / file worker** — standalone JSON-RPC executables for Lean queries, richer hover, and transient tactic exploration
-- **Experimental framework** — project snapshots, persistent task state, worker coding tools, `pydantic-ai` initializer/orchestrator/worker services, runner integration, telemetry/cost rollups, and `aftk-inspect`
+- **Server / file worker** — standalone JSON-RPC executables for Lean queries, richer hover, tactic exploration, knowledge-base operations, and informal queries
+- **Python client** — async typed wrappers over the implemented server surface
 
-So the main roadmap question is no longer whether the AI layer should exist, but how to harden and evolve the early framework implementation.
+So the immediate roadmap is about hardening and extending this foundation, not about
+preserving the removed framework layer.
 
 ## Intentional current boundaries
 
-A few important limits are still deliberate parts of the current design:
+A few important limits are deliberate parts of the current design:
 
-- the framework layer exists, but it is still experimental and library-first
-- there is not yet a stable top-level runner CLI for end users
-- the v1 runner is sequential and single-process, not a distributed or highly parallel worker system
+- there is currently **no** retained Python agent/orchestration framework in the repository
 - knowledge-base indexing is not implemented
 - knowledge-base repair tooling is not implemented
 - the server still uses a one-shot, reopen-on-change model rather than an incremental editable-document model
+- the Python client is intentionally low-level and method-shaped; it is not a higher-level editor or workflow runtime
 
 These are current product boundaries, not documentation gaps.
 
 ## Main roadmap items
 
-### 1. Framework hardening and usability
+### 1. Harden the server/client foundation
 
-The biggest remaining area is hardening the experimental framework into a more robust operator-facing system.
-That includes work such as:
+The most important near-term work is making the retained interface rock-solid.
+That includes:
 
-- refining prompts and task decomposition quality
-- improving worker/orchestrator handoff quality and recovery behavior
-- stabilizing user-facing run and inspection workflows
-- expanding fixture coverage and end-to-end tests with controlled and real lower-layer interactions
-- tuning model/provider configuration, pricing overrides, usage limits, and retry behavior
-- improving operator visibility into task progress, run telemetry, and cost summaries
-
-This work should continue to build on the explicit task system and lower-layer public interfaces rather than replacing them with ad hoc orchestration.
+- keeping the JSON-RPC protocol stable and well documented
+- expanding or refining typed client coverage when the server surface changes
+- improving integration tests across Lean server behavior and Python client behavior
+- making downstream dependency-style usage reliable for real Lean projects
 
 ### 2. Knowledge-base indexing
 
@@ -103,7 +98,7 @@ Future repair work should stay conservative and validation-driven, for example b
 - quarantining or explicitly handling malformed canonical files
 - avoiding silent destructive edits
 
-### 4. Possible server and interface evolution
+### 4. Possible server evolution
 
 The current server model is a deliberate one-shot, reopen-on-change design.
 Possible follow-on work includes:
@@ -115,34 +110,33 @@ Possible follow-on work includes:
 
 This is follow-on work, not a prerequisite for the current foundation.
 
-### 5. Longer-term framework expansion
+### 5. Design a new automation layer from scratch when ready
 
-Once the sequential framework loop has been hardened, possible later follow-ons include:
+When automation work resumes, it should be treated as a fresh design problem rather than
+an incremental continuation of the removed framework.
+Useful prerequisites include:
 
-- richer human-in-the-loop review surfaces
-- safe explicit re-initialization and project reset workflows
-- parallel or graph-based execution only if the simple loop proves insufficient
-- broader multi-project or fleet-style operational tooling
-
-These should be justified by concrete workflow needs, not added preemptively.
+- a stable server/client contract
+- clear operator workflows the new system is meant to support
+- updated design docs that reflect the retained codebase rather than the deleted framework
 
 ## Practical priorities
 
 If the project is advanced from the current state, the practical order should be:
 
-1. keep `docs/` and `plans/framework*.md` aligned with the implemented four-layer stack
-2. harden the experimental framework with fixture projects, controlled-model tests, and operator feedback
-3. stabilize runner and inspection ergonomics before adding more orchestration complexity
-4. add indexing, repair, or server follow-ons only when they unlock concrete workflows
+1. keep `docs/` aligned with the retained toolkit + client stack
+2. harden the public server/client interface and its tests
+3. add indexing, repair, or server follow-ons only when they unlock concrete workflows
+4. design any future agent/orchestration system from scratch after the foundation is stable
 
 ## Summary
 
-`aftk` now has a real four-layer stack:
+`aftk` now has a focused stack:
 
 - knowledge base
 - informal bridge
 - server / file worker
-- experimental Python autoformalization framework
+- Python client
 
-The lower three layers are the more mature foundation.
-The main remaining work is to harden the fourth layer and selectively add follow-on capabilities such as indexing, repair, and server/interface evolution where they materially improve real workflows.
+The main remaining work is to strengthen that foundation and use it as the basis for any
+future rebuilt automation layer.

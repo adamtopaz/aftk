@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from aftk_client.errors import (
+from aftk.errors import (
     DomainConflictError,
     DomainNotFoundError,
     DomainOperationError,
