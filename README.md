@@ -135,12 +135,12 @@ The client also exposes typed wrappers for the server's knowledge-base and infor
 method families.
 See `aftk/client.py`, `aftk/models.py`, and `tests/python/`.
 
-### Pydantic AI toolkit
+### Pydantic AI toolkits
 
-The package also includes a reusable Pydantic AI toolset built on top of the client.
-It is installed as part of the package's normal dependencies.
+The package also includes reusable Pydantic AI toolsets.
+They are installed as part of the package's normal dependencies.
 
-Example:
+Client-backed toolkit example:
 
 ```python
 from pathlib import Path
@@ -154,6 +154,18 @@ async def main() -> None:
     client = AsyncAftkClient(project_root=project_root)
     toolkit = AftkToolkit(client)
     # pass `toolkit` to a pydantic_ai.Agent(..., toolsets=[toolkit])
+```
+
+Local coding toolkit example:
+
+```python
+from pathlib import Path
+
+from aftk.toolkits.coding import CodingToolkit
+
+
+def build_toolkit() -> CodingToolkit:
+    return CodingToolkit(cwd=Path(".").resolve(), include_search=True)
 ```
 
 ## Repository structure
