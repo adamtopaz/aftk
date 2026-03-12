@@ -135,6 +135,27 @@ The client also exposes typed wrappers for the server's knowledge-base and infor
 method families.
 See `aftk/client.py`, `aftk/models.py`, and `tests/python/`.
 
+### Pydantic AI toolkit
+
+The package also includes a reusable Pydantic AI toolset built on top of the client.
+It is installed as part of the package's normal dependencies.
+
+Example:
+
+```python
+from pathlib import Path
+
+from aftk import AsyncAftkClient
+from aftk.toolkits.aftk import AftkToolkit
+
+
+async def main() -> None:
+    project_root = Path(".").resolve()
+    client = AsyncAftkClient(project_root=project_root)
+    toolkit = AftkToolkit(client)
+    # pass `toolkit` to a pydantic_ai.Agent(..., toolsets=[toolkit])
+```
+
 ## Repository structure
 
 Main implementation roots:

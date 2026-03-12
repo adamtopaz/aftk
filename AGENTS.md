@@ -7,8 +7,10 @@ Minimal guidance for coding agents working in this repository.
 - Work from the repository root.
 - Prefer small, focused diffs.
 - Do not edit `.lake/` contents manually.
-- This repository is in a pre-release experimental phase.
-- Backward compatibility is not required yet; prefer the simplest current design over compatibility shims or preserving old APIs.
+- This repository is **PRE-RELEASE** and still **EXPERIMENTAL**.
+- Do **not** add compatibility shims, alias modules, deprecated wrappers, or legacy import-path support unless the user explicitly asks for them.
+- At this stage, consistency inside this repository matters more than preserving earlier external APIs or import paths.
+- Backward compatibility is not required yet; prefer the simplest current design.
 
 ## Lean
 
