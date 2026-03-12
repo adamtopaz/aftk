@@ -78,7 +78,7 @@ private def runCoreInEnv (env : Environment) (x : CoreM α) : IO α := do
   let cwd ← liftIO IO.currentDir
   liftIO <| IO.Process.output {
     cmd := "lake"
-    args := #["exe", "aftk"] ++ args
+    args := #["exe", "aftk_cli"] ++ args
     cwd := some cwd
   } input?
 

@@ -30,14 +30,14 @@ Then use the layer-specific guides for component-level detail.
 - `docs/knowledgebase/overview.md` — layer scope, data model, and command surface
 - `docs/knowledgebase/storage.md` — on-disk layout, node mapping, mutation semantics, and invariants
 - `docs/knowledgebase/library.md` — component-by-component implementation guide with code pointers
-- `docs/knowledgebase/cli.md` — command reference for `lake exe aftk knowledgebase ...`
+- `docs/knowledgebase/cli.md` — command reference for `lake exe aftk_cli knowledgebase ...`
 - `docs/knowledgebase/testing.md` — test layout, fixtures, and coverage
 
 ## Informal docs
 
 - `docs/informal/overview.md` — elaboration model, bridge semantics, and current behavior
 - `docs/informal/library.md` — component-by-component implementation guide with code pointers
-- `docs/informal/cli.md` — command reference for `lake exe aftk informal ...`
+- `docs/informal/cli.md` — command reference for `lake exe aftk_cli informal ...`
 - `docs/informal/testing.md` — fixture layout, compile-fail tests, and CLI coverage
 
 ## Server / file-worker docs

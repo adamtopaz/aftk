@@ -234,7 +234,7 @@ private def globalOptionsSection : List String :=
 def renderHelp : HelpTopic → String
   | .informal =>
       renderSections [
-        usageSection "lake exe aftk informal [global-options] <command> ...",
+        usageSection "lake exe aftk_cli informal [global-options] <command> ...",
         ["Query the AFTK informal layer."],
         globalOptionsSection,
         titledSection "Commands:" [
@@ -246,17 +246,17 @@ def renderHelp : HelpTopic → String
           "  deps                  Show declaration or reference dependency views",
           "  present               Render knowledge-base-backed presentation for one reference"
         ],
-        ["Run `lake exe aftk informal <command> --help` for detailed command help."]
+        ["Run `lake exe aftk_cli informal <command> --help` for detailed command help."]
       ]
   | .status =>
       renderSections [
-        usageSection "lake exe aftk informal status --module <Module.Name> [--module <Module.Name> ...]",
+        usageSection "lake exe aftk_cli informal status --module <Module.Name> [--module <Module.Name> ...]",
         ["Show high-level counts for tracked declarations and references."],
         globalOptionsSection
       ]
   | .decls =>
       renderSections [
-        usageSection "lake exe aftk informal decls --module <Module.Name> [options]",
+        usageSection "lake exe aftk_cli informal decls --module <Module.Name> [options]",
         ["List tracked declarations and their referenced node ids."],
         titledSection "Options:" [
           "  --prefix <Decl.Name>    Restrict to a declaration prefix",
@@ -267,13 +267,13 @@ def renderHelp : HelpTopic → String
       ]
   | .decl =>
       renderSections [
-        usageSection "lake exe aftk informal decl <Decl.Name> --module <Module.Name> [--module <Module.Name> ...]",
+        usageSection "lake exe aftk_cli informal decl <Decl.Name> --module <Module.Name> [--module <Module.Name> ...]",
         ["Show one tracked declaration and its referenced node ids."],
         globalOptionsSection
       ]
   | .refs =>
       renderSections [
-        usageSection "lake exe aftk informal refs --module <Module.Name> [options]",
+        usageSection "lake exe aftk_cli informal refs --module <Module.Name> [options]",
         ["List tracked references and the declarations that reference them."],
         titledSection "Options:" [
           "  --prefix <NodeIdPrefix> Restrict to references under a dotted prefix",
@@ -283,13 +283,13 @@ def renderHelp : HelpTopic → String
       ]
   | .ref =>
       renderSections [
-        usageSection "lake exe aftk informal ref <NodeId> --module <Module.Name> [--module <Module.Name> ...]",
+        usageSection "lake exe aftk_cli informal ref <NodeId> --module <Module.Name> [--module <Module.Name> ...]",
         ["Show one tracked reference and the declarations that reference it."],
         globalOptionsSection
       ]
   | .deps =>
       renderSections [
-        usageSection "lake exe aftk informal deps --module <Module.Name> [options]",
+        usageSection "lake exe aftk_cli informal deps --module <Module.Name> [options]",
         ["Show derived declaration or reference dependency views."],
         titledSection "Options:" [
           "  --by decl|ref          Choose declaration or reference dependencies",
@@ -300,7 +300,7 @@ def renderHelp : HelpTopic → String
       ]
   | .present =>
       renderSections [
-        usageSection "lake exe aftk informal present <NodeId> [--root <path>] [options]",
+        usageSection "lake exe aftk_cli informal present <NodeId> [--root <path>] [options]",
         ["Render compact or rich knowledge-base-backed presentation for one node."],
         titledSection "Options:" [
           "  --mode compact|rich    Select compact or rich presentation (default: rich)",

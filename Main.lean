@@ -7,13 +7,13 @@ public section
 
 
 private def topLevelUsage : String :=
-  "Usage: lake exe aftk <command> ..."
+  "Usage: lake exe aftk_cli <command> ..."
 
 private def topLevelHelp : String :=
   String.intercalate "\n\n" [
     String.intercalate "\n" [
       "Usage:",
-      "  lake exe aftk <command> ..."
+      "  lake exe aftk_cli <command> ..."
     ],
     "Top-level entrypoint for AFTK.",
     String.intercalate "\n" [
@@ -25,8 +25,8 @@ private def topLevelHelp : String :=
       "  knowledgebase         Manage the AFTK knowledge base",
       "  informal              Query the AFTK informal layer"
     ],
-    "Run `lake exe aftk knowledgebase --help` for knowledgebase command help.",
-    "Run `lake exe aftk informal --help` for informal command help."
+    "Run `lake exe aftk_cli knowledgebase --help` for knowledgebase command help.",
+    "Run `lake exe aftk_cli informal --help` for informal command help."
   ]
 
 unsafe def main (args : List String) : IO Unit := do

@@ -85,7 +85,7 @@ unsafe def run (args : List String) : IO UInt8 := do
               | .json => IO.println <| Render.renderFailure .json (some command) err
               pure err.exitCode
 
-/-- `lake exe aftk informal ...` entrypoint. -/
+/-- `lake exe aftk_cli informal ...` entrypoint. -/
 unsafe def main (args : List String) : IO Unit := do
   IO.Process.exit (← run args)
 

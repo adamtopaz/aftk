@@ -24,8 +24,8 @@ For the project-level direction and deferred work, see `docs/roadmap.md`.
 
 | Layer | Current status | Main entrypoints | Main code roots |
 | --- | --- | --- | --- |
-| Knowledge base | Implemented | `lake exe aftk knowledgebase ...`, `import AFTK.KnowledgeBase` | `AFTK/KnowledgeBase*.lean`, `AFTK/KnowledgeBase/**` |
-| Informal | Implemented | `lake exe aftk informal ...`, `import AFTK.Informal` | `AFTK/Informal*.lean`, `AFTK/Informal/**` |
+| Knowledge base | Implemented | `lake exe aftk_cli knowledgebase ...`, `import AFTK.KnowledgeBase` | `AFTK/KnowledgeBase*.lean`, `AFTK/KnowledgeBase/**` |
+| Informal | Implemented | `lake exe aftk_cli informal ...`, `import AFTK.Informal` | `AFTK/Informal*.lean`, `AFTK/Informal/**` |
 | Server / file worker | Implemented | `lake exe aftk_server`, `lake exe aftk_file_worker <path>`, `import AFTK.Server`, `import AFTK.FileWorker` | `AFTK/Server*.lean`, `AFTK/Server/**`, `AFTK/FileWorker*.lean`, `AFTK/FileWorker/**` |
 | Python client | Implemented | `from aftk import AsyncAftkClient` | `aftk/**`, `tests/python/**` |
 
@@ -172,7 +172,7 @@ The current implementation has three important kinds of non-canonical state:
 The top-level Lean executable is:
 
 ```text
-lake exe aftk <command> ...
+lake exe aftk_cli <command> ...
 ```
 
 It currently dispatches to:

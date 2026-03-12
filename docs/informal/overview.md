@@ -6,7 +6,7 @@ It is implemented in `AFTK.Informal` and exposed both as library code and as a C
 Public entrypoints:
 
 - library: `import AFTK.Informal`
-- CLI: `lake exe aftk informal ...`
+- CLI: `lake exe aftk_cli informal ...`
 
 For a component-by-component guide with direct code pointers, see `docs/informal/library.md`.
 

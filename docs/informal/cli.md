@@ -3,7 +3,7 @@
 The public command is:
 
 ```text
-lake exe aftk informal ...
+lake exe aftk_cli informal ...
 ```
 
 This CLI is implemented in `AFTK/Informal/Cli/*` and dispatched from the top-level `aftk` executable.
@@ -13,9 +13,9 @@ This CLI is implemented in `AFTK/Informal/Cli/*` and dispatched from the top-lev
 Help is available at:
 
 ```text
-lake exe aftk --help
-lake exe aftk informal --help
-lake exe aftk informal <command> --help
+lake exe aftk_cli --help
+lake exe aftk_cli informal --help
+lake exe aftk_cli informal <command> --help
 ```
 
 The informal CLI accepts both `--help` and `-h` in help detection.
@@ -82,7 +82,7 @@ The informal CLI reuses `KnowledgeBaseError` exit codes:
 Show high-level counts:
 
 ```text
-lake exe aftk informal status --module AFTKTest.Informal.Fixtures.Basic
+lake exe aftk_cli informal status --module AFTKTest.Informal.Fixtures.Basic
 ```
 
 Current text output reports:
@@ -96,9 +96,9 @@ Current text output reports:
 List tracked declarations:
 
 ```text
-lake exe aftk informal decls --module AFTKTest.Informal.Fixtures.Basic
-lake exe aftk informal decls --module AFTKTest.Informal.Fixtures.Basic --prefix AFTKTest.Informal.Fixtures.Basic
-lake exe aftk informal decls --module AFTKTest.Informal.Fixtures.Basic --ref group.basic.definition
+lake exe aftk_cli informal decls --module AFTKTest.Informal.Fixtures.Basic
+lake exe aftk_cli informal decls --module AFTKTest.Informal.Fixtures.Basic --prefix AFTKTest.Informal.Fixtures.Basic
+lake exe aftk_cli informal decls --module AFTKTest.Informal.Fixtures.Basic --ref group.basic.definition
 ```
 
 Options:
@@ -113,7 +113,7 @@ Rows are declaration-level and use deduplicated reference sets.
 Show one tracked declaration:
 
 ```text
-lake exe aftk informal decl \
+lake exe aftk_cli informal decl \
   AFTKTest.Informal.Fixtures.Basic.multiRef \
   --module AFTKTest.Informal.Fixtures.Basic
 ```
@@ -125,8 +125,8 @@ This returns the declaration, its reference count, and its referenced node ids.
 List tracked references:
 
 ```text
-lake exe aftk informal refs --module AFTKTest.Informal.Fixtures.Basic
-lake exe aftk informal refs --module AFTKTest.Informal.Fixtures.Basic --prefix group.basic
+lake exe aftk_cli informal refs --module AFTKTest.Informal.Fixtures.Basic
+lake exe aftk_cli informal refs --module AFTKTest.Informal.Fixtures.Basic --prefix group.basic
 ```
 
 Option:
@@ -140,7 +140,7 @@ Rows group by reference and list the declarations that reference each node id.
 Show one tracked reference:
 
 ```text
-lake exe aftk informal ref group.basic.definition --module AFTKTest.Informal.Fixtures.Basic
+lake exe aftk_cli informal ref group.basic.definition --module AFTKTest.Informal.Fixtures.Basic
 ```
 
 This returns the node id, declaration count, and declarations that reference it.
@@ -150,10 +150,10 @@ This returns the node id, declaration count, and declarations that reference it.
 Show derived dependency views:
 
 ```text
-lake exe aftk informal deps --module AFTKTest.Informal.Fixtures.Imports.Top
-lake exe aftk informal deps --module AFTKTest.Informal.Fixtures.Imports.Top --by decl
-lake exe aftk informal deps --module AFTKTest.Informal.Fixtures.Imports.Top --by ref
-lake exe aftk informal deps --module AFTKTest.Informal.Fixtures.Imports.Top --by ref --only-leaves
+lake exe aftk_cli informal deps --module AFTKTest.Informal.Fixtures.Imports.Top
+lake exe aftk_cli informal deps --module AFTKTest.Informal.Fixtures.Imports.Top --by decl
+lake exe aftk_cli informal deps --module AFTKTest.Informal.Fixtures.Imports.Top --by ref
+lake exe aftk_cli informal deps --module AFTKTest.Informal.Fixtures.Imports.Top --by ref --only-leaves
 ```
 
 Options:
@@ -174,12 +174,12 @@ The output still includes the leaf summary section.
 Render direct knowledge-base-backed presentation:
 
 ```text
-lake exe aftk informal present group.basic.definition --root tests/informal/knowledgebase-fixtures/basic-valid
-lake exe aftk informal present analysis.uniform_continuity \
+lake exe aftk_cli informal present group.basic.definition --root tests/informal/knowledgebase-fixtures/basic-valid
+lake exe aftk_cli informal present analysis.uniform_continuity \
   --root tests/informal/knowledgebase-fixtures/long-body \
   --mode rich \
   --body preview
-lake exe aftk informal present group.basic.definition \
+lake exe aftk_cli informal present group.basic.definition \
   --root tests/informal/knowledgebase-fixtures/basic-valid \
   --mode compact \
   --format json
@@ -252,7 +252,7 @@ missing required option '--module <Module.Name>'
 ### Invalid dependency mode
 
 ```text
-lake exe aftk informal deps --module Foo --by bogus
+lake exe aftk_cli informal deps --module Foo --by bogus
 ```
 
 fails with a usage error describing the accepted `decl|ref` values.
@@ -277,7 +277,7 @@ The last case is especially important because `present` uses the knowledge-base 
 List the declarations that reference one node:
 
 ```text
-lake exe aftk informal decls \
+lake exe aftk_cli informal decls \
   --module AFTKTest.Informal.Fixtures.Basic \
   --ref group.basic.definition
 ```
@@ -285,7 +285,7 @@ lake exe aftk informal decls \
 Show projected reference dependencies:
 
 ```text
-lake exe aftk informal deps \
+lake exe aftk_cli informal deps \
   --module AFTKTest.Informal.Fixtures.Imports.Top \
   --by ref
 ```
@@ -293,7 +293,7 @@ lake exe aftk informal deps \
 Render a long-body node in preview mode:
 
 ```text
-lake exe aftk informal present analysis.uniform_continuity \
+lake exe aftk_cli informal present analysis.uniform_continuity \
   --root tests/informal/knowledgebase-fixtures/long-body \
   --mode rich \
   --body preview

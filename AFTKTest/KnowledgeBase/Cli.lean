@@ -19,7 +19,7 @@ private def runTopLevelAftkCli (args : Array String) (input? : Option String := 
   let cwd ← liftIO IO.currentDir
   liftIO <| IO.Process.output {
     cmd := "lake"
-    args := #["exe", "aftk"] ++ args
+    args := #["exe", "aftk_cli"] ++ args
     cwd := some cwd
   } input?
 
@@ -130,26 +130,26 @@ private def cliHelpFlags : TestCase := {
   run := do
     let topLevelOut ← runTopLevelAftkCli #["--help"]
     assertEq topLevelOut.exitCode 0
-    assertContains topLevelOut.stdout "lake exe aftk <command> ..."
+    assertContains topLevelOut.stdout "lake exe aftk_cli <command> ..."
     assertContains topLevelOut.stdout "knowledgebase"
 
     let rootHelpOut ← runKnowledgeBaseCli #["--help"]
     assertEq rootHelpOut.exitCode 0
-    assertContains rootHelpOut.stdout "lake exe aftk knowledgebase [global-options] <command> ..."
-    assertContains rootHelpOut.stdout "Run `lake exe aftk knowledgebase <command> --help`"
+    assertContains rootHelpOut.stdout "lake exe aftk_cli knowledgebase [global-options] <command> ..."
+    assertContains rootHelpOut.stdout "Run `lake exe aftk_cli knowledgebase <command> --help`"
 
     let createHelpOut ← runKnowledgeBaseCli #["create", "--help"]
     assertEq createHelpOut.exitCode 0
-    assertContains createHelpOut.stdout "lake exe aftk knowledgebase [global-options] create <id> --title <title> [options]"
+    assertContains createHelpOut.stdout "lake exe aftk_cli knowledgebase [global-options] create <id> --title <title> [options]"
     assertContains createHelpOut.stdout "--body-file <path>"
 
     let bodySetHelpOut ← runKnowledgeBaseCli #["body", "set", "--help"]
     assertEq bodySetHelpOut.exitCode 0
-    assertContains bodySetHelpOut.stdout "lake exe aftk knowledgebase [global-options] body set <id> (--from <path> | --stdin)"
+    assertContains bodySetHelpOut.stdout "lake exe aftk_cli knowledgebase [global-options] body set <id> (--from <path> | --stdin)"
 
     let validateNodeHelpOut ← runKnowledgeBaseCli #["validate", "node", "--help"]
     assertEq validateNodeHelpOut.exitCode 0
-    assertContains validateNodeHelpOut.stdout "lake exe aftk knowledgebase [global-options] validate node <id>"
+    assertContains validateNodeHelpOut.stdout "lake exe aftk_cli knowledgebase [global-options] validate node <id>"
 }
 
 

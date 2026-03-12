@@ -193,7 +193,7 @@ private def nodeStatusValues : String :=
 def renderHelp : HelpTopic → String
   | .knowledgebase =>
       renderSections [
-        usageSection "lake exe aftk knowledgebase [global-options] <command> ...",
+        usageSection "lake exe aftk_cli knowledgebase [global-options] <command> ...",
         ["Manage the AFTK knowledge base."],
         globalOptionsSection,
         titledSection "Commands:" [
@@ -210,23 +210,23 @@ def renderHelp : HelpTopic → String
           "  search                Search nodes",
           "  relationships         Inspect relationships"
         ],
-        ["Run `lake exe aftk knowledgebase <command> --help` for detailed command help."]
+        ["Run `lake exe aftk_cli knowledgebase <command> --help` for detailed command help."]
       ]
   | .init =>
       renderSections [
-        usageSection "lake exe aftk knowledgebase [global-options] init",
+        usageSection "lake exe aftk_cli knowledgebase [global-options] init",
         ["Initialize a knowledgebase root."],
         globalOptionsSection
       ]
   | .status =>
       renderSections [
-        usageSection "lake exe aftk knowledgebase [global-options] status",
+        usageSection "lake exe aftk_cli knowledgebase [global-options] status",
         ["Show root status, manifest information, and internal directory presence."],
         globalOptionsSection
       ]
   | .list =>
       renderSections [
-        usageSection "lake exe aftk knowledgebase [global-options] list [options]",
+        usageSection "lake exe aftk_cli knowledgebase [global-options] list [options]",
         ["List nodes from the knowledge base."],
         titledSection "Options:" [
           "  --prefix <prefix>     Restrict to node IDs under a dotted prefix",
@@ -239,7 +239,7 @@ def renderHelp : HelpTopic → String
       ]
   | .show =>
       renderSections [
-        usageSection "lake exe aftk knowledgebase [global-options] show <id> [--body|--metadata|--paths]",
+        usageSection "lake exe aftk_cli knowledgebase [global-options] show <id> [--body|--metadata|--paths]",
         ["Show a node's combined view, body, metadata, or canonical paths."],
         titledSection "Arguments:" [
           "  <id>                  Node identifier (example: topology.open_cover)"
@@ -254,7 +254,7 @@ def renderHelp : HelpTopic → String
       ]
   | .create =>
       renderSections [
-        usageSection "lake exe aftk knowledgebase [global-options] create <id> --title <title> [options]",
+        usageSection "lake exe aftk_cli knowledgebase [global-options] create <id> --title <title> [options]",
         ["Create a new node."],
         titledSection "Arguments:" [
           "  <id>                  Node identifier (example: topology.open_cover)"
@@ -274,7 +274,7 @@ def renderHelp : HelpTopic → String
       ]
   | .rename =>
       renderSections [
-        usageSection "lake exe aftk knowledgebase [global-options] rename <old-id> <new-id>",
+        usageSection "lake exe aftk_cli knowledgebase [global-options] rename <old-id> <new-id>",
         ["Rename an existing node."],
         titledSection "Arguments:" [
           "  <old-id>              Existing node identifier",
@@ -287,7 +287,7 @@ def renderHelp : HelpTopic → String
       ]
   | .delete =>
       renderSections [
-        usageSection "lake exe aftk knowledgebase [global-options] delete <id>",
+        usageSection "lake exe aftk_cli knowledgebase [global-options] delete <id>",
         ["Delete a node's canonical Markdown and metadata files."],
         titledSection "Arguments:" [
           "  <id>                  Node identifier"
@@ -299,18 +299,18 @@ def renderHelp : HelpTopic → String
       ]
   | .body =>
       renderSections [
-        usageSection "lake exe aftk knowledgebase [global-options] body <subcommand> ...",
+        usageSection "lake exe aftk_cli knowledgebase [global-options] body <subcommand> ...",
         ["Show or replace node body content."],
         titledSection "Subcommands:" [
           "  show                  Print the Markdown body for a node",
           "  set                   Replace the Markdown body for a node"
         ],
         globalOptionsSection,
-        ["Run `lake exe aftk knowledgebase body <subcommand> --help` for detailed command help."]
+        ["Run `lake exe aftk_cli knowledgebase body <subcommand> --help` for detailed command help."]
       ]
   | .bodyShow =>
       renderSections [
-        usageSection "lake exe aftk knowledgebase [global-options] body show <id>",
+        usageSection "lake exe aftk_cli knowledgebase [global-options] body show <id>",
         ["Print the Markdown body for a node."],
         titledSection "Arguments:" [
           "  <id>                  Node identifier"
@@ -322,7 +322,7 @@ def renderHelp : HelpTopic → String
       ]
   | .bodySet =>
       renderSections [
-        usageSection "lake exe aftk knowledgebase [global-options] body set <id> (--from <path> | --stdin)",
+        usageSection "lake exe aftk_cli knowledgebase [global-options] body set <id> (--from <path> | --stdin)",
         ["Replace the Markdown body for a node."],
         titledSection "Arguments:" [
           "  <id>                  Node identifier"
@@ -336,7 +336,7 @@ def renderHelp : HelpTopic → String
       ]
   | .metadata =>
       renderSections [
-        usageSection "lake exe aftk knowledgebase [global-options] metadata <subcommand> ...",
+        usageSection "lake exe aftk_cli knowledgebase [global-options] metadata <subcommand> ...",
         ["Show, replace, or validate node metadata."],
         titledSection "Subcommands:" [
           "  show                  Print a node's metadata JSON",
@@ -344,11 +344,11 @@ def renderHelp : HelpTopic → String
           "  validate              Validate a node's metadata and related storage"
         ],
         globalOptionsSection,
-        ["Run `lake exe aftk knowledgebase metadata <subcommand> --help` for detailed command help."]
+        ["Run `lake exe aftk_cli knowledgebase metadata <subcommand> --help` for detailed command help."]
       ]
   | .metadataShow =>
       renderSections [
-        usageSection "lake exe aftk knowledgebase [global-options] metadata show <id>",
+        usageSection "lake exe aftk_cli knowledgebase [global-options] metadata show <id>",
         ["Print a node's metadata JSON."],
         titledSection "Arguments:" [
           "  <id>                  Node identifier"
@@ -360,7 +360,7 @@ def renderHelp : HelpTopic → String
       ]
   | .metadataReplace =>
       renderSections [
-        usageSection "lake exe aftk knowledgebase [global-options] metadata replace <id> (--from <path> | --stdin)",
+        usageSection "lake exe aftk_cli knowledgebase [global-options] metadata replace <id> (--from <path> | --stdin)",
         ["Replace a node's metadata from JSON input."],
         titledSection "Arguments:" [
           "  <id>                  Node identifier"
@@ -374,7 +374,7 @@ def renderHelp : HelpTopic → String
       ]
   | .metadataValidate =>
       renderSections [
-        usageSection "lake exe aftk knowledgebase [global-options] metadata validate <id>",
+        usageSection "lake exe aftk_cli knowledgebase [global-options] metadata validate <id>",
         ["Validate a node's metadata and related storage invariants."],
         titledSection "Arguments:" [
           "  <id>                  Node identifier"
@@ -386,7 +386,7 @@ def renderHelp : HelpTopic → String
       ]
   | .validate =>
       renderSections [
-        usageSection "lake exe aftk knowledgebase [global-options] validate <subcommand>",
+        usageSection "lake exe aftk_cli knowledgebase [global-options] validate <subcommand>",
         ["Run validation at different scopes."],
         titledSection "Subcommands:" [
           "  storage               Validate storage structure without loading every node pair",
@@ -394,11 +394,11 @@ def renderHelp : HelpTopic → String
           "  all                   Validate the full knowledgebase root"
         ],
         globalOptionsSection,
-        ["Run `lake exe aftk knowledgebase validate <subcommand> --help` for detailed command help."]
+        ["Run `lake exe aftk_cli knowledgebase validate <subcommand> --help` for detailed command help."]
       ]
   | .validateStorage =>
       renderSections [
-        usageSection "lake exe aftk knowledgebase [global-options] validate storage",
+        usageSection "lake exe aftk_cli knowledgebase [global-options] validate storage",
         ["Validate storage-level root structure and required files."],
         titledSection "Options:" [
           "  --help                Show this help text"
@@ -407,7 +407,7 @@ def renderHelp : HelpTopic → String
       ]
   | .validateNode =>
       renderSections [
-        usageSection "lake exe aftk knowledgebase [global-options] validate node <id>",
+        usageSection "lake exe aftk_cli knowledgebase [global-options] validate node <id>",
         ["Validate a single node by ID."],
         titledSection "Arguments:" [
           "  <id>                  Node identifier"
@@ -419,7 +419,7 @@ def renderHelp : HelpTopic → String
       ]
   | .validateAll =>
       renderSections [
-        usageSection "lake exe aftk knowledgebase [global-options] validate all",
+        usageSection "lake exe aftk_cli knowledgebase [global-options] validate all",
         ["Validate the full knowledgebase root."],
         titledSection "Options:" [
           "  --help                Show this help text"
@@ -428,18 +428,18 @@ def renderHelp : HelpTopic → String
       ]
   | .search =>
       renderSections [
-        usageSection "lake exe aftk knowledgebase [global-options] search <subcommand> ...",
+        usageSection "lake exe aftk_cli knowledgebase [global-options] search <subcommand> ...",
         ["Search nodes by text or exact tag match."],
         titledSection "Subcommands:" [
           "  text                  Search title, summary, and body text",
           "  tag                   Search for an exact tag"
         ],
         globalOptionsSection,
-        ["Run `lake exe aftk knowledgebase search <subcommand> --help` for detailed command help."]
+        ["Run `lake exe aftk_cli knowledgebase search <subcommand> --help` for detailed command help."]
       ]
   | .searchText =>
       renderSections [
-        usageSection "lake exe aftk knowledgebase [global-options] search text <query> [--limit <n>]",
+        usageSection "lake exe aftk_cli knowledgebase [global-options] search text <query> [--limit <n>]",
         ["Search title, summary, and body text using case-insensitive substring matching."],
         titledSection "Arguments:" [
           "  <query>               Query string"
@@ -452,7 +452,7 @@ def renderHelp : HelpTopic → String
       ]
   | .searchTag =>
       renderSections [
-        usageSection "lake exe aftk knowledgebase [global-options] search tag <tag> [--limit <n>]",
+        usageSection "lake exe aftk_cli knowledgebase [global-options] search tag <tag> [--limit <n>]",
         ["Search for nodes with an exact tag match."],
         titledSection "Arguments:" [
           "  <tag>                 Tag value"
@@ -465,7 +465,7 @@ def renderHelp : HelpTopic → String
       ]
   | .relationships =>
       renderSections [
-        usageSection "lake exe aftk knowledgebase [global-options] relationships <subcommand> <id>",
+        usageSection "lake exe aftk_cli knowledgebase [global-options] relationships <subcommand> <id>",
         ["Inspect outgoing, incoming, or combined relationships for a node."],
         titledSection "Subcommands:" [
           "  outgoing              List relationships declared by the node",
@@ -473,11 +473,11 @@ def renderHelp : HelpTopic → String
           "  related               Show both outgoing and incoming relationships"
         ],
         globalOptionsSection,
-        ["Run `lake exe aftk knowledgebase relationships <subcommand> --help` for detailed command help."]
+        ["Run `lake exe aftk_cli knowledgebase relationships <subcommand> --help` for detailed command help."]
       ]
   | .relationshipsOutgoing =>
       renderSections [
-        usageSection "lake exe aftk knowledgebase [global-options] relationships outgoing <id>",
+        usageSection "lake exe aftk_cli knowledgebase [global-options] relationships outgoing <id>",
         ["List relationships declared by the node."],
         titledSection "Arguments:" [
           "  <id>                  Node identifier"
@@ -489,7 +489,7 @@ def renderHelp : HelpTopic → String
       ]
   | .relationshipsIncoming =>
       renderSections [
-        usageSection "lake exe aftk knowledgebase [global-options] relationships incoming <id>",
+        usageSection "lake exe aftk_cli knowledgebase [global-options] relationships incoming <id>",
         ["List relationships pointing to the node."],
         titledSection "Arguments:" [
           "  <id>                  Node identifier"
@@ -501,7 +501,7 @@ def renderHelp : HelpTopic → String
       ]
   | .relationshipsRelated =>
       renderSections [
-        usageSection "lake exe aftk knowledgebase [global-options] relationships related <id>",
+        usageSection "lake exe aftk_cli knowledgebase [global-options] relationships related <id>",
         ["Show both outgoing and incoming relationships for a node."],
         titledSection "Arguments:" [
           "  <id>                  Node identifier"

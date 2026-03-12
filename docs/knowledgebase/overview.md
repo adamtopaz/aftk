@@ -6,7 +6,7 @@ It is responsible for canonical natural-language storage and for the filesystem-
 Public entrypoints:
 
 - library: `import AFTK.KnowledgeBase`
-- CLI: `lake exe aftk knowledgebase ...`
+- CLI: `lake exe aftk_cli knowledgebase ...`
 
 For a component-by-component guide with direct code pointers, see `docs/knowledgebase/library.md`.
 
@@ -173,7 +173,7 @@ knowledgebase/nodes/group/basic/definition.json
 The public CLI is:
 
 ```text
-lake exe aftk knowledgebase ...
+lake exe aftk_cli knowledgebase ...
 ```
 
 Implemented command families:
@@ -210,13 +210,13 @@ Global flags:
 Initialize a root:
 
 ```text
-lake exe aftk knowledgebase init
+lake exe aftk_cli knowledgebase init
 ```
 
 Create a node:
 
 ```text
-lake exe aftk knowledgebase create topology.open_cover \
+lake exe aftk_cli knowledgebase create topology.open_cover \
   --title "Open cover" \
   --kind definition \
   --summary "Definition of an open cover."
@@ -225,28 +225,28 @@ lake exe aftk knowledgebase create topology.open_cover \
 Set the body from stdin:
 
 ```text
-lake exe aftk knowledgebase body set topology.open_cover --stdin
+lake exe aftk_cli knowledgebase body set topology.open_cover --stdin
 ```
 
 Inspect it:
 
 ```text
-lake exe aftk knowledgebase show topology.open_cover
-lake exe aftk knowledgebase show topology.open_cover --metadata
-lake exe aftk knowledgebase show topology.open_cover --paths
+lake exe aftk_cli knowledgebase show topology.open_cover
+lake exe aftk_cli knowledgebase show topology.open_cover --metadata
+lake exe aftk_cli knowledgebase show topology.open_cover --paths
 ```
 
 Validate the whole root:
 
 ```text
-lake exe aftk knowledgebase validate all
+lake exe aftk_cli knowledgebase validate all
 ```
 
 Search:
 
 ```text
-lake exe aftk knowledgebase search text "open cover"
-lake exe aftk knowledgebase search tag topology
+lake exe aftk_cli knowledgebase search text "open cover"
+lake exe aftk_cli knowledgebase search tag topology
 ```
 
 ## Important behavioral details

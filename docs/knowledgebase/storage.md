@@ -254,7 +254,7 @@ The storage format is intentionally human-editable.
 If you edit canonical files manually, the safe follow-up command is:
 
 ```text
-lake exe aftk knowledgebase validate all
+lake exe aftk_cli knowledgebase validate all
 ```
 
 That is the current supported way to check whether hand-edited storage still satisfies the library's invariants.

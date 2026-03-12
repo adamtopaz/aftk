@@ -124,11 +124,11 @@ private def cliHelpFlags : TestCase := {
 
     let rootHelpOut ← runInformalCli #["--help"]
     assertEq rootHelpOut.exitCode 0
-    assertContains rootHelpOut.stdout "lake exe aftk informal [global-options] <command> ..."
+    assertContains rootHelpOut.stdout "lake exe aftk_cli informal [global-options] <command> ..."
 
     let presentHelpOut ← runInformalCli #["present", "--help"]
     assertEq presentHelpOut.exitCode 0
-    assertContains presentHelpOut.stdout "lake exe aftk informal present <NodeId>"
+    assertContains presentHelpOut.stdout "lake exe aftk_cli informal present <NodeId>"
 }
 
 private def cliFailurePaths : TestCase := {

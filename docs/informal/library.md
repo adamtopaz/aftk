@@ -21,7 +21,7 @@ import AFTK.Informal
 The public CLI entrypoint is:
 
 ```text
-lake exe aftk informal ...
+lake exe aftk_cli informal ...
 ```
 
 ## Component map
@@ -351,7 +351,7 @@ Implementation role:
 - maps not-tracked failures to `KnowledgeBaseError.notFound`
 - prints text failures to stderr and JSON failures to stdout
 
-This file is the best code pointer for the real behavior of `lake exe aftk informal ...`.
+This file is the best code pointer for the real behavior of `lake exe aftk_cli informal ...`.
 
 ## Actual call flows
 

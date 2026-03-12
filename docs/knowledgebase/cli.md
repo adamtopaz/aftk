@@ -3,7 +3,7 @@
 The public command is:
 
 ```text
-lake exe aftk knowledgebase ...
+lake exe aftk_cli knowledgebase ...
 ```
 
 This CLI is implemented in `AFTK/KnowledgeBase/Cli/*` and dispatched from the top-level `aftk` executable.
@@ -13,17 +13,17 @@ This CLI is implemented in `AFTK/KnowledgeBase/Cli/*` and dispatched from the to
 Help is available at multiple levels:
 
 ```text
-lake exe aftk --help
-lake exe aftk knowledgebase --help
-lake exe aftk knowledgebase <command> --help
+lake exe aftk_cli --help
+lake exe aftk_cli knowledgebase --help
+lake exe aftk_cli knowledgebase <command> --help
 ```
 
 Examples:
 
 ```text
-lake exe aftk knowledgebase create --help
-lake exe aftk knowledgebase body set --help
-lake exe aftk knowledgebase validate node --help
+lake exe aftk_cli knowledgebase create --help
+lake exe aftk_cli knowledgebase body set --help
+lake exe aftk_cli knowledgebase validate node --help
 ```
 
 ## Global options
@@ -63,8 +63,8 @@ For validation commands specifically:
 Initialize a root:
 
 ```text
-lake exe aftk knowledgebase init
-lake exe aftk knowledgebase --root /tmp/my-kb init
+lake exe aftk_cli knowledgebase init
+lake exe aftk_cli knowledgebase --root /tmp/my-kb init
 ```
 
 Behavior:
@@ -79,8 +79,8 @@ Behavior:
 Probe root status:
 
 ```text
-lake exe aftk knowledgebase status
-lake exe aftk knowledgebase --root tests/informal/knowledgebase-fixtures/basic-valid status
+lake exe aftk_cli knowledgebase status
+lake exe aftk_cli knowledgebase --root tests/informal/knowledgebase-fixtures/basic-valid status
 ```
 
 Reports:
@@ -98,11 +98,11 @@ Reports:
 List nodes:
 
 ```text
-lake exe aftk knowledgebase list
-lake exe aftk knowledgebase list --prefix group.basic
-lake exe aftk knowledgebase list --kind definition
-lake exe aftk knowledgebase list --status active
-lake exe aftk knowledgebase list --tag algebra
+lake exe aftk_cli knowledgebase list
+lake exe aftk_cli knowledgebase list --prefix group.basic
+lake exe aftk_cli knowledgebase list --kind definition
+lake exe aftk_cli knowledgebase list --status active
+lake exe aftk_cli knowledgebase list --tag algebra
 ```
 
 Available filters:
@@ -119,10 +119,10 @@ Filters are combined conjunctively.
 Show a stored node:
 
 ```text
-lake exe aftk knowledgebase show topology.open_cover
-lake exe aftk knowledgebase show topology.open_cover --body
-lake exe aftk knowledgebase show topology.open_cover --metadata
-lake exe aftk knowledgebase show topology.open_cover --paths
+lake exe aftk_cli knowledgebase show topology.open_cover
+lake exe aftk_cli knowledgebase show topology.open_cover --body
+lake exe aftk_cli knowledgebase show topology.open_cover --metadata
+lake exe aftk_cli knowledgebase show topology.open_cover --paths
 ```
 
 Selections:
@@ -137,12 +137,12 @@ Selections:
 Create a node:
 
 ```text
-lake exe aftk knowledgebase create topology.open_cover --title "Open cover"
-lake exe aftk knowledgebase create topology.open_cover --title "Open cover" --kind definition
-lake exe aftk knowledgebase create topology.open_cover --title "Open cover" --summary "Definition of an open cover."
-lake exe aftk knowledgebase create topology.open_cover --title "Open cover" --tag topology --author aftk
-lake exe aftk knowledgebase create topology.open_cover --title "Open cover" --body-file draft.md
-lake exe aftk knowledgebase create topology.open_cover --title "Open cover" --body-stdin
+lake exe aftk_cli knowledgebase create topology.open_cover --title "Open cover"
+lake exe aftk_cli knowledgebase create topology.open_cover --title "Open cover" --kind definition
+lake exe aftk_cli knowledgebase create topology.open_cover --title "Open cover" --summary "Definition of an open cover."
+lake exe aftk_cli knowledgebase create topology.open_cover --title "Open cover" --tag topology --author aftk
+lake exe aftk_cli knowledgebase create topology.open_cover --title "Open cover" --body-file draft.md
+lake exe aftk_cli knowledgebase create topology.open_cover --title "Open cover" --body-stdin
 ```
 
 Create options:
@@ -164,7 +164,7 @@ If neither is given, the node is created with an empty body.
 Rename a node:
 
 ```text
-lake exe aftk knowledgebase rename topology.old_name topology.new_name
+lake exe aftk_cli knowledgebase rename topology.old_name topology.new_name
 ```
 
 Behavior:
@@ -179,7 +179,7 @@ Behavior:
 Delete a node:
 
 ```text
-lake exe aftk knowledgebase delete topology.open_cover
+lake exe aftk_cli knowledgebase delete topology.open_cover
 ```
 
 This removes both canonical files for the node.
@@ -189,7 +189,7 @@ This removes both canonical files for the node.
 ### `body show <id>`
 
 ```text
-lake exe aftk knowledgebase body show topology.open_cover
+lake exe aftk_cli knowledgebase body show topology.open_cover
 ```
 
 Prints the normalized Markdown body.
@@ -197,8 +197,8 @@ Prints the normalized Markdown body.
 ### `body set <id>`
 
 ```text
-lake exe aftk knowledgebase body set topology.open_cover --from draft.md
-lake exe aftk knowledgebase body set topology.open_cover --stdin
+lake exe aftk_cli knowledgebase body set topology.open_cover --from draft.md
+lake exe aftk_cli knowledgebase body set topology.open_cover --stdin
 ```
 
 Options:
@@ -213,7 +213,7 @@ On success, the current implementation returns the updated stored node view rath
 ### `metadata show <id>`
 
 ```text
-lake exe aftk knowledgebase metadata show topology.open_cover
+lake exe aftk_cli knowledgebase metadata show topology.open_cover
 ```
 
 Prints canonical metadata JSON.
@@ -221,8 +221,8 @@ Prints canonical metadata JSON.
 ### `metadata replace <id>`
 
 ```text
-lake exe aftk knowledgebase metadata replace topology.open_cover --from metadata.json
-lake exe aftk knowledgebase metadata replace topology.open_cover --stdin
+lake exe aftk_cli knowledgebase metadata replace topology.open_cover --from metadata.json
+lake exe aftk_cli knowledgebase metadata replace topology.open_cover --stdin
 ```
 
 Options:
@@ -236,7 +236,7 @@ On success, the current implementation returns the updated stored node view.
 ### `metadata validate <id>`
 
 ```text
-lake exe aftk knowledgebase metadata validate topology.open_cover
+lake exe aftk_cli knowledgebase metadata validate topology.open_cover
 ```
 
 Runs metadata-focused validation for one node.
@@ -246,7 +246,7 @@ Runs metadata-focused validation for one node.
 ### `validate storage`
 
 ```text
-lake exe aftk knowledgebase validate storage
+lake exe aftk_cli knowledgebase validate storage
 ```
 
 Checks root/manifest/storage structure without fully loading every node pair.
@@ -254,7 +254,7 @@ Checks root/manifest/storage structure without fully loading every node pair.
 ### `validate node <id>`
 
 ```text
-lake exe aftk knowledgebase validate node topology.open_cover
+lake exe aftk_cli knowledgebase validate node topology.open_cover
 ```
 
 Checks the specific node's canonical files plus underlying metadata validation.
@@ -262,7 +262,7 @@ Checks the specific node's canonical files plus underlying metadata validation.
 ### `validate all`
 
 ```text
-lake exe aftk knowledgebase validate all
+lake exe aftk_cli knowledgebase validate all
 ```
 
 Runs whole-root validation, including:
@@ -279,8 +279,8 @@ Runs whole-root validation, including:
 ### `search text <query>`
 
 ```text
-lake exe aftk knowledgebase search text "open cover"
-lake exe aftk knowledgebase search text "open cover" --limit 20
+lake exe aftk_cli knowledgebase search text "open cover"
+lake exe aftk_cli knowledgebase search text "open cover" --limit 20
 ```
 
 Current semantics:
@@ -301,8 +301,8 @@ Result hits currently expose:
 ### `search tag <tag>`
 
 ```text
-lake exe aftk knowledgebase search tag topology
-lake exe aftk knowledgebase search tag topology --limit 20
+lake exe aftk_cli knowledgebase search tag topology
+lake exe aftk_cli knowledgebase search tag topology --limit 20
 ```
 
 Current semantics:
@@ -316,7 +316,7 @@ Current semantics:
 ### `relationships outgoing <id>`
 
 ```text
-lake exe aftk knowledgebase relationships outgoing group.basic.definition
+lake exe aftk_cli knowledgebase relationships outgoing group.basic.definition
 ```
 
 Returns the node's declared outgoing relationships from metadata.
@@ -324,7 +324,7 @@ Returns the node's declared outgoing relationships from metadata.
 ### `relationships incoming <id>`
 
 ```text
-lake exe aftk knowledgebase relationships incoming algebra.monoid.definition
+lake exe aftk_cli knowledgebase relationships incoming algebra.monoid.definition
 ```
 
 Scans the whole root and returns metadata relationships that point to the target node.
@@ -332,7 +332,7 @@ Scans the whole root and returns metadata relationships that point to the target
 ### `relationships related <id>`
 
 ```text
-lake exe aftk knowledgebase relationships related group.basic.definition
+lake exe aftk_cli knowledgebase relationships related group.basic.definition
 ```
 
 Returns both outgoing and incoming relationships.
@@ -383,18 +383,18 @@ Failures use the same outer structure with `ok: false` and an `error` object:
 Initialize and create:
 
 ```text
-lake exe aftk knowledgebase init
-lake exe aftk knowledgebase create topology.open_cover --title "Open cover" --kind definition
+lake exe aftk_cli knowledgebase init
+lake exe aftk_cli knowledgebase create topology.open_cover --title "Open cover" --kind definition
 ```
 
 Search with JSON output:
 
 ```text
-lake exe aftk knowledgebase --format json search text open
+lake exe aftk_cli knowledgebase --format json search text open
 ```
 
 Validate a fixture root:
 
 ```text
-lake exe aftk knowledgebase --root tests/informal/knowledgebase-fixtures/basic-valid validate all
+lake exe aftk_cli knowledgebase --root tests/informal/knowledgebase-fixtures/basic-valid validate all
 ```

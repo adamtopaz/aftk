@@ -21,7 +21,7 @@ import AFTK.KnowledgeBase
 The public CLI entrypoint is:
 
 ```text
-lake exe aftk knowledgebase ...
+lake exe aftk_cli knowledgebase ...
 ```
 
 ## Component map

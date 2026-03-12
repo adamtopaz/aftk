@@ -50,25 +50,25 @@ uv run python -m unittest discover -s tests/python -v
 Show help:
 
 ```text
-lake exe aftk knowledgebase --help
+lake exe aftk_cli knowledgebase --help
 ```
 
 Initialize a root:
 
 ```text
-lake exe aftk knowledgebase init
+lake exe aftk_cli knowledgebase init
 ```
 
 Create a node:
 
 ```text
-lake exe aftk knowledgebase create topology.open_cover --title "Open cover" --kind definition
+lake exe aftk_cli knowledgebase create topology.open_cover --title "Open cover" --kind definition
 ```
 
 Validate the root:
 
 ```text
-lake exe aftk knowledgebase validate all
+lake exe aftk_cli knowledgebase validate all
 ```
 
 ### Informal
@@ -76,19 +76,19 @@ lake exe aftk knowledgebase validate all
 Show help:
 
 ```text
-lake exe aftk informal --help
+lake exe aftk_cli informal --help
 ```
 
 Query tracked declarations from a module:
 
 ```text
-lake exe aftk informal decls --module AFTKTest.Informal.Fixtures.Basic
+lake exe aftk_cli informal decls --module AFTKTest.Informal.Fixtures.Basic
 ```
 
 Render a knowledge-base node directly:
 
 ```text
-lake exe aftk informal present group.basic.definition \
+lake exe aftk_cli informal present group.basic.definition \
   --root tests/informal/knowledgebase-fixtures/basic-valid
 ```
 
@@ -166,6 +166,20 @@ from aftk.toolkits.coding import CodingToolkit
 
 def build_toolkit() -> CodingToolkit:
     return CodingToolkit(cwd=Path(".").resolve(), include_search=True)
+```
+
+## Python agent CLI
+
+Run the Hydra-configured Python agent directly:
+
+```text
+uv run aftk --cfg job
+```
+
+If `aftk` is a Lake dependency in another Lean workspace, you can also launch the same Python CLI from that downstream workspace with:
+
+```text
+lake run aftk --cfg job
 ```
 
 ## Repository structure
