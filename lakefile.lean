@@ -12,15 +12,38 @@ private def hasHydraConfigPathFlag (args : List String) : Bool :=
   args.any fun arg =>
     arg == "--config-path" || arg == "-cp" || arg.startsWith "--config-path=" || arg.startsWith "-cp="
 
+private def hasHydraJobLoggingOverride (args : List String) : Bool :=
+  args.any fun arg =>
+    arg.startsWith "hydra.job_logging." || arg.startsWith "hydra/job_logging="
+
+private def hasHydraHydraLoggingOverride (args : List String) : Bool :=
+  args.any fun arg =>
+    arg.startsWith "hydra.hydra_logging." || arg.startsWith "hydra/hydra_logging="
+
+private def defaultHydraLoggingArgs (args : List String) : Array String :=
+  let jobLoggingArgs :=
+    if hasHydraJobLoggingOverride args then
+      #[]
+    else
+      #["hydra.job_logging.handlers.console.stream=ext://sys.stderr"]
+  let hydraLoggingArgs :=
+    if hasHydraHydraLoggingOverride args then
+      #[]
+    else
+      #["hydra.hydra_logging.handlers.console.stream=ext://sys.stderr"]
+  jobLoggingArgs ++ hydraLoggingArgs
+
 private def runAftkPythonCli (scriptName : String) (args : List String) : ScriptM UInt32 := do
   let ws ← getWorkspace
   let some pkg ← findPackageByName? `aftk
     | error "workspace is missing package `aftk`"
-  let forwardedArgs :=
+  let configPathArgs :=
     if hasHydraConfigPathFlag args then
-      args.toArray
+      #[]
     else
-      #["--config-path", ws.dir.toString] ++ args.toArray
+      #["--config-path", ws.dir.toString]
+  let forwardedArgs :=
+    configPathArgs ++ defaultHydraLoggingArgs args ++ args.toArray
   let child ← IO.Process.spawn {
     cmd := "uv"
     args := #["run", "--project", pkg.dir.toString, scriptName] ++ forwardedArgs

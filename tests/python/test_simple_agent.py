@@ -61,6 +61,12 @@ class SimpleAgentConfigTests(unittest.TestCase):
     def test_hydra_config_path_points_at_the_repository_root(self) -> None:
         self.assertEqual(Path(HYDRA_CONFIG_PATH), REPO_ROOT)
 
+    def test_hydra_logging_defaults_write_console_logs_to_stderr(self) -> None:
+        config = cast(DictConfig, OmegaConf.load(CONFIG_PATH))
+
+        self.assertEqual(OmegaConf.select(config, "hydra.job_logging.handlers.console.stream"), "ext://sys.stderr")
+        self.assertEqual(OmegaConf.select(config, "hydra.hydra_logging.handlers.console.stream"), "ext://sys.stderr")
+
     def test_build_agent_from_config_resolves_toolkit_cwd_and_model_settings(self) -> None:
         config = AppConfig(
             agent=AgentConfig(reasoning="medium", reasoning_summary="detailed"),

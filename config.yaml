@@ -27,3 +27,11 @@ hydra:
     subdir: ${hydra.job.num}
   job:
     chdir: false
+  job_logging:
+    handlers:
+      console:
+        stream: ext://sys.stderr
+  hydra_logging:
+    handlers:
+      console:
+        stream: ext://sys.stderr
