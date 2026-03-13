@@ -184,6 +184,17 @@ Launch the same configured agent in the interactive terminal chat UI:
 uv run aftk_chat
 ```
 
+`aftk_chat` is a lightweight interactive/testing entrypoint that manually composes the Hydra config
+instead of using `@hydra.main`. It supports:
+
+- `--config-path` / `-cp`
+- `--config-name` / `-cn`
+- ordinary Hydra override strings, for example:
+
+```text
+uv run aftk_chat --config-path . agent.model=gpt-5.4-pro toolkit.cwd=.
+```
+
 If `aftk` is a Lake dependency in another Lean workspace, you can also launch the same Python CLIs from that downstream workspace with:
 
 ```text

@@ -27,18 +27,3 @@ hydra:
     subdir: ${hydra.job.num}
   job:
     chdir: false
-  job_logging:
-    handlers:
-      console:
-        stream: ext://sys.stderr
-    loggers:
-      httpx:
-        level: WARNING
-      httpcore:
-        level: WARNING
-      openai:
-        level: WARNING
-  hydra_logging:
-    handlers:
-      console:
-        stream: ext://sys.stderr

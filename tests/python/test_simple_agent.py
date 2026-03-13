@@ -10,7 +10,7 @@ from unittest.mock import patch
 from omegaconf import DictConfig, OmegaConf
 from pydantic_ai.models.test import TestModel
 
-from main import (
+from aftk.app import (
     DEFAULT_MODEL_NAME,
     HYDRA_CONFIG_PATH,
     AgentConfig,
@@ -22,11 +22,11 @@ from main import (
     build_agent_from_config,
     build_model,
     build_model_settings,
-    chat_from_config,
     load_app_config,
     main,
     run_agent_from_config,
 )
+from chat_cli import chat_from_config
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -61,15 +61,6 @@ class SimpleAgentConfigTests(unittest.TestCase):
     def test_hydra_config_path_points_at_the_repository_root(self) -> None:
         self.assertEqual(Path(HYDRA_CONFIG_PATH), REPO_ROOT)
 
-    def test_hydra_logging_defaults_write_console_logs_to_stderr(self) -> None:
-        config = cast(DictConfig, OmegaConf.load(CONFIG_PATH))
-
-        self.assertEqual(OmegaConf.select(config, "hydra.job_logging.handlers.console.stream"), "ext://sys.stderr")
-        self.assertEqual(OmegaConf.select(config, "hydra.hydra_logging.handlers.console.stream"), "ext://sys.stderr")
-        self.assertEqual(OmegaConf.select(config, "hydra.job_logging.loggers.httpx.level"), "WARNING")
-        self.assertEqual(OmegaConf.select(config, "hydra.job_logging.loggers.httpcore.level"), "WARNING")
-        self.assertEqual(OmegaConf.select(config, "hydra.job_logging.loggers.openai.level"), "WARNING")
-
     def test_build_agent_from_config_resolves_toolkit_cwd_and_model_settings(self) -> None:
         config = AppConfig(
             agent=AgentConfig(reasoning="medium", reasoning_summary="detailed"),
@@ -98,7 +89,7 @@ class SimpleAgentConfigTests(unittest.TestCase):
             toolkit=ToolkitConfig(cwd="."),
         )
 
-        with patch("main.Agent.to_cli_sync", autospec=True) as to_cli_sync:
+        with patch("aftk.app.Agent.to_cli_sync", autospec=True) as to_cli_sync:
             chat_from_config(config, base_dir=REPO_ROOT)
 
         to_cli_sync.assert_called_once()

@@ -12,32 +12,6 @@ private def hasHydraConfigPathFlag (args : List String) : Bool :=
   args.any fun arg =>
     arg == "--config-path" || arg == "-cp" || arg.startsWith "--config-path=" || arg.startsWith "-cp="
 
-private def hasHydraJobLoggingOverride (args : List String) : Bool :=
-  args.any fun arg =>
-    arg.startsWith "hydra.job_logging." || arg.startsWith "hydra/job_logging="
-
-private def hasHydraHydraLoggingOverride (args : List String) : Bool :=
-  args.any fun arg =>
-    arg.startsWith "hydra.hydra_logging." || arg.startsWith "hydra/hydra_logging="
-
-private def defaultHydraLoggingArgs (args : List String) : Array String :=
-  let jobLoggingArgs :=
-    if hasHydraJobLoggingOverride args then
-      #[]
-    else
-      #[
-        "hydra.job_logging.handlers.console.stream=ext://sys.stderr",
-        "++hydra.job_logging.loggers.httpx.level=WARNING",
-        "++hydra.job_logging.loggers.httpcore.level=WARNING",
-        "++hydra.job_logging.loggers.openai.level=WARNING"
-      ]
-  let hydraLoggingArgs :=
-    if hasHydraHydraLoggingOverride args then
-      #[]
-    else
-      #["hydra.hydra_logging.handlers.console.stream=ext://sys.stderr"]
-  jobLoggingArgs ++ hydraLoggingArgs
-
 private def runAftkPythonCli (scriptName : String) (args : List String) : ScriptM UInt32 := do
   let ws ← getWorkspace
   let some pkg ← findPackageByName? `aftk
@@ -48,7 +22,7 @@ private def runAftkPythonCli (scriptName : String) (args : List String) : Script
     else
       #["--config-path", ws.dir.toString]
   let forwardedArgs :=
-    configPathArgs ++ defaultHydraLoggingArgs args ++ args.toArray
+    configPathArgs ++ args.toArray
   let child ← IO.Process.spawn {
     cmd := "uv"
     args := #["run", "--project", pkg.dir.toString, scriptName] ++ forwardedArgs
@@ -61,7 +35,7 @@ private def runAftkPythonCli (scriptName : String) (args : List String) : Script
 script aftk (args) do
   runAftkPythonCli "aftk" args
 
-/-- Run the interactive Python AFTK chat CLI via `uv run aftk_chat`, using the AFTK package as the uv project while keeping the caller workspace as the working directory. By default, the launcher points Hydra at the caller workspace root so `config.yaml` is resolved from the downstream project. -/
+/-- Run the interactive Python AFTK chat CLI via `uv run aftk_chat`, using the AFTK package as the uv project while keeping the caller workspace as the working directory. By default, the launcher passes `--config-path` pointing at the caller workspace root so `config.yaml` is resolved from the downstream project. -/
 script aftk_chat (args) do
   runAftkPythonCli "aftk_chat" args
 
