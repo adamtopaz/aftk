@@ -184,6 +184,10 @@ If `aftk` is a Lake dependency in another Lean workspace, you can also launch th
 lake run aftk --cfg job
 ```
 
+The Lake launcher passes `--config-path` pointing at the caller workspace root by default, so
+Hydra resolves `config.yaml` from the downstream project unless you override `--config-path`
+explicitly.
+
 ## Repository structure
 
 Main implementation roots:
