@@ -66,6 +66,9 @@ class SimpleAgentConfigTests(unittest.TestCase):
 
         self.assertEqual(OmegaConf.select(config, "hydra.job_logging.handlers.console.stream"), "ext://sys.stderr")
         self.assertEqual(OmegaConf.select(config, "hydra.hydra_logging.handlers.console.stream"), "ext://sys.stderr")
+        self.assertEqual(OmegaConf.select(config, "hydra.job_logging.loggers.httpx.level"), "WARNING")
+        self.assertEqual(OmegaConf.select(config, "hydra.job_logging.loggers.httpcore.level"), "WARNING")
+        self.assertEqual(OmegaConf.select(config, "hydra.job_logging.loggers.openai.level"), "WARNING")
 
     def test_build_agent_from_config_resolves_toolkit_cwd_and_model_settings(self) -> None:
         config = AppConfig(

@@ -25,7 +25,12 @@ private def defaultHydraLoggingArgs (args : List String) : Array String :=
     if hasHydraJobLoggingOverride args then
       #[]
     else
-      #["hydra.job_logging.handlers.console.stream=ext://sys.stderr"]
+      #[
+        "hydra.job_logging.handlers.console.stream=ext://sys.stderr",
+        "++hydra.job_logging.loggers.httpx.level=WARNING",
+        "++hydra.job_logging.loggers.httpcore.level=WARNING",
+        "++hydra.job_logging.loggers.openai.level=WARNING"
+      ]
   let hydraLoggingArgs :=
     if hasHydraHydraLoggingOverride args then
       #[]
