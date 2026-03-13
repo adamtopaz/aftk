@@ -290,3 +290,303 @@ script aftk_setup (args) do
   | _ =>
       IO.eprintln usageText
       pure 2
+
+private def autoformalizeLoopPromptRelativePath : FilePath :=
+  mkFilePath ["src", "hosts", "pi", "AUTOFORMALIZE_LOOP_PROMPT.template.md"]
+
+private def autoformalizeDoneWord : String :=
+  "AFTK_LOOP_DONE"
+
+private def autoformalizeContinueWord : String :=
+  "AFTK_LOOP_CONTINUE"
+
+private def autoformalizeLoopUsageText : String :=
+  String.intercalate "\n" [
+    "Usage:",
+    "  lake run aftk_autoformalize_loop [options] <task ...>",
+    "  lake run aftk_autoformalize_loop [options] --task-file <path>",
+    "  lake run aftk_autoformalize_loop --help"
+  ]
+
+private def autoformalizeLoopHelpText : String :=
+  String.intercalate "\n\n" [
+    autoformalizeLoopUsageText,
+    "Run pi in noninteractive print mode in a fresh stigmergic loop until the task is fully done.",
+    String.intercalate "\n" [
+      "Behavior:",
+      s!"- each iteration runs `pi --print --no-session` in the current Lake workspace",
+      s!"- it never uses `--continue`; each run must work from durable repo state",
+      s!"- nonzero pi exit codes are treated as transient run errors and the loop continues",
+      s!"- the loop stops only when the assistant's final nonempty line is exactly `{autoformalizeDoneWord}`",
+      s!"- `{autoformalizeContinueWord}` and missing markers both cause another fresh iteration"
+    ],
+    String.intercalate "\n" [
+      "Options:",
+      "- --task-file <path>   Read the task text from a file",
+      "- --max-steps <n>      Optional safety limit; if omitted, the loop is unbounded",
+      "- --provider <name>    Forward pi provider selection",
+      "- --model <pattern>    Forward pi model selection",
+      "- --thinking <level>   Forward pi thinking level"
+    ],
+    String.intercalate "\n" [
+      "Downstream-workspace behavior:",
+      "- if `.pi/extensions/aftk-toolkit.ts` or `.pi/extensions/aftk-logging.ts` are missing, the script loads the AFTK extension entrypoints directly from the resolved `aftk` package",
+      "- if `.pi/APPEND_SYSTEM.md` is missing, the script appends the package's AFTK agent-guidance template directly",
+      "- logs and cost summaries still land under `.aftk/logs/` and `.aftk/cost/` via the logging extension"
+    ]
+  ]
+
+private structure AutoformalizeLoopOptions where
+  taskWordsRev : List String := []
+  taskFile? : Option FilePath := none
+  maxSteps? : Option Nat := none
+  provider? : Option String := none
+  model? : Option String := none
+  thinking? : Option String := none
+
+private def parsePositiveNatOption (flag value : String) : Except String Nat :=
+  match value.toNat? with
+  | some n =>
+      if n > 0 then
+        pure n
+      else
+        throw s!"Expected a positive integer for {flag}, got: {value}"
+  | none =>
+      throw s!"Expected a positive integer for {flag}, got: {value}"
+
+private def parseAutoformalizeLoopArgs : List String → Except String AutoformalizeLoopOptions
+  | [] =>
+      pure {}
+  | "--task-file" :: path :: rest => do
+      let opts ← parseAutoformalizeLoopArgs rest
+      match opts.taskFile? with
+      | some _ => throw "--task-file may be specified at most once"
+      | none => pure { opts with taskFile? := some (System.FilePath.mk path) }
+  | "--max-steps" :: raw :: rest => do
+      let maxSteps ← parsePositiveNatOption "--max-steps" raw
+      let opts ← parseAutoformalizeLoopArgs rest
+      match opts.maxSteps? with
+      | some _ => throw "--max-steps may be specified at most once"
+      | none => pure { opts with maxSteps? := some maxSteps }
+  | "--provider" :: provider :: rest => do
+      let opts ← parseAutoformalizeLoopArgs rest
+      match opts.provider? with
+      | some _ => throw "--provider may be specified at most once"
+      | none => pure { opts with provider? := some provider }
+  | "--model" :: model :: rest => do
+      let opts ← parseAutoformalizeLoopArgs rest
+      match opts.model? with
+      | some _ => throw "--model may be specified at most once"
+      | none => pure { opts with model? := some model }
+  | "--thinking" :: thinking :: rest => do
+      let opts ← parseAutoformalizeLoopArgs rest
+      match opts.thinking? with
+      | some _ => throw "--thinking may be specified at most once"
+      | none => pure { opts with thinking? := some thinking }
+  | arg :: rest => do
+      if arg.startsWith "-" then
+        throw s!"Unrecognized option: {arg}"
+      let opts ← parseAutoformalizeLoopArgs rest
+      pure { opts with taskWordsRev := arg :: opts.taskWordsRev }
+
+private def stdoutPut (text : String) : IO Unit := do
+  let stdout ← IO.getStdout
+  stdout.putStr text
+  stdout.flush
+
+private def stderrPut (text : String) : IO Unit := do
+  let stderr ← IO.getStderr
+  stderr.putStr text
+  stderr.flush
+
+private def resolveAgainst (baseDir path : FilePath) : FilePath :=
+  if path.isAbsolute then path else baseDir / path
+
+private def autoformalizePromptTemplatePath (aftkDir : FilePath) : FilePath :=
+  aftkDir / autoformalizeLoopPromptRelativePath
+
+private def readAutoformalizePromptTemplate (aftkDir : FilePath) : IO String := do
+  let path := autoformalizePromptTemplatePath aftkDir
+  unless (← path.pathExists) do
+    throw <| IO.userError s!"AFTK autoformalize loop failed: prompt template is missing: {path}"
+  IO.FS.readFile path
+
+private def resolveAutoformalizeTask (projectDir : FilePath) (opts : AutoformalizeLoopOptions) : IO String := do
+  if !opts.taskWordsRev.isEmpty && opts.taskFile?.isSome then
+    throw <| IO.userError "AFTK autoformalize loop failed: provide either free-form task words or --task-file, not both."
+  match opts.taskFile? with
+  | some taskFile =>
+      let resolved := resolveAgainst projectDir taskFile
+      unless (← resolved.pathExists) do
+        throw <| IO.userError s!"AFTK autoformalize loop failed: task file is missing: {resolved}"
+      let contents ← IO.FS.readFile resolved
+      let trimmed := contents.trimAscii.toString
+      if trimmed.isEmpty then
+        throw <| IO.userError s!"AFTK autoformalize loop failed: task file is empty: {resolved}"
+      pure trimmed
+  | none =>
+      let taskText := String.intercalate " " opts.taskWordsRev.reverse
+      let trimmed := taskText.trimAscii.toString
+      if !trimmed.isEmpty then
+        pure trimmed
+      else
+        let entrypointPath := projectDir / "entrypoint.md"
+        if ← entrypointPath.pathExists then
+          pure "Work on the task described in `entrypoint.md` at the project root. Read that file first and then continue stigmergically from durable repo state."
+        else
+          throw <| IO.userError "AFTK autoformalize loop failed: no task was provided and no `entrypoint.md` exists in the project root."
+
+private def buildAutoformalizeLoopPrompt (templateBody task : String) (step : Nat) : String :=
+  String.intercalate "\n\n" [
+    templateBody,
+    String.intercalate "\n" [
+      "## Task",
+      task
+    ],
+    String.intercalate "\n" [
+      "## Loop contract",
+      s!"- This is fresh stigmergic iteration #{step}. Do not rely on any previous session, chat, or hidden queue state.",
+      "- Inspect the current repo state directly; previous iterations may already have changed files or created durable coordination artifacts.",
+      s!"- If and only if the whole task is complete in repo state at the end of this run, end the final nonempty line of your response with exactly `{autoformalizeDoneWord}`.",
+      s!"- Otherwise end the final nonempty line of your response with exactly `{autoformalizeContinueWord}`.",
+      "- Do not put punctuation, code fences, or extra words after the final marker line."
+    ]
+  ]
+
+private def localPiBinaryName : String :=
+  if System.Platform.isWindows then "pi.cmd" else "pi"
+
+private def resolvePiCommand (projectDir aftkDir : FilePath) : IO String := do
+  let candidates := [
+    projectDir / "node_modules" / ".bin" / localPiBinaryName,
+    aftkDir / "node_modules" / ".bin" / localPiBinaryName
+  ]
+  for candidate in candidates do
+    if ← candidate.pathExists then
+      return candidate.toString
+  return "pi"
+
+private def verifyPiCommand (piCmd : String) (cwd : FilePath) : IO Unit := do
+  try
+    let out ← IO.Process.output {
+      cmd := piCmd
+      args := #["--version"]
+      cwd := some cwd
+    }
+    if out.exitCode != 0 then
+      throw <| IO.userError s!"AFTK autoformalize loop failed: `pi --version` exited with code {out.exitCode}.\n{out.stderr}"
+  catch e =>
+    throw <| IO.userError s!"AFTK autoformalize loop failed: could not execute `pi` command `{piCmd}`.\n{e.toString}"
+
+private def appendArgPair (args : Array String) (flag : String) (value? : Option String) : Array String :=
+  match value? with
+  | some value => args.push flag |>.push value
+  | none => args
+
+private def configuredToolkitShimPath (projectDir : FilePath) : FilePath :=
+  projectDir / ".pi" / "extensions" / "aftk-toolkit.ts"
+
+private def configuredLoggingShimPath (projectDir : FilePath) : FilePath :=
+  projectDir / ".pi" / "extensions" / "aftk-logging.ts"
+
+private def configuredAppendSystemPath (projectDir : FilePath) : FilePath :=
+  projectDir / ".pi" / "APPEND_SYSTEM.md"
+
+private def missingAftkPiResourceArgs (projectDir aftkDir : FilePath) : IO (Array String) := do
+  let mut args : Array String := #[]
+  let toolkitShim := configuredToolkitShimPath projectDir
+  let loggingShim := configuredLoggingShimPath projectDir
+  let appendSystemPath := configuredAppendSystemPath projectDir
+  if !(← toolkitShim.pathExists) then
+    args := args.push "-e" |>.push (aftkDir / toolkitEntryRelativePath).toString
+  if !(← loggingShim.pathExists) then
+    args := args.push "-e" |>.push (aftkDir / loggingEntryRelativePath).toString
+  if !(← appendSystemPath.pathExists) then
+    args := args.push "--append-system-prompt" |>.push (promptTemplatePath aftkDir).toString
+  pure args
+
+private def lastNonemptyLineAux : List String → Option String
+  | [] => none
+  | line :: rest =>
+      let trimmed := line.trimAscii.toString
+      if trimmed.isEmpty then lastNonemptyLineAux rest else some trimmed
+
+private def lastNonemptyLine? (text : String) : Option String :=
+  lastNonemptyLineAux (text.splitOn "\n").reverse
+
+private def doneMarker? (stdout : String) : Bool :=
+  lastNonemptyLine? stdout == some autoformalizeDoneWord
+
+private partial def runAutoformalizeLoopSteps
+    (projectDir aftkDir : FilePath)
+    (piCmd : String)
+    (opts : AutoformalizeLoopOptions)
+    (templateBody task : String)
+    (sharedPiArgs : Array String)
+    (step : Nat := 1) : IO UInt32 := do
+  if let some maxSteps := opts.maxSteps? then
+    if step > maxSteps then
+      stderrPut s!"Reached --max-steps={maxSteps} without seeing `{autoformalizeDoneWord}`.\n"
+      return 2
+  stderrPut s!"\n==> aftk_autoformalize_loop iteration {step}\n"
+  let prompt := buildAutoformalizeLoopPrompt templateBody task step
+  let runArgs :=
+    sharedPiArgs ++
+    #["--print", "--no-session", prompt]
+  let out ← IO.Process.output {
+    cmd := piCmd
+    args := runArgs
+    cwd := some projectDir
+  }
+  if !out.stdout.isEmpty then
+    stdoutPut out.stdout
+    unless out.stdout.endsWith "\n" do
+      stdoutPut "\n"
+  if !out.stderr.isEmpty then
+    stderrPut out.stderr
+    unless out.stderr.endsWith "\n" do
+      stderrPut "\n"
+  if out.exitCode == 0 && doneMarker? out.stdout then
+    stderrPut s!"Detected completion marker `{autoformalizeDoneWord}`. Stopping loop.\n"
+    return 0
+  if out.exitCode != 0 then
+    stderrPut s!"pi exited with code {out.exitCode}; continuing with a fresh iteration.\n"
+  else
+    stderrPut s!"Completion marker not detected; continuing with a fresh iteration.\n"
+  runAutoformalizeLoopSteps projectDir aftkDir piCmd opts templateBody task sharedPiArgs (step + 1)
+
+script aftk_autoformalize_loop (args) do
+  match args with
+  | ["--help"] | ["-h"] =>
+      IO.println autoformalizeLoopHelpText
+      pure 0
+  | _ =>
+      try
+        let opts ←
+          match parseAutoformalizeLoopArgs args with
+          | .ok opts => pure opts
+          | .error err => throw <| IO.userError err
+        let ws ← getWorkspace
+        let projectDir := ws.dir
+        let some aftkPkg ← findPackageByName? `aftk
+          | throw <| IO.userError "AFTK autoformalize loop failed: package `aftk` was not found in the current Lake workspace."
+        let task ← resolveAutoformalizeTask projectDir opts
+        let templateBody ← readAutoformalizePromptTemplate aftkPkg.dir
+        let piCmd ← resolvePiCommand projectDir aftkPkg.dir
+        verifyPiCommand piCmd projectDir
+        let sharedPiArgsBase ← missingAftkPiResourceArgs projectDir aftkPkg.dir
+        let sharedPiArgs :=
+          appendArgPair
+            (appendArgPair
+              (appendArgPair sharedPiArgsBase "--provider" opts.provider?)
+              "--model" opts.model?)
+            "--thinking" opts.thinking?
+        stderrPut s!"Workspace root: {projectDir}\n"
+        stderrPut s!"AFTK package: {aftkPkg.dir}\n"
+        stderrPut s!"pi command: {piCmd}\n"
+        stderrPut s!"Loop stop marker: {autoformalizeDoneWord}\n"
+        let exitCode ← runAutoformalizeLoopSteps projectDir aftkPkg.dir piCmd opts templateBody task sharedPiArgs
+        pure exitCode
+      catch e =>
+        IO.eprintln e.toString
+        pure 1

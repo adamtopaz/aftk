@@ -12,7 +12,7 @@ Main code pointers:
 - pi adapter helpers: `src/hosts/pi/index.ts`
 - toolkit pi extension entrypoint: `src/hosts/pi/extension.ts`
 - logging pi extension entrypoint: `src/hosts/pi/logging-extension.ts`
-- Lake setup script: `lakefile.lean`
+- Lake scripts: `lakefile.lean`
 
 Package-export entrypoints from `package.json`:
 
@@ -28,6 +28,7 @@ lake exe aftk_server
 lake exe aftk knowledgebase ...
 lake exe aftk informal ...
 lake run aftk_setup
+lake run aftk_autoformalize_loop
 ```
 
 ## Component map
@@ -57,7 +58,7 @@ lake run aftk_setup
 | Pi adapter helpers | `src/hosts/pi/index.ts` | Direct SDK custom-tools helper plus logging-helper exports |
 | Toolkit pi extension entrypoint | `src/hosts/pi/extension.ts` | Default toolkit extension registration using `process.cwd()` |
 | Logging pi extension entrypoint | `src/hosts/pi/logging-extension.ts` | Default logging extension registration for `.aftk/logs/` and `.aftk/cost/` |
-| Lake setup script | `lakefile.lean` | Project-local pi shim/prompt generation for `aftk_setup` |
+| Lake scripts | `lakefile.lean` | Project-local pi shim/prompt generation for `aftk_setup` plus the stigmergic noninteractive loop driver `aftk_autoformalize_loop` |
 
 ## Root and export surfaces
 
@@ -618,8 +619,9 @@ Implementation role:
 
 ### `lakefile.lean`
 
-Besides the Lean package configuration, this file implements the `aftk_setup` Lake script.
-The prompt content that the script copies into `.pi/APPEND_SYSTEM.md` lives in `src/hosts/pi/APPEND_SYSTEM.template.md`.
+Besides the Lean package configuration, this file implements the `aftk_setup` and `aftk_autoformalize_loop` Lake scripts.
+The prompt content that `aftk_setup` copies into `.pi/APPEND_SYSTEM.md` lives in `src/hosts/pi/APPEND_SYSTEM.template.md`.
+The noninteractive loop prompt template lives in `src/hosts/pi/AUTOFORMALIZE_LOOP_PROMPT.template.md`.
 
 Important helper definitions:
 
@@ -629,6 +631,7 @@ Important helper definitions:
 - managed-write classification helpers
 - `runAftkSetup`
 - `script aftk_setup (args) do ...`
+- `script aftk_autoformalize_loop (args) do ...`
 
 Implementation role:
 
@@ -636,17 +639,20 @@ Implementation role:
 - locates `src/hosts/pi/extension.ts`
 - locates `src/hosts/pi/logging-extension.ts`
 - locates `src/hosts/pi/APPEND_SYSTEM.template.md`
+- locates `src/hosts/pi/AUTOFORMALIZE_LOOP_PROMPT.template.md`
 - generates `.pi/extensions/aftk-toolkit.ts`
 - generates `.pi/extensions/aftk-logging.ts`
 - generates `.pi/APPEND_SYSTEM.md`
+- runs a fresh noninteractive pi loop without `--continue` for stigmergic autoformalization passes
 - refuses to overwrite user-managed files without the generated marker
 - supports `--help`
 
-This script is documented in more detail in `docs/aftk_setup.md`.
+These scripts are documented in more detail in `docs/aftk_setup.md` and `docs/aftk_autoformalize_loop.md`.
 
 ## Related docs
 
 - `docs/toolkit/overview.md`
 - `docs/toolkit/testing.md`
 - `docs/aftk_setup.md`
+- `docs/aftk_autoformalize_loop.md`
 - `docs/architecture.md`

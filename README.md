@@ -174,6 +174,18 @@ To edit the generated appended system prompt, update `src/hosts/pi/APPEND_SYSTEM
 
 If pi is already running after setup, use `/reload`.
 
+### Noninteractive stigmergic loop
+
+Run fresh noninteractive pi passes in a loop until the agent marks the whole task as done:
+
+```text
+lake run aftk_autoformalize_loop Formalize the next meaningful frontier from entrypoint.md
+```
+
+This script never uses `--continue`.
+Each iteration runs `pi --print --no-session`, expects work to proceed stigmergically from durable repo state, and stops only when the final marker is `AFTK_LOOP_DONE`.
+See `docs/aftk_autoformalize_loop.md`.
+
 ## Repository structure
 
 Main implementation roots:
@@ -225,6 +237,7 @@ More detailed references:
   - `docs/toolkit/library.md`
   - `docs/toolkit/testing.md`
   - `docs/aftk_setup.md`
+  - `docs/aftk_autoformalize_loop.md`
 
 Project-level vision and deferred work live in:
 

@@ -10,6 +10,7 @@ Public entrypoints:
 - toolkit pi extension entrypoint: `src/hosts/pi/extension.ts` (exported as `./pi-extension`)
 - logging pi extension entrypoint: `src/hosts/pi/logging-extension.ts` (exported as `./pi-logging-extension`)
 - workspace setup script: `lake run aftk_setup`
+- noninteractive loop script: `lake run aftk_autoformalize_loop`
 
 There is **no standalone toolkit CLI**.
 The toolkit is a library and host-integration layer that wraps lower-layer entrypoints.
@@ -36,6 +37,7 @@ The current toolkit layer includes:
 - aggregate toolset construction with family selection and managed shutdown
 - thin pi mounting helpers for both direct SDK use and extension-style registration
 - a Lake setup script that installs project-local pi shims plus the appended AFTK prompt
+- a Lake noninteractive loop script for fresh stigmergic pi runs over autoformalization tasks
 - a pi logging extension that keeps session logs under `.aftk/logs/` and run-cost summaries under `.aftk/cost/`
 - a dedicated TypeScript-side test suite under `tests/toolkit/`
 
@@ -262,6 +264,19 @@ Once installed, the logging extension keeps project-local logs under `.aftk/logs
 
 This script is documented separately in `docs/aftk_setup.md` because it is a Lake/workspace setup concern, not part of the reusable toolkit runtime itself.
 
+## Relationship to `aftk_autoformalize_loop`
+
+`lake run aftk_autoformalize_loop` is the noninteractive stigmergic driver built on top of the pi integration.
+It:
+
+- runs `pi --print --no-session`
+- never uses `--continue`
+- expects each iteration to work from durable repo state rather than chat memory
+- loads missing AFTK pi resources directly from the resolved package when downstream workspaces have not run `aftk_setup`
+- relies on the logging extension so loop runs still leave artifacts under `.aftk/logs/` and `.aftk/cost/`
+
+This script is documented in `docs/aftk_autoformalize_loop.md`.
+
 ## Current practical mental model
 
 A good short mental model of the toolkit layer is:
@@ -277,4 +292,5 @@ If you keep that boundary in mind, the TypeScript side of the repository is much
 - `docs/toolkit/library.md`
 - `docs/toolkit/testing.md`
 - `docs/aftk_setup.md`
+- `docs/aftk_autoformalize_loop.md`
 - `docs/architecture.md`

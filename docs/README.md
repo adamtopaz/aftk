@@ -60,6 +60,7 @@ Then use the layer-specific implementation guides for component-level details.
 ## Setup / integration docs
 
 - `docs/aftk_setup.md` — `lake run aftk_setup`, generated `.pi/` files, discovery model, and overwrite policy
+- `docs/aftk_autoformalize_loop.md` — `lake run aftk_autoformalize_loop`, stigmergic noninteractive pi looping, and downstream-workspace behavior
 
 ## Project-level docs
 

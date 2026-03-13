@@ -72,6 +72,8 @@ with the standard generated-file marker prepended at write time.
 The prompt template currently emphasizes:
 
 - reading `entrypoint.md` first when present
+- preferring `informal_*`, `knowledgebase_*`, and targeted `aftk_*` queries over broad generic repo search
+- treating the informal and knowledge-base layers as editable coordination artifacts, not just read-only lookup targets
 - selective, inspect-first project exploration
 - making one meaningful chunk of progress per turn rather than trying to finish everything at once
 - treating informal nodes, knowledge-base nodes, Lean source, and related metadata as orchestration artifacts for stigmergic coordination

@@ -25,7 +25,7 @@ For the project-level vision and roadmap, see `docs/roadmap.md`.
 | Knowledge base | Implemented | `lake exe aftk knowledgebase ...`, `import AFTK.KnowledgeBase` | `AFTK/KnowledgeBase*.lean`, `AFTK/KnowledgeBase/**` |
 | Informal | Implemented | `lake exe aftk informal ...`, `import AFTK.Informal` | `AFTK/Informal*.lean`, `AFTK/Informal/**` |
 | Server / file worker | Implemented | `lake exe aftk_server`, `lake exe aftk_file_worker <path>`, `import AFTK.Server`, `import AFTK.FileWorker` | `AFTK/Server*.lean`, `AFTK/Server/**`, `AFTK/FileWorker*.lean`, `AFTK/FileWorker/**` |
-| Toolkit | Implemented | `src/index.ts`, package exports `./pi` and `./pi-extension`, `lake run aftk_setup` | `src/index.ts`, `src/toolkit/**`, `src/hosts/pi/**`, `tests/toolkit/**`, `package.json`, `lakefile.lean` |
+| Toolkit | Implemented | `src/index.ts`, package exports `./pi`, `./pi-extension`, `./pi-logging-extension`, `lake run aftk_setup`, `lake run aftk_autoformalize_loop` | `src/index.ts`, `src/toolkit/**`, `src/hosts/pi/**`, `tests/toolkit/**`, `package.json`, `lakefile.lean` |
 | AI agents | Not implemented | none yet | no agent-layer orchestration code yet |
 
 ## High-level dependency shape
@@ -132,6 +132,7 @@ Main docs:
 - `docs/toolkit/library.md`
 - `docs/toolkit/testing.md`
 - `docs/aftk_setup.md`
+- `docs/aftk_autoformalize_loop.md`
 
 Main code components:
 
@@ -146,7 +147,7 @@ Main code components:
 | Informal client | `src/toolkit/informal/client.ts` | JSON CLI bridge for `aftk informal ...` |
 | Tool definitions | `src/toolkit/tools/*` | Lean/server-backed, knowledge-base, informal, and aggregate tool families |
 | Pi adapters | `src/hosts/pi/*` | Thin direct-SDK and extension-style mounting helpers |
-| Setup script | `lakefile.lean`, `src/hosts/pi/APPEND_SYSTEM.template.md` | `aftk_setup` Lake script plus prompt template for project-local pi integration |
+| Lake scripts | `lakefile.lean`, `src/hosts/pi/APPEND_SYSTEM.template.md`, `src/hosts/pi/AUTOFORMALIZE_LOOP_PROMPT.template.md` | `aftk_setup` for local pi integration plus `aftk_autoformalize_loop` for fresh stigmergic noninteractive pi runs |
 
 ### 5. AI-agent layer
 
@@ -235,16 +236,18 @@ The toolkit talks to the lower layers through:
 - `aftk knowledgebase ...`
 - `aftk informal ...`
 
-### Lake setup script
+### Lake scripts
 
-The repository also exposes a Lake script:
+The repository exposes two Lake scripts for pi integration:
 
 ```text
 lake run aftk_setup
+lake run aftk_autoformalize_loop
 ```
 
-This script writes project-local pi integration files under `.pi/`.
-See `docs/aftk_setup.md`.
+`aftk_setup` writes project-local pi integration files under `.pi/`.
+`aftk_autoformalize_loop` runs fresh noninteractive pi passes without `--continue`, expecting stigmergic coordination through repo state.
+See `docs/aftk_setup.md` and `docs/aftk_autoformalize_loop.md`.
 
 ## Top-level code roots
 
@@ -262,7 +265,7 @@ These are the highest-level code files to read first:
 - `src/hosts/pi/index.ts` — pi mounting helpers
 - `src/hosts/pi/extension.ts` — default toolkit pi extension entrypoint
 - `src/hosts/pi/logging-extension.ts` — default logging pi extension entrypoint
-- `lakefile.lean` — Lake package config plus `aftk_setup`
+- `lakefile.lean` — Lake package config plus `aftk_setup` and `aftk_autoformalize_loop`
 
 ## Testing structure
 
