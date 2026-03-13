@@ -162,6 +162,8 @@ Install or refresh the local pi shim and appended prompt for the current Lake wo
 lake run aftk_setup
 ```
 
+To edit the generated appended system prompt, update `src/hosts/pi/APPEND_SYSTEM.template.md` and rerun the setup command.
+
 If pi is already running after setup, use `/reload`.
 
 ## Repository structure

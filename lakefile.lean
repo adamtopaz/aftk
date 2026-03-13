@@ -49,6 +49,9 @@ private def shimHeader : String :=
 private def promptHeader : String :=
   s!"<!-- {generatedByLine} -->"
 
+private def promptSourceRelativePath : FilePath :=
+  mkFilePath ["src", "hosts", "pi", "APPEND_SYSTEM.template.md"]
+
 private def usageText : String :=
   String.intercalate "\n" [
     "Usage:",
@@ -60,6 +63,11 @@ private def helpText : String :=
   String.intercalate "\n\n" [
     usageText,
     "Create or refresh the project-local pi extension shim and appended system prompt for AFTK.",
+    String.intercalate "\n" [
+      "This command reads from the resolved `aftk` package:",
+      "- src/hosts/pi/extension.ts",
+      "- src/hosts/pi/APPEND_SYSTEM.template.md"
+    ],
     String.intercalate "\n" [
       "This command writes:",
       "- .pi/extensions/aftk-toolkit.ts",
@@ -153,37 +161,14 @@ private def buildShimContent (importSpecifier : String) : String :=
     ""
   ]
 
-private def buildPromptContent : String :=
-  String.intercalate "\n" [
-    promptHeader,
-    "# AFTK agent guidance",
-    "",
-    "This project has the AFTK pi extension enabled. Use AFTK tools to inspect Lean state and project knowledge before guessing.",
-    "",
-    "## Available tool families",
-    "",
-    "- Lean/server tools: open Lean files, inspect hover/goals/term goals/infoview, load tactic nodes, and run transient tactic exploration.",
-    "- Knowledge-base tools: inspect, search, validate, and relate knowledge-base nodes.",
-    "- Informal tools: inspect tracked declarations/references/dependencies and render knowledge-base-backed presentation.",
-    "",
-    "## Autoformalization workflow",
-    "",
-    "1. Inspect the current Lean file, local goal state, and nearby informal context before proposing edits.",
-    "2. Use knowledge-base and informal tools to understand the target node, related notes, and tracked declarations.",
-    "3. Use Lean/server tools to inspect the exact formal state at the relevant source location.",
-    "4. Use tactic exploration tools transiently to test candidate proof steps.",
-    "5. Turn a successful branch into real Lean source edits and re-check the file.",
-    "6. Iterate from the updated checked file state.",
-    "",
-    "## Safety rules",
-    "",
-    "- `load_node`, `run_tactic`, and `run_tactic_steps` operate on transient tactic-state nodes, not persisted proof edits.",
-    "- Do not treat a successful transient tactic branch as committed proof text until you write it into Lean source and re-check.",
-    "- Canonical prose and metadata live in the knowledge base.",
-    "- The informal layer is the Lean-facing bridge to that knowledge.",
-    "- Prefer inspecting actual AFTK state through tools over inventing assumptions.",
-    ""
-  ]
+private def promptTemplatePath (aftkDir : FilePath) : FilePath :=
+  aftkDir / promptSourceRelativePath
+
+private def buildPromptContent (sourcePath : FilePath) : IO String := do
+  unless (← sourcePath.pathExists) do
+    throw <| IO.userError s!"AFTK setup failed: expected appended system prompt template is missing: {sourcePath}"
+  let body ← IO.FS.readFile sourcePath
+  return promptHeader ++ "\n" ++ body
 
 private inductive ManagedWritePlan where
   | create
@@ -218,6 +203,7 @@ private structure SetupSummary where
   projectDir : FilePath
   aftkDir : FilePath
   entryFile : FilePath
+  promptSourcePath : FilePath
   shimPath : FilePath
   promptPath : FilePath
   importSpecifier : String
@@ -232,11 +218,12 @@ private def runAftkSetup : ScriptM SetupSummary := do
   let entryFile := aftkPkg.dir / "src" / "hosts" / "pi" / "extension.ts"
   unless (← entryFile.pathExists) do
     throw <| IO.userError s!"AFTK setup failed: expected pi extension entrypoint is missing: {entryFile}"
+  let promptSourcePath := promptTemplatePath aftkPkg.dir
   let shimPath := projectDir / ".pi" / "extensions" / "aftk-toolkit.ts"
   let promptPath := projectDir / ".pi" / "APPEND_SYSTEM.md"
   let importSpecifier := computeImportSpecifier shimPath entryFile
   let shimContent := buildShimContent importSpecifier
-  let promptContent := buildPromptContent
+  let promptContent ← buildPromptContent promptSourcePath
   let shimPlan ← classifyManagedWrite shimPath shimContent shimHeader
   let promptPlan ← classifyManagedWrite promptPath promptContent promptHeader
   applyManagedWrite shimPath shimContent shimPlan
@@ -245,6 +232,7 @@ private def runAftkSetup : ScriptM SetupSummary := do
     projectDir,
     aftkDir := aftkPkg.dir,
     entryFile,
+    promptSourcePath,
     shimPath,
     promptPath,
     importSpecifier,
@@ -260,6 +248,7 @@ script aftk_setup (args) do
         IO.println s!"Workspace root: {summary.projectDir}"
         IO.println s!"AFTK package: {summary.aftkDir}"
         IO.println s!"AFTK pi entrypoint: {summary.entryFile}"
+        IO.println s!"AFTK prompt template: {summary.promptSourcePath}"
         IO.println s!"AFTK pi extension {actionLabel summary.shimPlan}: {summary.shimPath}"
         IO.println s!"AFTK appended system prompt {actionLabel summary.promptPlan}: {summary.promptPath}"
         IO.println s!"Shim import specifier: {summary.importSpecifier}"

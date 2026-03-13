@@ -592,11 +592,13 @@ Implementation role:
 ### `lakefile.lean`
 
 Besides the Lean package configuration, this file implements the `aftk_setup` Lake script.
+The prompt content that the script copies into `.pi/APPEND_SYSTEM.md` lives in `src/hosts/pi/APPEND_SYSTEM.template.md`.
 
 Important helper definitions:
 
 - generated-file marker helpers
 - import-specifier computation helpers
+- prompt-template resolution and prompt generation helpers
 - managed-write classification helpers
 - `runAftkSetup`
 - `script aftk_setup (args) do ...`
@@ -605,6 +607,7 @@ Implementation role:
 
 - discovers the current Lake workspace root and the `aftk` package location
 - locates `src/hosts/pi/extension.ts`
+- locates `src/hosts/pi/APPEND_SYSTEM.template.md`
 - generates `.pi/extensions/aftk-toolkit.ts`
 - generates `.pi/APPEND_SYSTEM.md`
 - refuses to overwrite user-managed files without the generated marker

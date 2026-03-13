@@ -237,7 +237,7 @@ It writes:
 - `.pi/APPEND_SYSTEM.md`
 
 The generated shim re-exports the package's pi extension entrypoint from the resolved `aftk` package location.
-The appended system prompt adds short AFTK-specific tool/workflow guidance for agents.
+The appended system prompt is generated from `src/hosts/pi/APPEND_SYSTEM.template.md` and adds AFTK-specific tool/workflow guidance for agents.
 
 This script is documented separately in `docs/aftk_setup.md` because it is a Lake/workspace setup concern, not part of the reusable toolkit runtime itself.
 

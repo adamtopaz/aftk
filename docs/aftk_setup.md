@@ -3,6 +3,8 @@
 `aftk_setup` is a Lake script defined in `lakefile.lean`.
 Its job is to make the current Lake workspace look like an AFTK-aware pi project without requiring manual `.pi/` setup.
 
+The script logic lives in `lakefile.lean`, while the appended system-prompt source lives in `src/hosts/pi/APPEND_SYSTEM.template.md`.
+
 Run it with:
 
 ```text
@@ -41,13 +43,23 @@ In a dependent workspace, the import specifier may instead point into a path dep
 ### 2. `.pi/APPEND_SYSTEM.md`
 
 This is a generated appended system prompt for pi.
-It adds concise AFTK-specific guidance without replacing pi's default system prompt.
+It adds AFTK-specific guidance without replacing pi's default system prompt.
 
-The generated prompt currently covers:
+The generated file is built from:
 
-- the available AFTK tool families
-- the expected inspect-first autoformalization workflow
-- important safety rules about transient tactic state and knowledge-base ownership
+```text
+src/hosts/pi/APPEND_SYSTEM.template.md
+```
+
+with the standard generated-file marker prepended at write time.
+
+The prompt template currently emphasizes:
+
+- reading `entrypoint.md` first when present
+- selective, inspect-first project exploration
+- making one meaningful chunk of progress per turn rather than trying to finish everything at once
+- treating informal nodes, knowledge-base nodes, Lean source, and related metadata as orchestration artifacts for stigmergic coordination
+- important safety rules about transient tactic state and persisted proof edits
 
 ## Discovery model
 
@@ -59,7 +71,8 @@ At a high level it does this:
 2. treat `ws.dir` as the project being configured
 3. find the `aftk` package in that workspace
 4. resolve the package's `src/hosts/pi/extension.ts` entrypoint
-5. generate the `.pi/` files under the current workspace root
+5. resolve the package's `src/hosts/pi/APPEND_SYSTEM.template.md` prompt template
+6. generate the `.pi/` files under the current workspace root
 
 This matters because the script is meant to work in two situations:
 
@@ -137,6 +150,7 @@ On success, the script prints a short summary that includes:
 - the workspace root
 - the discovered `aftk` package path
 - the resolved pi extension entrypoint
+- the resolved prompt-template path
 - whether the shim was installed, updated, or already up to date
 - whether the appended prompt was installed, updated, or already up to date
 - the final import specifier
@@ -186,15 +200,17 @@ Its scope is deliberately narrow: make the current Lake workspace discover the A
 
 ## Where to look in code
 
-All of the implementation currently lives in `lakefile.lean`.
+The script logic lives in `lakefile.lean`, and the prompt content lives in `src/hosts/pi/APPEND_SYSTEM.template.md`.
 The most relevant pieces are:
 
 - generated-file marker helpers
 - import-specifier helpers
+- prompt-template resolution and prompt generation
 - `classifyManagedWrite`
 - `applyManagedWrite`
 - `runAftkSetup`
 - `script aftk_setup (args) do ...`
+- `src/hosts/pi/APPEND_SYSTEM.template.md`
 
 ## Related docs
 

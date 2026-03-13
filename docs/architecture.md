@@ -146,7 +146,7 @@ Main code components:
 | Informal client | `src/toolkit/informal/client.ts` | JSON CLI bridge for `aftk informal ...` |
 | Tool definitions | `src/toolkit/tools/*` | Lean/server-backed, knowledge-base, informal, and aggregate tool families |
 | Pi adapters | `src/hosts/pi/*` | Thin direct-SDK and extension-style mounting helpers |
-| Setup script | `lakefile.lean` | `aftk_setup` Lake script for project-local pi integration |
+| Setup script | `lakefile.lean`, `src/hosts/pi/APPEND_SYSTEM.template.md` | `aftk_setup` Lake script plus prompt template for project-local pi integration |
 
 ### 5. AI-agent layer
 
