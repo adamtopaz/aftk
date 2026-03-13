@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import cast
+from unittest.mock import patch
 
 from omegaconf import DictConfig, OmegaConf
 from pydantic_ai.models.test import TestModel
@@ -18,8 +19,10 @@ from main import (
     ToolkitConfig,
     TraceConfig,
     build_agent,
+    build_agent_from_config,
     build_model,
     build_model_settings,
+    chat_from_config,
     load_app_config,
     main,
     run_agent_from_config,
@@ -57,6 +60,46 @@ class SimpleAgentConfigTests(unittest.TestCase):
 
     def test_hydra_config_path_points_at_the_repository_root(self) -> None:
         self.assertEqual(Path(HYDRA_CONFIG_PATH), REPO_ROOT)
+
+    def test_build_agent_from_config_resolves_toolkit_cwd_and_model_settings(self) -> None:
+        config = AppConfig(
+            agent=AgentConfig(reasoning="medium", reasoning_summary="detailed"),
+            prompts=PromptConfig(system_prompt="Use tools when useful.", user_prompt="Inspect the repository."),
+            toolkit=ToolkitConfig(cwd="."),
+        )
+
+        resolved_config, toolkit_cwd, agent, model_settings = build_agent_from_config(
+            config,
+            base_dir=REPO_ROOT,
+        )
+
+        self.assertEqual(resolved_config, config)
+        self.assertEqual(toolkit_cwd, REPO_ROOT)
+        self.assertEqual(agent.model, f"openai-responses:{DEFAULT_MODEL_NAME}")
+        self.assertEqual(model_settings.get("openai_reasoning_effort"), "medium")
+        self.assertEqual(model_settings.get("openai_reasoning_summary"), "detailed")
+
+    def test_chat_from_config_launches_cli_with_aftk_chat_prog_name(self) -> None:
+        config = AppConfig(
+            agent=AgentConfig(reasoning="medium", reasoning_summary="detailed"),
+            prompts=PromptConfig(
+                system_prompt="Use tools when useful.",
+                user_prompt="Inspect the repository.",
+            ),
+            toolkit=ToolkitConfig(cwd="."),
+        )
+
+        with patch("main.Agent.to_cli_sync", autospec=True) as to_cli_sync:
+            chat_from_config(config, base_dir=REPO_ROOT)
+
+        to_cli_sync.assert_called_once()
+        agent = to_cli_sync.call_args.args[0]
+        kwargs = to_cli_sync.call_args.kwargs
+        self.assertEqual(agent.model, f"openai-responses:{DEFAULT_MODEL_NAME}")
+        self.assertEqual(kwargs["prog_name"], "aftk_chat")
+        self.assertEqual(kwargs["model_settings"].get("openai_reasoning_effort"), "medium")
+        self.assertEqual(kwargs["model_settings"].get("openai_reasoning_summary"), "detailed")
+        self.assertNotIn("message_history", kwargs)
 
 
 class SimpleAgentRunTests(unittest.IsolatedAsyncioTestCase):

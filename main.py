@@ -232,15 +232,14 @@ def build_agent(
     )
 
 
-async def run_agent_from_config(
-    config: AppConfig | DictConfig | Mapping[str, Any],
+def build_agent_from_config(
+    config: AppConfig | DictConfig | Mapping[str, Any] | None = None,
     *,
     base_dir: str | Path | None = None,
-    output_dir: str | Path | None = None,
     model: Model | str | None = None,
     toolsets: Sequence[AbstractToolset[None]] | None = None,
-) -> RunArtifacts:
-    """Run one full agent turn from an application configuration and collect trace data."""
+) -> tuple[AppConfig, Path, Agent[None, str], OpenAIResponsesModelSettings]:
+    """Resolve config, toolkit cwd, agent, and model settings from application config."""
     resolved_config = load_app_config(config)
     toolkit_cwd = resolve_toolkit_cwd(resolved_config.toolkit.cwd, base_dir=base_dir)
     agent = build_agent(
@@ -252,14 +251,33 @@ async def run_agent_from_config(
         model=model,
         toolsets=toolsets,
     )
+    model_settings = build_model_settings(
+        resolved_config.agent.reasoning,
+        resolved_config.agent.reasoning_summary,
+    )
+    return resolved_config, toolkit_cwd, agent, model_settings
+
+
+async def run_agent_from_config(
+    config: AppConfig | DictConfig | Mapping[str, Any],
+    *,
+    base_dir: str | Path | None = None,
+    output_dir: str | Path | None = None,
+    model: Model | str | None = None,
+    toolsets: Sequence[AbstractToolset[None]] | None = None,
+) -> RunArtifacts:
+    """Run one full agent turn from an application configuration and collect trace data."""
+    resolved_config, toolkit_cwd, agent, model_settings = build_agent_from_config(
+        config,
+        base_dir=base_dir,
+        model=model,
+        toolsets=toolsets,
+    )
 
     node_trace: list[dict[str, Any]] = []
     async with agent.iter(
         resolved_config.prompts.user_prompt,
-        model_settings=build_model_settings(
-            resolved_config.agent.reasoning,
-            resolved_config.agent.reasoning_summary,
-        ),
+        model_settings=model_settings,
     ) as agent_run:
         async for node in agent_run:
             node_trace.append(
@@ -333,6 +351,27 @@ async def main(
     )
     return artifacts.output
 
+
+def chat_from_config(
+    config: AppConfig | DictConfig | Mapping[str, Any] | None = None,
+    *,
+    base_dir: str | Path | None = None,
+    model: Model | str | None = None,
+    toolsets: Sequence[AbstractToolset[None]] | None = None,
+) -> None:
+    """Launch the interactive Pydantic AI CLI for the configured agent."""
+    _, _, agent, model_settings = build_agent_from_config(
+        config,
+        base_dir=base_dir,
+        model=model,
+        toolsets=toolsets,
+    )
+    agent.to_cli_sync(
+        prog_name="aftk_chat",
+        model_settings=model_settings,
+    )
+
+
 @hydra.main(version_base="1.3", config_path=HYDRA_CONFIG_PATH, config_name="config")
 def _hydra_cli(cfg: DictConfig) -> None:
     """Hydra entrypoint for configuring and running the local agent."""
@@ -353,9 +392,28 @@ def _hydra_cli(cfg: DictConfig) -> None:
     print(artifacts.output)
 
 
+@hydra.main(version_base="1.3", config_path=HYDRA_CONFIG_PATH, config_name="config")
+def _hydra_chat_cli(cfg: DictConfig) -> None:
+    """Hydra entrypoint for launching the interactive chat UI."""
+    app_config = load_app_config(cfg)
+    original_cwd = Path(get_original_cwd())
+
+    logger.info("Original working directory: %s", original_cwd)
+
+    chat_from_config(
+        app_config,
+        base_dir=original_cwd,
+    )
+
+
 def cli() -> None:
     """Run the Hydra CLI using the repository's `config.yaml`."""
     _hydra_cli()
+
+
+def chat_cli() -> None:
+    """Run the Hydra chat CLI using the repository's `config.yaml`."""
+    _hydra_chat_cli()
 
 
 if __name__ == "__main__":

@@ -178,13 +178,20 @@ Run the Hydra-configured Python agent directly:
 uv run aftk --cfg job
 ```
 
-If `aftk` is a Lake dependency in another Lean workspace, you can also launch the same Python CLI from that downstream workspace with:
+Launch the same configured agent in the interactive terminal chat UI:
+
+```text
+uv run aftk_chat
+```
+
+If `aftk` is a Lake dependency in another Lean workspace, you can also launch the same Python CLIs from that downstream workspace with:
 
 ```text
 lake run aftk --cfg job
+lake run aftk_chat
 ```
 
-The Lake launcher passes `--config-path` pointing at the caller workspace root by default, so
+The Lake launchers pass `--config-path` pointing at the caller workspace root by default, so
 Hydra resolves `config.yaml` from the downstream project unless you override `--config-path`
 explicitly.
 

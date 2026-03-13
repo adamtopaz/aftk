@@ -17,6 +17,7 @@ dependencies = [
 
 [project.scripts]
 aftk = "main:cli"
+aftk_chat = "main:chat_cli"
 
 [dependency-groups]
 dev = [
