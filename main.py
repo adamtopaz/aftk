@@ -4,7 +4,6 @@ import asyncio
 import dataclasses
 import json
 import logging
-import sys
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -18,6 +17,8 @@ from pydantic_ai import AbstractToolset, Agent
 from pydantic_ai.models import Model
 from pydantic_ai.models.openai import OpenAIResponsesModelSettings
 
+from aftk import AsyncAftkClient, ProjectRootNotFoundError, detect_project_root
+from aftk.toolkits.aftk import AftkToolkit
 from aftk.toolkits.coding import CodingToolkit
 
 logger = logging.getLogger(__name__)
@@ -29,11 +30,12 @@ DEFAULT_MODEL_NAME = "gpt-5.4-pro"
 DEFAULT_THINKING_LEVEL: ThinkingLevel = "xhigh"
 DEFAULT_REASONING_SUMMARY: ReasoningSummary = "auto"
 SYSTEM_PROMPT = """You are a coding agent working in the current repository.
-Use the available tools when they help, and return a plain-text final answer.
+Use the available coding and AFTK tools when they help, and return a plain-text final answer.
 """
 USER_PROMPT = "Say hello!"
 DEFAULT_TRACE_FILENAME = "agent_trace.json"
 DEFAULT_OUTPUT_FILENAME = "final_output.txt"
+HYDRA_CONFIG_PATH = str(Path(__file__).resolve().parent)
 
 _ALLOWED_THINKING_LEVELS: tuple[ThinkingLevel, ...] = ("low", "medium", "high", "xhigh")
 _ALLOWED_REASONING_SUMMARIES: tuple[ReasoningSummary, ...] = ("auto", "concise", "detailed")
@@ -165,6 +167,25 @@ def resolve_toolkit_cwd(cwd: str | Path | None, *, base_dir: str | Path | None =
     return candidate.resolve(strict=False)
 
 
+def resolve_aftk_project_root(toolkit_cwd: str | Path, *, base_dir: str | Path | None = None) -> Path | None:
+    """Resolve the Lake project root that should back the AFTK toolkit, if available."""
+    candidates: list[Path] = []
+    if base_dir is not None:
+        candidates.append(Path(base_dir).expanduser().resolve(strict=False))
+
+    resolved_toolkit_cwd = Path(toolkit_cwd).expanduser().resolve(strict=False)
+    if resolved_toolkit_cwd not in candidates:
+        candidates.append(resolved_toolkit_cwd)
+
+    for candidate in candidates:
+        try:
+            return detect_project_root(candidate)
+        except ProjectRootNotFoundError:
+            continue
+
+    return None
+
+
 def build_agent(
     *,
     model_name: str = DEFAULT_MODEL_NAME,
@@ -175,7 +196,7 @@ def build_agent(
     model: Model | str | None = None,
     toolsets: Sequence[AbstractToolset[None]] | None = None,
 ) -> Agent[None, str]:
-    """Construct the simple agent with the local coding toolkit attached.
+    """Construct the simple agent with the local coding and AFTK toolkits attached.
 
     The default model is returned as a routed model string so importing this module does not require
     OpenAI credentials. Pydantic AI resolves that model reference when the agent actually runs.
@@ -183,12 +204,22 @@ def build_agent(
     resolved_model = model if model is not None else build_model(model_name)
 
     if toolsets is None:
+        resolved_cwd = resolve_toolkit_cwd(cwd, base_dir=base_dir)
         resolved_toolsets: list[AbstractToolset[None]] = [
             CodingToolkit(
-                cwd=resolve_toolkit_cwd(cwd, base_dir=base_dir),
+                cwd=resolved_cwd,
                 include_search=include_search,
             )
         ]
+
+        aftk_project_root = resolve_aftk_project_root(resolved_cwd, base_dir=base_dir)
+        if aftk_project_root is not None:
+            resolved_toolsets.append(
+                AftkToolkit(
+                    AsyncAftkClient(project_root=aftk_project_root),
+                    close_client_on_exit=True,
+                )
+            )
     else:
         resolved_toolsets = list(toolsets)
 
@@ -216,6 +247,7 @@ async def run_agent_from_config(
         model_name=resolved_config.agent.model,
         system_prompt=resolved_config.prompts.system_prompt,
         cwd=toolkit_cwd,
+        base_dir=base_dir,
         include_search=resolved_config.toolkit.include_search,
         model=model,
         toolsets=toolsets,
@@ -301,12 +333,7 @@ async def main(
     )
     return artifacts.output
 
-
-def _has_cli_option(argv: Sequence[str], option: str) -> bool:
-    return any(arg == option or arg.startswith(f"{option}=") for arg in argv)
-
-
-@hydra.main(version_base="1.3", config_path=None, config_name=None)
+@hydra.main(version_base="1.3", config_path=HYDRA_CONFIG_PATH, config_name="config")
 def _hydra_cli(cfg: DictConfig) -> None:
     """Hydra entrypoint for configuring and running the local agent."""
     app_config = load_app_config(cfg)
@@ -327,19 +354,8 @@ def _hydra_cli(cfg: DictConfig) -> None:
 
 
 def cli() -> None:
-    """Run the Hydra CLI using `config.yaml` from the current working directory by default."""
-    argv = sys.argv
-    inserted: list[str] = []
-    if not _has_cli_option(argv[1:], "--config-path"):
-        inserted.extend(["--config-path", str(Path.cwd())])
-    if not _has_cli_option(argv[1:], "--config-name"):
-        inserted.extend(["--config-name", "config"])
-    if inserted:
-        sys.argv = [argv[0], *inserted, *argv[1:]]
-    try:
-        _hydra_cli()
-    finally:
-        sys.argv = argv
+    """Run the Hydra CLI using the repository's `config.yaml`."""
+    _hydra_cli()
 
 
 if __name__ == "__main__":

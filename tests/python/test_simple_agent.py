@@ -11,6 +11,7 @@ from pydantic_ai.models.test import TestModel
 
 from main import (
     DEFAULT_MODEL_NAME,
+    HYDRA_CONFIG_PATH,
     AgentConfig,
     AppConfig,
     PromptConfig,
@@ -54,11 +55,14 @@ class SimpleAgentConfigTests(unittest.TestCase):
         self.assertEqual(config.toolkit.cwd, ".")
         self.assertTrue(config.trace.save)
 
+    def test_hydra_config_path_points_at_the_repository_root(self) -> None:
+        self.assertEqual(Path(HYDRA_CONFIG_PATH), REPO_ROOT)
+
 
 class SimpleAgentRunTests(unittest.IsolatedAsyncioTestCase):
-    async def test_build_agent_exposes_coding_tools(self) -> None:
+    async def test_build_agent_exposes_coding_and_aftk_tools(self) -> None:
         with TemporaryDirectory() as tmpdir:
-            agent = build_agent(cwd=tmpdir)
+            agent = build_agent(cwd=tmpdir, base_dir=REPO_ROOT)
             self.assertEqual(agent.model, f"openai-responses:{DEFAULT_MODEL_NAME}")
 
             model = TestModel(call_tools=[], custom_output_text="ok")
@@ -67,7 +71,8 @@ class SimpleAgentRunTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(result.output, "ok")
             assert model.last_model_request_parameters is not None
             tool_names = {tool.name for tool in model.last_model_request_parameters.function_tools}
-            self.assertEqual(tool_names, {"read", "write", "edit", "bash", "grep", "find", "ls"})
+            self.assertTrue({"read", "write", "edit", "bash", "grep", "find", "ls"}.issubset(tool_names))
+            self.assertTrue({"lean_get_hover", "kb_status", "informal_present"}.issubset(tool_names))
 
     async def test_main_runs_one_turn_and_returns_plain_text(self) -> None:
         with TemporaryDirectory() as tmpdir:
@@ -82,6 +87,7 @@ class SimpleAgentRunTests(unittest.IsolatedAsyncioTestCase):
                     ),
                     toolkit=ToolkitConfig(cwd=tmpdir),
                 ),
+                base_dir=REPO_ROOT,
                 model=model,
             )
 
@@ -90,6 +96,7 @@ class SimpleAgentRunTests(unittest.IsolatedAsyncioTestCase):
             tool_names = {tool.name for tool in model.last_model_request_parameters.function_tools}
             self.assertIn("read", tool_names)
             self.assertIn("bash", tool_names)
+            self.assertIn("lean_get_hover", tool_names)
 
     async def test_run_agent_from_config_writes_trace_into_output_dir(self) -> None:
         with TemporaryDirectory() as tmpdir, TemporaryDirectory() as outdir:

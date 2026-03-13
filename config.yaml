@@ -6,7 +6,7 @@ agent:
 prompts:
   system_prompt: |
     You are a coding agent working in the current repository.
-    Use the available tools when they help, and return a plain-text final answer.
+    Use the available coding and AFTK tools when they help, and return a plain-text final answer.
   user_prompt: |
     Say hello!
 
