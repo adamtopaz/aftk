@@ -156,11 +156,19 @@ The hub speaks newline-delimited JSON-RPC over stdio and spawns `aftk_file_worke
 
 ### Toolkit setup for pi
 
-Install or refresh the local pi shim and appended prompt for the current Lake workspace:
+Install or refresh the local pi shims and appended prompt for the current Lake workspace:
 
 ```text
 lake run aftk_setup
 ```
+
+This installs:
+
+- `.pi/extensions/aftk-toolkit.ts`
+- `.pi/extensions/aftk-logging.ts`
+- `.pi/APPEND_SYSTEM.md`
+
+The logging extension keeps pi session logs under `.aftk/logs/` and per-run cost summaries under `.aftk/cost/`.
 
 To edit the generated appended system prompt, update `src/hosts/pi/APPEND_SYSTEM.template.md` and rerun the setup command.
 

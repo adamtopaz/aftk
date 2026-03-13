@@ -49,6 +49,12 @@ private def shimHeader : String :=
 private def promptHeader : String :=
   s!"<!-- {generatedByLine} -->"
 
+private def toolkitEntryRelativePath : FilePath :=
+  mkFilePath ["src", "hosts", "pi", "extension.ts"]
+
+private def loggingEntryRelativePath : FilePath :=
+  mkFilePath ["src", "hosts", "pi", "logging-extension.ts"]
+
 private def promptSourceRelativePath : FilePath :=
   mkFilePath ["src", "hosts", "pi", "APPEND_SYSTEM.template.md"]
 
@@ -62,15 +68,17 @@ private def usageText : String :=
 private def helpText : String :=
   String.intercalate "\n\n" [
     usageText,
-    "Create or refresh the project-local pi extension shim and appended system prompt for AFTK.",
+    "Create or refresh the project-local pi extension shims and appended system prompt for AFTK.",
     String.intercalate "\n" [
       "This command reads from the resolved `aftk` package:",
       "- src/hosts/pi/extension.ts",
+      "- src/hosts/pi/logging-extension.ts",
       "- src/hosts/pi/APPEND_SYSTEM.template.md"
     ],
     String.intercalate "\n" [
       "This command writes:",
       "- .pi/extensions/aftk-toolkit.ts",
+      "- .pi/extensions/aftk-logging.ts",
       "- .pi/APPEND_SYSTEM.md"
     ],
     "It is safe to rerun. Existing files are updated only when they match the generated-file marker."
@@ -202,12 +210,16 @@ private def actionLabel (plan : ManagedWritePlan) : String :=
 private structure SetupSummary where
   projectDir : FilePath
   aftkDir : FilePath
-  entryFile : FilePath
+  toolkitEntryFile : FilePath
+  loggingEntryFile : FilePath
   promptSourcePath : FilePath
-  shimPath : FilePath
+  toolkitShimPath : FilePath
+  loggingShimPath : FilePath
   promptPath : FilePath
-  importSpecifier : String
-  shimPlan : ManagedWritePlan
+  toolkitImportSpecifier : String
+  loggingImportSpecifier : String
+  toolkitShimPlan : ManagedWritePlan
+  loggingShimPlan : ManagedWritePlan
   promptPlan : ManagedWritePlan
 
 private def runAftkSetup : ScriptM SetupSummary := do
@@ -215,28 +227,40 @@ private def runAftkSetup : ScriptM SetupSummary := do
   let projectDir := ws.dir
   let some aftkPkg ← findPackageByName? `aftk
     | throw <| IO.userError "AFTK setup failed: package `aftk` was not found in the current Lake workspace."
-  let entryFile := aftkPkg.dir / "src" / "hosts" / "pi" / "extension.ts"
-  unless (← entryFile.pathExists) do
-    throw <| IO.userError s!"AFTK setup failed: expected pi extension entrypoint is missing: {entryFile}"
+  let toolkitEntryFile := aftkPkg.dir / toolkitEntryRelativePath
+  unless (← toolkitEntryFile.pathExists) do
+    throw <| IO.userError s!"AFTK setup failed: expected pi toolkit extension entrypoint is missing: {toolkitEntryFile}"
+  let loggingEntryFile := aftkPkg.dir / loggingEntryRelativePath
+  unless (← loggingEntryFile.pathExists) do
+    throw <| IO.userError s!"AFTK setup failed: expected pi logging extension entrypoint is missing: {loggingEntryFile}"
   let promptSourcePath := promptTemplatePath aftkPkg.dir
-  let shimPath := projectDir / ".pi" / "extensions" / "aftk-toolkit.ts"
+  let toolkitShimPath := projectDir / ".pi" / "extensions" / "aftk-toolkit.ts"
+  let loggingShimPath := projectDir / ".pi" / "extensions" / "aftk-logging.ts"
   let promptPath := projectDir / ".pi" / "APPEND_SYSTEM.md"
-  let importSpecifier := computeImportSpecifier shimPath entryFile
-  let shimContent := buildShimContent importSpecifier
+  let toolkitImportSpecifier := computeImportSpecifier toolkitShimPath toolkitEntryFile
+  let loggingImportSpecifier := computeImportSpecifier loggingShimPath loggingEntryFile
+  let toolkitShimContent := buildShimContent toolkitImportSpecifier
+  let loggingShimContent := buildShimContent loggingImportSpecifier
   let promptContent ← buildPromptContent promptSourcePath
-  let shimPlan ← classifyManagedWrite shimPath shimContent shimHeader
+  let toolkitShimPlan ← classifyManagedWrite toolkitShimPath toolkitShimContent shimHeader
+  let loggingShimPlan ← classifyManagedWrite loggingShimPath loggingShimContent shimHeader
   let promptPlan ← classifyManagedWrite promptPath promptContent promptHeader
-  applyManagedWrite shimPath shimContent shimPlan
+  applyManagedWrite toolkitShimPath toolkitShimContent toolkitShimPlan
+  applyManagedWrite loggingShimPath loggingShimContent loggingShimPlan
   applyManagedWrite promptPath promptContent promptPlan
   return {
     projectDir,
     aftkDir := aftkPkg.dir,
-    entryFile,
+    toolkitEntryFile,
+    loggingEntryFile,
     promptSourcePath,
-    shimPath,
+    toolkitShimPath,
+    loggingShimPath,
     promptPath,
-    importSpecifier,
-    shimPlan,
+    toolkitImportSpecifier,
+    loggingImportSpecifier,
+    toolkitShimPlan,
+    loggingShimPlan,
     promptPlan,
   }
 
@@ -247,11 +271,14 @@ script aftk_setup (args) do
         let summary ← runAftkSetup
         IO.println s!"Workspace root: {summary.projectDir}"
         IO.println s!"AFTK package: {summary.aftkDir}"
-        IO.println s!"AFTK pi entrypoint: {summary.entryFile}"
+        IO.println s!"AFTK pi toolkit entrypoint: {summary.toolkitEntryFile}"
+        IO.println s!"AFTK pi logging entrypoint: {summary.loggingEntryFile}"
         IO.println s!"AFTK prompt template: {summary.promptSourcePath}"
-        IO.println s!"AFTK pi extension {actionLabel summary.shimPlan}: {summary.shimPath}"
+        IO.println s!"AFTK pi toolkit shim {actionLabel summary.toolkitShimPlan}: {summary.toolkitShimPath}"
+        IO.println s!"AFTK pi logging shim {actionLabel summary.loggingShimPlan}: {summary.loggingShimPath}"
         IO.println s!"AFTK appended system prompt {actionLabel summary.promptPlan}: {summary.promptPath}"
-        IO.println s!"Shim import specifier: {summary.importSpecifier}"
+        IO.println s!"Toolkit shim import specifier: {summary.toolkitImportSpecifier}"
+        IO.println s!"Logging shim import specifier: {summary.loggingImportSpecifier}"
         IO.println "If pi is already running, use `/reload`."
         pure 0
       catch e =>

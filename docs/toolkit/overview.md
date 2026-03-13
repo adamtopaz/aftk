@@ -7,14 +7,15 @@ Public entrypoints:
 
 - package library root: `src/index.ts` (exported as `.` from `package.json`)
 - pi adapter helpers: `src/hosts/pi/index.ts` (exported as `./pi`)
-- pi extension entrypoint: `src/hosts/pi/extension.ts` (exported as `./pi-extension`)
+- toolkit pi extension entrypoint: `src/hosts/pi/extension.ts` (exported as `./pi-extension`)
+- logging pi extension entrypoint: `src/hosts/pi/logging-extension.ts` (exported as `./pi-logging-extension`)
 - workspace setup script: `lake run aftk_setup`
 
 There is **no standalone toolkit CLI**.
 The toolkit is a library and host-integration layer that wraps lower-layer entrypoints.
 
 For a component-by-component guide with direct code pointers, see `docs/toolkit/library.md`.
-For the setup script that installs the local pi shim and appended prompt, see `docs/aftk_setup.md`.
+For the setup script that installs the local pi shims and appended prompt, see `docs/aftk_setup.md`.
 
 ## What is implemented
 
@@ -34,7 +35,8 @@ The current toolkit layer includes:
   - CLI-backed `informal_*`
 - aggregate toolset construction with family selection and managed shutdown
 - thin pi mounting helpers for both direct SDK use and extension-style registration
-- a Lake setup script that installs a project-local pi shim and appended AFTK prompt
+- a Lake setup script that installs project-local pi shims plus the appended AFTK prompt
+- a pi logging extension that keeps session logs under `.aftk/logs/` and run-cost summaries under `.aftk/cost/`
 - a dedicated TypeScript-side test suite under `tests/toolkit/`
 
 ## What it does not do
@@ -59,7 +61,8 @@ The TypeScript package is described by `package.json`:
   "exports": {
     ".": "./src/index.ts",
     "./pi": "./src/hosts/pi/index.ts",
-    "./pi-extension": "./src/hosts/pi/extension.ts"
+    "./pi-extension": "./src/hosts/pi/extension.ts",
+    "./pi-logging-extension": "./src/hosts/pi/logging-extension.ts"
   }
 }
 ```
@@ -199,7 +202,7 @@ When truncation happens, the returned text includes an explicit notice and the d
 ## Pi integration
 
 The toolkit has a thin host-adapter layer in `src/hosts/pi/`.
-There are two main entrypoints:
+There are three main pi-facing entrypoints:
 
 ### `createPiToolkitCustomTools(...)`
 
@@ -220,13 +223,29 @@ It:
 - adds an `aftk-extension-stop` command
 - hooks pi `session_shutdown` to call `dispose()`
 
-The default extension entrypoint in `src/hosts/pi/extension.ts` simply calls:
+The default toolkit extension entrypoint in `src/hosts/pi/extension.ts` simply calls:
 
 ```ts
 registerToolkitExtension(pi, { cwd: process.cwd() });
 ```
 
-So the extension remains intentionally thin and uses the current process working directory as its project anchor.
+### `registerAftkLoggingExtension(...)`
+
+Also exported from `src/hosts/pi/index.ts`.
+It:
+
+- redirects pi's session directory into `.aftk/logs/`
+- mirrors session JSONL into `.aftk/logs/` when pi is configured elsewhere or with `--no-session`
+- accumulates per-run usage from `agent_end`
+- writes per-run summaries to `.aftk/cost/`
+
+The logging extension entrypoint in `src/hosts/pi/logging-extension.ts` simply calls:
+
+```ts
+registerAftkLoggingExtension(pi);
+```
+
+So both pi extension entrypoints stay intentionally thin while the reusable logic lives in `src/hosts/pi/index.ts` and `src/hosts/pi/logging.ts`.
 
 ## Relationship to `aftk_setup`
 
@@ -234,10 +253,12 @@ So the extension remains intentionally thin and uses the current process working
 It writes:
 
 - `.pi/extensions/aftk-toolkit.ts`
+- `.pi/extensions/aftk-logging.ts`
 - `.pi/APPEND_SYSTEM.md`
 
-The generated shim re-exports the package's pi extension entrypoint from the resolved `aftk` package location.
+The generated shims re-export the package's pi extension entrypoints from the resolved `aftk` package location.
 The appended system prompt is generated from `src/hosts/pi/APPEND_SYSTEM.template.md` and adds AFTK-specific tool/workflow guidance for agents.
+Once installed, the logging extension keeps project-local logs under `.aftk/logs/` and run-cost summaries under `.aftk/cost/`.
 
 This script is documented separately in `docs/aftk_setup.md` because it is a Lake/workspace setup concern, not part of the reusable toolkit runtime itself.
 

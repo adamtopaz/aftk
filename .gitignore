@@ -1,3 +1,5 @@
 .envrc
 /.lake
+/.aftk/logs
+/.aftk/cost
 node_modules

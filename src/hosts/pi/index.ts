@@ -55,3 +55,26 @@ export function registerToolkitExtension(pi: PiExtensionAPILike, options: Create
 
   return integration;
 }
+
+export {
+  accumulateAgentRun,
+  createRunId,
+  createRunTotals,
+  createUsageTotals,
+  projectPath,
+  registerAftkLoggingExtension,
+  resolveCostDir,
+  resolveLogsDir,
+  resolveMirroredSessionLogFile,
+  resolveRunCostFile,
+  sanitizeFileToken,
+  type AftkPiLoggingController,
+  type AftkPiLoggingExtensionAPI,
+  type AftkPiLoggingOptions,
+  type AftkPiModelRunSummary,
+  type AftkPiRunCostSummary,
+  type AftkPiRunTotals,
+  type AftkPiSessionDirectoryEvent,
+  type AftkPiSessionDirectoryResult,
+  type AftkPiUsageTotals,
+} from "./logging.ts";

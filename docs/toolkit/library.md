@@ -10,7 +10,8 @@ Main code pointers:
 - curated public library root: `src/index.ts`
 - compatibility shim: `index.ts`
 - pi adapter helpers: `src/hosts/pi/index.ts`
-- default pi extension entrypoint: `src/hosts/pi/extension.ts`
+- toolkit pi extension entrypoint: `src/hosts/pi/extension.ts`
+- logging pi extension entrypoint: `src/hosts/pi/logging-extension.ts`
 - Lake setup script: `lakefile.lean`
 
 Package-export entrypoints from `package.json`:
@@ -18,6 +19,7 @@ Package-export entrypoints from `package.json`:
 - `.` -> `src/index.ts`
 - `./pi` -> `src/hosts/pi/index.ts`
 - `./pi-extension` -> `src/hosts/pi/extension.ts`
+- `./pi-logging-extension` -> `src/hosts/pi/logging-extension.ts`
 
 Operational lower-layer entrypoints targeted by the toolkit:
 
@@ -52,8 +54,9 @@ lake run aftk_setup
 | Knowledge-base tool family | `src/toolkit/tools/knowledgebase.ts` | `knowledgebase_*` query/report tool definitions over the CLI client |
 | Informal tool family | `src/toolkit/tools/informal.ts` | `informal_*` tracking/dependency/presentation tool definitions over the CLI client |
 | Aggregate toolset | `src/toolkit/tools/aggregate.ts` | Shared runtime + selected family assembly + managed shutdown |
-| Pi adapter helpers | `src/hosts/pi/index.ts` | Direct SDK custom-tools helper and extension-style registration helper |
-| Pi extension entrypoint | `src/hosts/pi/extension.ts` | Default extension registration using `process.cwd()` |
+| Pi adapter helpers | `src/hosts/pi/index.ts` | Direct SDK custom-tools helper plus logging-helper exports |
+| Toolkit pi extension entrypoint | `src/hosts/pi/extension.ts` | Default toolkit extension registration using `process.cwd()` |
+| Logging pi extension entrypoint | `src/hosts/pi/logging-extension.ts` | Default logging extension registration for `.aftk/logs/` and `.aftk/cost/` |
 | Lake setup script | `lakefile.lean` | Project-local pi shim/prompt generation for `aftk_setup` |
 
 ## Root and export surfaces
@@ -92,7 +95,7 @@ Important implementation facts:
 
 - package name: `aftk-toolkit`
 - module mode: ESM (`"type": "module"`)
-- pi metadata points at `src/hosts/pi/extension.ts`
+- pi metadata points at both `src/hosts/pi/extension.ts` and `src/hosts/pi/logging-extension.ts`
 - toolkit scripts are separate from `lake test`
 
 ## Runtime components
@@ -560,7 +563,7 @@ Important current detail:
 
 ### `src/hosts/pi/index.ts`
 
-This file contains the thin pi-specific mounting helpers.
+This file contains the thin pi-specific mounting helpers and re-exports the logging helpers.
 
 Important definitions:
 
@@ -568,6 +571,7 @@ Important definitions:
 - `PiToolkitIntegration`
 - `createPiToolkitCustomTools(...)`
 - `registerToolkitExtension(...)`
+- `registerAftkLoggingExtension(...)`
 
 Implementation role:
 
@@ -576,15 +580,38 @@ Implementation role:
 - supports extension-style registration into pi
 - adds the `aftk-extension-stop` command
 - hooks `session_shutdown` for cleanup
+- re-exports the logging helper surface from `src/hosts/pi/logging.ts`
+
+### `src/hosts/pi/logging.ts`
+
+This file contains the reusable pi logging implementation.
+
+Implementation role:
+
+- resolves `.aftk/logs/` and `.aftk/cost/` paths
+- redirects the pi session directory into `.aftk/logs/`
+- mirrors session JSONL into `.aftk/logs/` when pi is configured elsewhere or with `--no-session`
+- accumulates per-run usage from `agent_end`
+- writes per-run JSON summaries into `.aftk/cost/`
 
 ### `src/hosts/pi/extension.ts`
 
-This is the default extension entrypoint.
+This is the default toolkit extension entrypoint.
 
 Implementation role:
 
 - exports a default function for pi discovery/loading
 - calls `registerToolkitExtension(pi, { cwd: process.cwd() })`
+- stays intentionally tiny and declarative
+
+### `src/hosts/pi/logging-extension.ts`
+
+This is the default logging extension entrypoint.
+
+Implementation role:
+
+- exports a default function for pi discovery/loading
+- calls `registerAftkLoggingExtension(pi)`
 - stays intentionally tiny and declarative
 
 ## Setup-script component
@@ -607,8 +634,10 @@ Implementation role:
 
 - discovers the current Lake workspace root and the `aftk` package location
 - locates `src/hosts/pi/extension.ts`
+- locates `src/hosts/pi/logging-extension.ts`
 - locates `src/hosts/pi/APPEND_SYSTEM.template.md`
 - generates `.pi/extensions/aftk-toolkit.ts`
+- generates `.pi/extensions/aftk-logging.ts`
 - generates `.pi/APPEND_SYSTEM.md`
 - refuses to overwrite user-managed files without the generated marker
 - supports `--help`

@@ -226,6 +226,7 @@ The TypeScript package exposes these main entrypoints:
 - `src/index.ts` via package export `.`
 - `src/hosts/pi/index.ts` via package export `./pi`
 - `src/hosts/pi/extension.ts` via package export `./pi-extension`
+- `src/hosts/pi/logging-extension.ts` via package export `./pi-logging-extension`
 
 There is no separate standalone toolkit executable.
 The toolkit talks to the lower layers through:
@@ -259,7 +260,8 @@ These are the highest-level code files to read first:
 - `AFTK/FileWorker/Main.lean` — worker executable main
 - `src/index.ts` — toolkit public package root
 - `src/hosts/pi/index.ts` — pi mounting helpers
-- `src/hosts/pi/extension.ts` — default pi extension entrypoint
+- `src/hosts/pi/extension.ts` — default toolkit pi extension entrypoint
+- `src/hosts/pi/logging-extension.ts` — default logging pi extension entrypoint
 - `lakefile.lean` — Lake package config plus `aftk_setup`
 
 ## Testing structure
