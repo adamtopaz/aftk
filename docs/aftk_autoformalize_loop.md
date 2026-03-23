@@ -64,6 +64,14 @@ The template tells the agent to:
 The script is designed to work in downstream Lake workspaces that depend on `aftk`.
 It resolves the `aftk` package through Lake and then ensures pi gets the needed AFTK resources.
 
+For the `pi` executable itself, the script behaves as follows:
+
+- if `AFTK_PI_COMMAND` is set, that command/path is used directly
+- otherwise it probes `pi` on `PATH`, the downstream workspace's local `node_modules/.bin/pi`, and the resolved `aftk` package's local `node_modules/.bin/pi`
+- among runnable candidates, it uses the newest detected version
+
+This avoids silently pinning the loop to an older project-local pi when a newer global pi is already installed.
+
 If the downstream workspace already has the standard local AFTK pi setup files:
 
 - `.pi/extensions/aftk-toolkit.ts`

@@ -330,6 +330,7 @@ private def autoformalizeLoopHelpText : String :=
     ],
     String.intercalate "\n" [
       "Downstream-workspace behavior:",
+      "- honors `AFTK_PI_COMMAND` when set; otherwise probes `pi` on PATH plus project-local / `aftk`-package-local installs and uses the newest runnable version",
       "- if `.pi/extensions/aftk-toolkit.ts` or `.pi/extensions/aftk-logging.ts` are missing, the script loads the AFTK extension entrypoints directly from the resolved `aftk` package",
       "- if `.pi/APPEND_SYSTEM.md` is missing, the script appends the package's AFTK agent-guidance template directly",
       "- logs and cost summaries still land under `.aftk/logs/` and `.aftk/cost/` via the logging extension"
@@ -456,27 +457,113 @@ private def buildAutoformalizeLoopPrompt (templateBody task : String) (step : Na
 private def localPiBinaryName : String :=
   if System.Platform.isWindows then "pi.cmd" else "pi"
 
-private def resolvePiCommand (projectDir aftkDir : FilePath) : IO String := do
-  let candidates := [
-    projectDir / "node_modules" / ".bin" / localPiBinaryName,
-    aftkDir / "node_modules" / ".bin" / localPiBinaryName
-  ]
-  for candidate in candidates do
-    if ← candidate.pathExists then
-      return candidate.toString
-  return "pi"
+private structure ResolvedPiCommand where
+  cmd : String
+  source : String
+  versionText? : Option String := none
+  version? : Option (Nat × Nat × Nat) := none
 
-private def verifyPiCommand (piCmd : String) (cwd : FilePath) : IO Unit := do
+private def parsePiVersion? (raw : String) : Option (Nat × Nat × Nat) :=
+  match raw.trimAscii.toString |>.splitOn "." with
+  | [major, minor, patch] =>
+      match major.toNat?, minor.toNat?, patch.toNat? with
+      | some major, some minor, some patch => some (major, minor, patch)
+      | _, _, _ => none
+  | _ => none
+
+private def comparePiVersions (lhs rhs : Nat × Nat × Nat) : Ordering :=
+  let (lhsMajor, lhsMinor, lhsPatch) := lhs
+  let (rhsMajor, rhsMinor, rhsPatch) := rhs
+  if lhsMajor < rhsMajor then .lt
+  else if lhsMajor > rhsMajor then .gt
+  else if lhsMinor < rhsMinor then .lt
+  else if lhsMinor > rhsMinor then .gt
+  else if lhsPatch < rhsPatch then .lt
+  else if lhsPatch > rhsPatch then .gt
+  else .eq
+
+private def probePiCommand? (cmd source : String) (cwd : FilePath) : IO (Option ResolvedPiCommand) := do
   try
     let out ← IO.Process.output {
-      cmd := piCmd
+      cmd := cmd
+      args := #["--version"]
+      cwd := some cwd
+    }
+    if out.exitCode != 0 then
+      return none
+    let stdoutText := out.stdout.trimAscii.toString
+    let stderrText := out.stderr.trimAscii.toString
+    let versionText? :=
+      if !stdoutText.isEmpty then some stdoutText
+      else if !stderrText.isEmpty then some stderrText
+      else none
+    return some {
+      cmd := cmd
+      source := source
+      versionText? := versionText?
+      version? := versionText?.bind parsePiVersion?
+    }
+  catch _ =>
+    return none
+
+private def bestResolvedPiCommand? : List ResolvedPiCommand → Option ResolvedPiCommand
+  | [] => none
+  | head :: tail =>
+      some <| tail.foldl (init := head) fun best candidate =>
+        match candidate.version?, best.version? with
+        | some candidateVersion, some bestVersion =>
+            match comparePiVersions candidateVersion bestVersion with
+            | .gt => candidate
+            | .eq => best
+            | .lt => best
+        | some _, none => candidate
+        | none, some _ => best
+        | none, none => best
+
+private def resolvePiCommand (projectDir aftkDir : FilePath) : IO ResolvedPiCommand := do
+  let envOverride? ← IO.getEnv "AFTK_PI_COMMAND"
+  let envOverride? := envOverride?.bind fun raw =>
+    let trimmed := raw.trimAscii.toString
+    if trimmed.isEmpty then none else some trimmed
+  match envOverride? with
+  | some cmd =>
+      return {
+        cmd := cmd
+        source := "env:AFTK_PI_COMMAND"
+      }
+  | none =>
+      let projectCandidate := projectDir / "node_modules" / ".bin" / localPiBinaryName
+      let aftkCandidate := aftkDir / "node_modules" / ".bin" / localPiBinaryName
+      let mut candidates : List (String × String) := [("pi", "PATH")]
+      if ← projectCandidate.pathExists then
+        candidates := candidates ++ [(projectCandidate.toString, "project-local")]
+      if ← aftkCandidate.pathExists then
+        let aftkCmd := aftkCandidate.toString
+        unless candidates.any (fun (cmd, _) => cmd == aftkCmd) do
+          candidates := candidates ++ [(aftkCmd, "aftk-package-local")]
+      let mut resolvedRev : List ResolvedPiCommand := []
+      for (cmd, source) in candidates do
+        if let some resolved ← probePiCommand? cmd source projectDir then
+          resolvedRev := resolved :: resolvedRev
+      match bestResolvedPiCommand? resolvedRev.reverse with
+      | some resolved =>
+          pure resolved
+      | none =>
+          match candidates with
+          | (cmd, source) :: _ => pure { cmd := cmd, source := source }
+          | [] => pure { cmd := "pi", source := "PATH" }
+
+private def verifyPiCommand (resolved : ResolvedPiCommand) (cwd : FilePath) : IO Unit := do
+  try
+    let out ← IO.Process.output {
+      cmd := resolved.cmd
       args := #["--version"]
       cwd := some cwd
     }
     if out.exitCode != 0 then
       throw <| IO.userError s!"AFTK autoformalize loop failed: `pi --version` exited with code {out.exitCode}.\n{out.stderr}"
   catch e =>
-    throw <| IO.userError s!"AFTK autoformalize loop failed: could not execute `pi` command `{piCmd}`.\n{e.toString}"
+    throw <| IO.userError s!"AFTK autoformalize loop failed: could not execute `pi` command `{resolved.cmd}` ({resolved.source}).\n{e.toString}"
 
 private def appendArgPair (args : Array String) (flag : String) (value? : Option String) : Array String :=
   match value? with
@@ -572,8 +659,8 @@ script aftk_autoformalize_loop (args) do
           | throw <| IO.userError "AFTK autoformalize loop failed: package `aftk` was not found in the current Lake workspace."
         let task ← resolveAutoformalizeTask projectDir opts
         let templateBody ← readAutoformalizePromptTemplate aftkPkg.dir
-        let piCmd ← resolvePiCommand projectDir aftkPkg.dir
-        verifyPiCommand piCmd projectDir
+        let piResolved ← resolvePiCommand projectDir aftkPkg.dir
+        verifyPiCommand piResolved projectDir
         let sharedPiArgsBase ← missingAftkPiResourceArgs projectDir aftkPkg.dir
         let sharedPiArgs :=
           appendArgPair
@@ -583,9 +670,12 @@ script aftk_autoformalize_loop (args) do
             "--thinking" opts.thinking?
         stderrPut s!"Workspace root: {projectDir}\n"
         stderrPut s!"AFTK package: {aftkPkg.dir}\n"
-        stderrPut s!"pi command: {piCmd}\n"
+        stderrPut s!"pi command: {piResolved.cmd}\n"
+        stderrPut s!"pi source: {piResolved.source}\n"
+        if let some versionText := piResolved.versionText? then
+          stderrPut s!"pi version: {versionText}\n"
         stderrPut s!"Loop stop marker: {autoformalizeDoneWord}\n"
-        let exitCode ← runAutoformalizeLoopSteps projectDir aftkPkg.dir piCmd opts templateBody task sharedPiArgs
+        let exitCode ← runAutoformalizeLoopSteps projectDir aftkPkg.dir piResolved.cmd opts templateBody task sharedPiArgs
         pure exitCode
       catch e =>
         IO.eprintln e.toString

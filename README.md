@@ -184,6 +184,7 @@ lake run aftk_autoformalize_loop Formalize the next meaningful frontier from ent
 
 This script never uses `--continue`.
 Each iteration runs `pi --print --no-session`, expects work to proceed stigmergically from durable repo state, and stops only when the final marker is `AFTK_LOOP_DONE`.
+The loop honors `AFTK_PI_COMMAND` when set and otherwise probes available `pi` binaries, preferring the newest runnable version.
 See `docs/aftk_autoformalize_loop.md`.
 
 ## Repository structure
