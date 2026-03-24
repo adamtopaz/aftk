@@ -16,7 +16,7 @@ export interface PiCommandDefinitionLike {
 export interface PiExtensionAPILike {
   registerTool: (tool: ToolkitToolDefinition) => void;
   registerCommand: (name: string, command: PiCommandDefinitionLike) => void;
-  on: (event: "session_shutdown", handler: () => Promise<void> | void) => void;
+  on: (event: "session_shutdown" | "agent_end", handler: (...args: any[]) => Promise<void> | void) => void;
 }
 
 export interface PiToolkitIntegration {
@@ -51,6 +51,12 @@ export function registerToolkitExtension(pi: PiExtensionAPILike, options: Create
 
   pi.on("session_shutdown", async () => {
     await integration.dispose();
+  });
+
+  pi.on("agent_end", async (_event, ctx) => {
+    if (ctx?.hasUI === false) {
+      await integration.dispose();
+    }
   });
 
   return integration;
